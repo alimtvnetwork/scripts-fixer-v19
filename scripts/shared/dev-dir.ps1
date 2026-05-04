@@ -270,6 +270,7 @@ function Resolve-SmartDevDir {
     if ($isAutoYes) {
         $fallbackPath = Get-SafeDevDirFallback
         Write-Log ($slm.messages.devDirFallback -replace '\{path\}', $fallbackPath) -Level "warn"
+        Save-CachedDevDir -Path $fallbackPath
         return $fallbackPath
     }
 
@@ -289,12 +290,14 @@ function Resolve-SmartDevDir {
     $hasUserInput = -not [string]::IsNullOrWhiteSpace($userInput)
     if ($hasUserInput) {
         Write-Log ($slm.messages.devDirUserProvided -replace '\{path\}', $userInput) -Level "info"
+        Save-CachedDevDir -Path $userInput
         return $userInput
     }
 
     # Last resort fallback
     $fallbackPath = Get-SafeDevDirFallback
     Write-Log ($slm.messages.devDirFallback -replace '\{path\}', $fallbackPath) -Level "warn"
+    Save-CachedDevDir -Path $fallbackPath
     return $fallbackPath
 }
 
