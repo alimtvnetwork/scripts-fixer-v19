@@ -12,6 +12,10 @@ $_npmUtilsPath = Join-Path $_sharedDir "npm-utils.ps1"
 if ((Test-Path $_npmUtilsPath) -and -not (Get-Command Invoke-NpmGlobalInstall -ErrorAction SilentlyContinue)) {
     . $_npmUtilsPath
 }
+$_devDirPath = Join-Path $_sharedDir "dev-dir.ps1"
+if ((Test-Path $_devDirPath) -and -not (Get-Command Resolve-SmartDevDir -ErrorAction SilentlyContinue)) {
+    . $_devDirPath
+}
 
 
 function Install-Pnpm {
