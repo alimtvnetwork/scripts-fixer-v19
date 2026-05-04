@@ -185,26 +185,92 @@ function Find-BestDevDrive {
     return $null
 }
 
+function Get-DevDriveCacheFile {
+    # Repo root = parent of scripts/ which is parent of scripts/shared/
+    $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $cacheDir = Join-Path $repoRoot ".resolved"
+    if (-not (Test-Path $cacheDir)) {
+        New-Item -Path $cacheDir -ItemType Directory -Force -Confirm:$false | Out-Null
+    }
+    return Join-Path $cacheDir "dev-drive-cache.json"
+}
+
+function Get-CachedDevDir {
+    <#
+    .SYNOPSIS
+        Reads the cached smart-detected dev dir from .dev-drive-cache.json.
+        Returns the cached path if the drive is still present + ready,
+        otherwise $null (cache is treated as stale).
+    #>
+    $cacheFile = Get-DevDriveCacheFile
+    if (-not (Test-Path $cacheFile)) { return $null }
+
+    try {
+        $data = Get-Content $cacheFile -Raw | ConvertFrom-Json
+        $cachedPath = $data.path
+        if ([string]::IsNullOrWhiteSpace($cachedPath)) { return $null }
+
+        # Validate the cached drive is still usable
+        $isDriveQualifiedPath = $cachedPath -match '^[A-Za-z]:\\'
+        if ($isDriveQualifiedPath) {
+            $driveLetter = $cachedPath.Substring(0, 1)
+            try {
+                $driveInfo = New-Object System.IO.DriveInfo("${driveLetter}:")
+                if (-not $driveInfo.IsReady) { return $null }
+            } catch { return $null }
+        }
+        return $cachedPath
+    } catch {
+        return $null
+    }
+}
+
+function Save-CachedDevDir {
+    param([Parameter(Mandatory)][string]$Path)
+    $cacheFile = Get-DevDriveCacheFile
+    try {
+        @{
+            path       = $Path
+            cachedAt   = (Get-Date).ToString("o")
+            cachedBy   = "Resolve-SmartDevDir"
+        } | ConvertTo-Json -Depth 2 | Set-Content -Path $cacheFile -Encoding UTF8
+    } catch {
+        # Non-fatal: caching is best-effort
+    }
+}
+
 function Resolve-SmartDevDir {
     <#
     .SYNOPSIS
         Smart dev directory resolution. Finds the best drive automatically,
         falls back to prompting the user if no drive qualifies.
-        Returns a path like "E:\dev".
+        Result is cached to .dev-drive-cache.json (gitignored) so subsequent
+        runs skip drive probing entirely while the cached drive remains ready.
+        Returns a path like "E:\dev-tool".
     #>
 
     $slm = $script:SharedLogMessages
 
+    # Cache hit -- skip detection entirely
+    $cached = Get-CachedDevDir
+    if ($null -ne $cached) {
+        Write-Log "Using cached dev dir: $cached (.dev-drive-cache.json)" -Level "info"
+        return $cached
+    }
+
     $bestDrive = Find-BestDevDrive
     $hasBestDrive = $null -ne $bestDrive
     if ($hasBestDrive) {
-        return "${bestDrive}:\dev-tool"
+        $resolved = "${bestDrive}:\dev-tool"
+        Save-CachedDevDir -Path $resolved
+        return $resolved
     }
 
     $isAutoYes = $env:SCRIPTS_AUTO_YES -eq '1'
     if ($isAutoYes) {
         $fallbackPath = Get-SafeDevDirFallback
         Write-Log ($slm.messages.devDirFallback -replace '\{path\}', $fallbackPath) -Level "warn"
+        Save-CachedDevDir -Path $fallbackPath
         return $fallbackPath
     }
 
@@ -224,12 +290,14 @@ function Resolve-SmartDevDir {
     $hasUserInput = -not [string]::IsNullOrWhiteSpace($userInput)
     if ($hasUserInput) {
         Write-Log ($slm.messages.devDirUserProvided -replace '\{path\}', $userInput) -Level "info"
+        Save-CachedDevDir -Path $userInput
         return $userInput
     }
 
     # Last resort fallback
     $fallbackPath = Get-SafeDevDirFallback
     Write-Log ($slm.messages.devDirFallback -replace '\{path\}', $fallbackPath) -Level "warn"
+    Save-CachedDevDir -Path $fallbackPath
     return $fallbackPath
 }
 
