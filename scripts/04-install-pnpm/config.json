@@ -4,7 +4,8 @@
   "devDirSubfolder": "pnpm",
   "store": {
     "setStorePath": true,
-    "storePath": "E:\\dev-tool\\pnpm\\store"
+    "storePath": null,
+    "_storePath_doc": "Optional pinned pnpm store directory. When null (default) the script uses smart dev-dir auto-resolution (cached in .resolved/dev-drive-cache.json) and falls back to %LOCALAPPDATA%\\pnpm\\store if no qualifying drive is found. Only set this to an absolute path if you want to FORCE a specific location -- and only if its drive will always be mounted."
   },
   "path": {
     "updateUserPath": true

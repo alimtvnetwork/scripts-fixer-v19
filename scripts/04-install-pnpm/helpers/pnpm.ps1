@@ -12,6 +12,10 @@ $_npmUtilsPath = Join-Path $_sharedDir "npm-utils.ps1"
 if ((Test-Path $_npmUtilsPath) -and -not (Get-Command Invoke-NpmGlobalInstall -ErrorAction SilentlyContinue)) {
     . $_npmUtilsPath
 }
+$_devDirPath = Join-Path $_sharedDir "dev-dir.ps1"
+if ((Test-Path $_devDirPath) -and -not (Get-Command Resolve-SmartDevDir -ErrorAction SilentlyContinue)) {
+    . $_devDirPath
+}
 
 
 function Install-Pnpm {
@@ -123,17 +127,55 @@ function Configure-PnpmStore {
         return $null
     }
 
-    # Resolve store path
-    $storePath = if ($DevDir) {
-        Join-Path (Join-Path $DevDir $Config.devDirSubfolder) "store"
-    } else {
-        $storeConfig.storePath
+    # Resolve store path -- mirror smart npm prefix logic:
+    #   1. Caller-provided -DevDir            (explicit override)
+    #   2. Config-pinned store.storePath      (only if its drive is mounted)
+    #   3. Resolve-SmartDevDir + subfolder    (auto)
+    #   4. %LOCALAPPDATA%\pnpm\store          (last-resort)
+    $configuredStore = $storeConfig.storePath
+    $hasConfiguredStore = -not [string]::IsNullOrWhiteSpace("$configuredStore")
+
+    $storePath = $null
+    if ($DevDir) {
+        $storePath = Join-Path (Join-Path $DevDir $Config.devDirSubfolder) "store"
+    }
+    elseif ($hasConfiguredStore) {
+        $cfgRoot = try { [System.IO.Path]::GetPathRoot($configuredStore) } catch { $null }
+        $cfgDriveReady = -not [string]::IsNullOrWhiteSpace($cfgRoot) -and (Test-Path -LiteralPath $cfgRoot)
+        if ($cfgDriveReady) {
+            $storePath = $configuredStore
+        } else {
+            Write-Log "Configured pnpm store '$configuredStore' lives on '$cfgRoot' which is not mounted -- using smart auto-resolve instead." -Level "info"
+        }
+    }
+    if (-not $storePath) {
+        try {
+            if (Get-Command Resolve-SmartDevDir -ErrorAction SilentlyContinue) {
+                $smartDir = Resolve-SmartDevDir
+                if ($smartDir) {
+                    $storePath = Join-Path (Join-Path $smartDir $Config.devDirSubfolder) "store"
+                }
+            }
+        } catch {
+            Write-Log "Resolve-SmartDevDir threw: $_ -- falling back to %LOCALAPPDATA%\pnpm\store." -Level "info"
+        }
+    }
+    if (-not $storePath) {
+        $localApp = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $env:USERPROFILE "AppData\Local" }
+        $storePath = Join-Path (Join-Path $localApp "pnpm") "store"
+        Write-Log "Auto-selecting default pnpm store: $storePath" -Level "info"
     }
 
     # Ensure directory exists
     $isDirMissing = -not (Test-Path $storePath)
     if ($isDirMissing) {
-        New-Item -Path $storePath -ItemType Directory -Force | Out-Null
+        try {
+            New-Item -Path $storePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        } catch {
+            Write-FileError -FilePath $storePath -Operation "create-pnpm-store-dir" `
+                -Reason "Cannot create pnpm store directory: $_" -Module "Configure-PnpmStore"
+            return $null
+        }
     }
 
     # Check current store dir

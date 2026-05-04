@@ -12,6 +12,10 @@ $_npmUtilsPath = Join-Path $_sharedDir "npm-utils.ps1"
 if ((Test-Path $_npmUtilsPath) -and -not (Get-Command Invoke-NpmGlobalInstall -ErrorAction SilentlyContinue)) {
     . $_npmUtilsPath
 }
+$_devDirPath = Join-Path $_sharedDir "dev-dir.ps1"
+if ((Test-Path $_devDirPath) -and -not (Get-Command Resolve-SmartDevDir -ErrorAction SilentlyContinue)) {
+    . $_devDirPath
+}
 
 
 function Install-NodeJs {
@@ -83,11 +87,17 @@ function Test-NpmPrefixWritable {
              npm's bundled libuv mkdir).
 
         Returns a hashtable: Ok (bool), Reason (string), ProbeFile (string).
-        On failure ALWAYS logs a CODE RED Write-FileError with the exact
-        path and reason so the user can see WHY the fallback kicked in.
+
+        SEVERITY:
+          By default a probe failure is logged as CODE RED Write-FileError
+          (the user explicitly asked for that path). Pass -Speculative when
+          probing a *candidate* prefix during auto-resolution -- a missing
+          drive then logs as 'info' (expected fallback signal), not as a
+          fail. This mirrors Test-DriveQualified -Speculative in dev-dir.ps1.
     #>
     param(
-        [Parameter(Mandatory)] [string]$PrefixPath
+        [Parameter(Mandatory)] [string]$PrefixPath,
+        [switch]$Speculative
     )
 
     $result = @{ Ok = $false; Reason = $null; ProbeFile = $null }
@@ -98,12 +108,20 @@ function Test-NpmPrefixWritable {
         $hasDrive = -not [string]::IsNullOrWhiteSpace($driveQualifier)
         if ($hasDrive -and -not (Test-Path -LiteralPath $driveQualifier)) {
             $result.Reason = "Drive '$driveQualifier' does not exist or is not mounted in this session."
-            Write-FileError -FilePath $PrefixPath -Operation "probe-prefix-drive" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+            if ($Speculative) {
+                Write-Log "Speculative npm prefix '$PrefixPath' skipped: $($result.Reason)" -Level "info"
+            } else {
+                Write-FileError -FilePath $PrefixPath -Operation "probe-prefix-drive" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+            }
             return $result
         }
     } catch {
         $result.Reason = "Could not parse drive root: $_"
-        Write-FileError -FilePath $PrefixPath -Operation "probe-prefix-drive" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+        if ($Speculative) {
+            Write-Log "Speculative npm prefix '$PrefixPath' skipped: $($result.Reason)" -Level "info"
+        } else {
+            Write-FileError -FilePath $PrefixPath -Operation "probe-prefix-drive" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+        }
         return $result
     }
 
@@ -113,7 +131,11 @@ function Test-NpmPrefixWritable {
             New-Item -Path $PrefixPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
         } catch {
             $result.Reason = "Cannot create directory: $_"
-            Write-FileError -FilePath $PrefixPath -Operation "create-prefix-dir" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+            if ($Speculative) {
+                Write-Log "Speculative npm prefix '$PrefixPath' skipped: $($result.Reason)" -Level "info"
+            } else {
+                Write-FileError -FilePath $PrefixPath -Operation "create-prefix-dir" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+            }
             return $result
         }
     }
@@ -128,7 +150,11 @@ function Test-NpmPrefixWritable {
         return $result
     } catch {
         $result.Reason = "Directory exists but is not writable (probe failed: $_). This usually means antivirus, a file-system filter, or a different identity owns the folder."
-        Write-FileError -FilePath $probe -Operation "probe-prefix-write" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+        if ($Speculative) {
+            Write-Log "Speculative npm prefix '$PrefixPath' skipped: $($result.Reason)" -Level "info"
+        } else {
+            Write-FileError -FilePath $probe -Operation "probe-prefix-write" -Reason $result.Reason -Module "Test-NpmPrefixWritable"
+        }
         return $result
     }
 }
@@ -158,32 +184,67 @@ function Configure-NpmPrefix {
     $isSetPrefixDisabled = -not $npmConfig.setGlobalPrefix
     if ($isSetPrefixDisabled) { return }
 
-    # Resolve prefix path
-    $requestedPrefix = if ($DevDir) {
-        Join-Path $DevDir $Config.devDirSubfolder
-    } else {
-        $npmConfig.globalPrefix
+    # ----------------------------------------------------------------------
+    # Resolve the prefix using the same priority the smart dev-dir uses:
+    #   1. Caller-provided -DevDir            (explicit override -- CODE RED on fail)
+    #   2. Config-pinned npm.globalPrefix     (only if its drive is currently mounted)
+    #   3. Resolve-SmartDevDir + subfolder    (auto -- silent fallback if drive gone)
+    #   4. npm default (%APPDATA%\npm)        (last-resort guaranteed-writable path)
+    # The pinned config value is treated as a *preference*, not a force, so a
+    # missing E:\ on a fresh machine no longer triggers a CODE RED file error.
+    # ----------------------------------------------------------------------
+    $isUserForced = [bool]$DevDir
+    $configuredPrefix = $npmConfig.globalPrefix
+    $hasConfiguredPrefix = -not [string]::IsNullOrWhiteSpace("$configuredPrefix")
+
+    if ($isUserForced) {
+        $requestedPrefix = Join-Path $DevDir $Config.devDirSubfolder
+        $probe = Test-NpmPrefixWritable -PrefixPath $requestedPrefix   # CODE RED on fail (user forced it)
+    }
+    else {
+        $requestedPrefix = $null
+        $probe = @{ Ok = $false; Reason = "no candidate yet" }
+
+        # Try the pinned config prefix only if its drive is currently mounted.
+        if ($hasConfiguredPrefix) {
+            $cfgRoot = try { [System.IO.Path]::GetPathRoot($configuredPrefix) } catch { $null }
+            $cfgDriveReady = -not [string]::IsNullOrWhiteSpace($cfgRoot) -and (Test-Path -LiteralPath $cfgRoot)
+            if ($cfgDriveReady) {
+                $requestedPrefix = $configuredPrefix
+                $probe = Test-NpmPrefixWritable -PrefixPath $requestedPrefix -Speculative
+            } else {
+                Write-Log "Configured npm prefix '$configuredPrefix' lives on '$cfgRoot' which is not mounted -- using smart auto-resolve instead." -Level "info"
+            }
+        }
+
+        # Smart dev-dir auto-resolution
+        if (-not $probe.Ok) {
+            $smartDir = $null
+            try {
+                if (Get-Command Resolve-SmartDevDir -ErrorAction SilentlyContinue) {
+                    $smartDir = Resolve-SmartDevDir
+                }
+            } catch {
+                Write-Log "Resolve-SmartDevDir threw: $_ -- continuing to npm default fallback." -Level "info"
+            }
+            if ($smartDir) {
+                $requestedPrefix = Join-Path $smartDir $Config.devDirSubfolder
+                $probe = Test-NpmPrefixWritable -PrefixPath $requestedPrefix -Speculative
+            }
+        }
     }
 
-    # Probe the requested prefix BEFORE telling npm to use it. If it's not
-    # writable we fall back to npm's default ($APPDATA\npm) so downstream
-    # `npm install -g ...` calls (yarn, pnpm, etc.) don't crash with
-    # errno -4094 / UNKNOWN: mkdir.
-    $probe = Test-NpmPrefixWritable -PrefixPath $requestedPrefix
     if ($probe.Ok) {
         $prefixPath = $requestedPrefix
     } else {
         $fallback = Get-NpmDefaultPrefix
-        Write-Log "Requested npm prefix '$requestedPrefix' is not usable -- $($probe.Reason)" -Level "warn"
-        Write-Log "Falling back to npm default prefix: $fallback" -Level "warn"
-        # Make sure the fallback itself is usable; if it isn't there's nothing
-        # we can do but surface the error loudly.
+        $reasonText = if ($probe.Reason) { $probe.Reason } else { "no usable candidate found" }
+        Write-Log "Auto-selecting npm default prefix '$fallback' (reason: $reasonText)." -Level "info"
         $probe2 = Test-NpmPrefixWritable -PrefixPath $fallback
         if (-not $probe2.Ok) {
             Write-FileError -FilePath $fallback -Operation "fallback-prefix" `
-                -Reason "Both requested prefix and npm default fallback are unwritable. $($probe2.Reason)" `
+                -Reason "npm default fallback prefix is unwritable. $($probe2.Reason)" `
                 -Module "Configure-NpmPrefix"
-            # Return $null so callers know npm prefix is not configured.
             return $null
         }
         $prefixPath = $fallback

@@ -103,9 +103,19 @@ switch ($Command.ToLower()) {
 }
 
 # -- Save resolved state -------------------------------------------------------
+# Guard: only invoke pnpm if it actually resolved on PATH. Otherwise the
+# bare `& pnpm ...` calls crash under Set-StrictMode with
+# "The term 'pnpm' is not recognized..." -- masking the real install failure.
 Write-Log $logMessages.messages.savingResolved -Level "info"
-$pnpmVersion = & pnpm --version 2>$null
-$storeDir    = & pnpm config get store-dir 2>$null
+$pnpmCmd = Get-Command pnpm -ErrorAction SilentlyContinue
+if ($pnpmCmd) {
+    $pnpmVersion = try { & pnpm --version 2>$null } catch { $null }
+    $storeDir    = try { & pnpm config get store-dir 2>$null } catch { $null }
+} else {
+    Write-Log "Skipping pnpm version/store capture: 'pnpm' not on PATH (install did not succeed)." -Level "warn"
+    $pnpmVersion = $null
+    $storeDir    = $null
+}
 
 Save-ResolvedData -ScriptFolder "04-install-pnpm" -Data @{
     pnpmVersion = $pnpmVersion
@@ -114,7 +124,11 @@ Save-ResolvedData -ScriptFolder "04-install-pnpm" -Data @{
     timestamp   = (Get-Date -Format "o")
 }
 
-Write-Log $logMessages.messages.pnpmSetupComplete -Level "success"
+if ($pnpmCmd) {
+    Write-Log $logMessages.messages.pnpmSetupComplete -Level "success"
+} else {
+    Write-Log "pnpm setup did NOT complete -- pnpm is not installed. See errors above (most likely npm registry unreachable or npm prefix mkdir failure)." -Level "error"
+}
 
 # -- Save log ------------------------------------------------------------------
 

@@ -5,7 +5,8 @@
   "devDirSubfolder": "nodejs",
   "npm": {
     "setGlobalPrefix": true,
-    "globalPrefix": "E:\\dev-tool\\nodejs"
+    "globalPrefix": null,
+    "_globalPrefix_doc": "Optional pinned npm global prefix. When null (default) the script uses smart dev-dir auto-resolution (cached in .resolved/dev-drive-cache.json) and falls back to %APPDATA%\\npm if no qualifying drive is found. Only set this to an absolute path if you want to FORCE a specific location -- and only if its drive will always be mounted."
   },
   "path": {
     "updateUserPath": true,
