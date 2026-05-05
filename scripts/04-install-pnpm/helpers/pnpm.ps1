@@ -24,6 +24,19 @@ function Install-Pnpm {
         $LogMessages
     )
 
+    function Test-PnpmNetworkError {
+        param([string]$ErrorText)
+
+        return ($ErrorText -match 'network') -or
+               ($ErrorText -match 'ENOTFOUND') -or
+               ($ErrorText -match 'ETIMEDOUT') -or
+               ($ErrorText -match 'ECONNRESET') -or
+               ($ErrorText -match 'ECONNREFUSED') -or
+               ($ErrorText -match 'EAI_AGAIN') -or
+               ($ErrorText -match 'proxy') -or
+               ($ErrorText -match 'registry\.npmjs\.org.*failed')
+    }
+
     # Ensure npm is available
     $hasNpm = Get-Command npm -ErrorAction SilentlyContinue
     $isNpmMissing = -not $hasNpm
@@ -65,9 +78,17 @@ function Install-Pnpm {
             Save-InstalledRecord -Name "pnpm" -Version $newVersion -Method "npm"
             return $true
         } catch {
+            $errText = "$_"
+            if (Test-PnpmNetworkError -ErrorText $errText) {
+                Write-Log "pnpm upgrade skipped due to network error reaching npm registry. This is NOT a script failure -- the existing pnpm install remains usable. Retry later with: npm install -g pnpm@latest" -Level "warn"
+                Write-Log "Underlying npm error: $errText" -Level "warn"
+                Save-InstalledError -Name "pnpm" -ErrorMessage "network: $errText" -Method "npm"
+                return @{ Success = $true; Installed = $true; NetworkSkipped = $true }
+            }
+
             Write-Log "pnpm upgrade failed: $_" -Level "error"
             Save-InstalledError -Name "pnpm" -ErrorMessage "$_" -Method "npm"
-            return $false
+            return @{ Success = $false; Installed = $true; NetworkSkipped = $false }
         }
     }
     else {
@@ -95,11 +116,19 @@ function Install-Pnpm {
             }
             Write-Log ($LogMessages.messages.pnpmInstallSuccess -replace '\{version\}', $installedVersion) -Level "success"
             Save-InstalledRecord -Name "pnpm" -Version $installedVersion -Method "npm"
-            return $true
+            return @{ Success = $true; Installed = $true; NetworkSkipped = $false }
         } catch {
+            $errText = "$_"
+            if (Test-PnpmNetworkError -ErrorText $errText) {
+                Write-Log "pnpm install skipped due to network error reaching npm registry. This is NOT a script failure. Retry later with: npm install -g pnpm" -Level "warn"
+                Write-Log "Underlying npm error: $errText" -Level "warn"
+                Save-InstalledError -Name "pnpm" -ErrorMessage "network: $errText" -Method "npm"
+                return @{ Success = $true; Installed = $false; NetworkSkipped = $true }
+            }
+
             Write-Log "pnpm install failed: $_" -Level "error"
             Save-InstalledError -Name "pnpm" -ErrorMessage "$_" -Method "npm"
-            return $false
+            return @{ Success = $false; Installed = $false; NetworkSkipped = $false }
         }
     }
 }
@@ -121,9 +150,6 @@ function Configure-PnpmStore {
     $pnpmCmd = Get-Command pnpm -ErrorAction SilentlyContinue
     if (-not $pnpmCmd) {
         Write-Log "Skipping pnpm store configuration: 'pnpm' is not on PATH (install step did not succeed). See earlier errors for the npm prefix / install failure." -Level "warn"
-        Write-FileError -FilePath "pnpm" -Operation "configure-pnpm-store" `
-            -Reason "Cannot configure pnpm store-dir because the pnpm command is not available. Most likely 'npm install -g pnpm' failed (often errno -4094 on a misconfigured global prefix)." `
-            -Module "Configure-PnpmStore"
         return $null
     }
 
