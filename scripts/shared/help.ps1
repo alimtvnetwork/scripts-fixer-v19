@@ -204,6 +204,55 @@ function Show-ScriptHelp {
         Write-Host ""
     }
 
+    # -- Default dev directory change instructions ----------------------------
+    if ($slm.messages.PSObject.Properties.Name -contains 'helpDevDirLabel') {
+        Write-Host $slm.messages.helpDevDirLabel -ForegroundColor Yellow
+        foreach ($key in @('helpDevDirShow','helpDevDirSet','helpDevDirReset','helpDevDirEnv','helpDevDirParam')) {
+            $line = $slm.messages.$key
+            if ($line) { Write-Host $line -ForegroundColor DarkGray }
+        }
+        Write-Host ""
+    }
+
+    # -- Repository / commit / version footer ---------------------------------
+    $repoUrl    = $null
+    $repoCommit = $null
+    $repoBranch = $null
+    try {
+        $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $versionJsonPath = Join-Path $repoRoot "version.json"
+        if (Test-Path $versionJsonPath) {
+            $vJson = Get-Content $versionJsonPath -Raw | ConvertFrom-Json
+            if ($vJson.PSObject.Properties.Name -contains 'RepoUrl' -and $vJson.RepoUrl) {
+                $repoUrl = "$($vJson.RepoUrl)"
+            }
+        }
+        if (Test-Path (Join-Path $repoRoot ".git")) {
+            Push-Location $repoRoot
+            try {
+                $repoCommit = (git rev-parse --short=12 HEAD 2>$null)
+                $repoBranch = (git rev-parse --abbrev-ref HEAD 2>$null)
+            } catch {}
+            Pop-Location
+        }
+    } catch {}
+
+    if ($slm.messages.PSObject.Properties.Name -contains 'helpFooterRepoLabel') {
+        Write-Host $slm.messages.helpFooterRepoLabel -ForegroundColor Yellow
+        if ($repoUrl) {
+            Write-Host ($slm.messages.helpFooterRepoUrl -replace '\{url\}', $repoUrl) -ForegroundColor Cyan
+        }
+        if ($repoCommit) {
+            $branchTxt = if ($repoBranch) { $repoBranch } else { 'detached' }
+            $commitLine = $slm.messages.helpFooterCommit -replace '\{sha\}', $repoCommit -replace '\{branch\}', $branchTxt
+            Write-Host $commitLine -ForegroundColor DarkGray
+        }
+        if ($Version) {
+            Write-Host ($slm.messages.helpFooterVersion -replace '\{version\}', $Version) -ForegroundColor DarkGray
+        }
+        Write-Host ""
+    }
+
     # -- Footer with version ---------------------------------------------------
     $footerTpl = $slm.messages.helpFooter
     if ($footerTpl) {
