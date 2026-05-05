@@ -585,6 +585,16 @@ function Show-RootHelp {
     Write-Host "  Per-script help:" -ForegroundColor Yellow
     Write-Host "    $(".\run.ps1 -I <number> -- -Help".PadRight($kc))" -NoNewline; Write-Host "Show help for a specific script" -ForegroundColor DarkGray
     Write-Host ""
+
+    Write-Host "  Change default dev directory:" -ForegroundColor Yellow
+    Write-Host "    .\run.ps1 path                      Show current default dev directory" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 path D:\devtools          Set default dev directory (persisted)" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 path --reset              Clear saved path, use smart detection" -ForegroundColor DarkGray
+    Write-Host "    `$env:DEV_DIR = 'D:\devtools'        Per-session override (highest priority)" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 -I <id> -Path D:\devtools  One-shot override for this run" -ForegroundColor DarkGray
+    Write-Host ""
+
+    Show-VersionFooter
 }
 
 # ── Keyword table (compact view) ────────────────────────────────────
