@@ -81,9 +81,14 @@ if ($hasPathParam) {
 # -- Execute subcommand --------------------------------------------------------
 switch ($Command.ToLower()) {
     "all" {
-        [void](Install-Pnpm -Config $config -LogMessages $logMessages)
-        $storePath = Configure-PnpmStore -Config $config -LogMessages $logMessages -DevDir $devDir
-        Update-PnpmPath -Config $config -LogMessages $logMessages
+        $installResult = Install-Pnpm -Config $config -LogMessages $logMessages
+        $shouldConfigure = ($installResult -isnot [hashtable]) -or $installResult.Installed
+        if ($shouldConfigure) {
+            $storePath = Configure-PnpmStore -Config $config -LogMessages $logMessages -DevDir $devDir
+            Update-PnpmPath -Config $config -LogMessages $logMessages
+        } else {
+            Write-Log "Skipping pnpm configure/path steps because pnpm is not installed in this session." -Level "warn"
+        }
     }
     "install" {
         Install-Pnpm -Config $config -LogMessages $logMessages
@@ -127,7 +132,7 @@ Save-ResolvedData -ScriptFolder "04-install-pnpm" -Data @{
 if ($pnpmCmd) {
     Write-Log $logMessages.messages.pnpmSetupComplete -Level "success"
 } else {
-    Write-Log "pnpm setup did NOT complete -- pnpm is not installed. See errors above (most likely npm registry unreachable or npm prefix mkdir failure)." -Level "error"
+    Write-Log "pnpm setup did NOT complete -- pnpm is not installed. Most likely the npm registry was unreachable or npm global prefix setup failed. Retry later with: npm install -g pnpm" -Level "warn"
 }
 
 # -- Save log ------------------------------------------------------------------
