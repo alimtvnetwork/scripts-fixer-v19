@@ -226,7 +226,9 @@ function Assert-GoOnPath {
     }
 
     # Attempt 2: rebuild PATH from registry (mirrors `refreshenv`)
-    Write-Log $LogMessages.messages.goVerifyMissing -Level "warn"
+    # Info-level: this is a normal first-install state -- choco doesn't update the
+    # current session's PATH. The recovery ladder below handles it.
+    Write-Log $LogMessages.messages.goVerifyMissing -Level "info"
     $beforePath = $env:Path
     $added = Update-SessionPathFromRegistry
     $report.pathRefreshes.Add([ordered]@{
@@ -281,7 +283,8 @@ function Assert-GoOnPath {
             $probeEntry.exists = $true
             if (-not $discoveredGoExe) { $discoveredGoExe = $candidate }
             $binDir = Split-Path -Parent $candidate
-            Write-Log ($LogMessages.messages.goVerifyFoundAt -replace '\{path\}', $candidate) -Level "warn"
+            # Info-level: successfully discovering go.exe at a known location is recovery, not a warning.
+            Write-Log ($LogMessages.messages.goVerifyFoundAt -replace '\{path\}', $candidate) -Level "info"
             $env:Path = "$binDir;$env:Path"
             $probeEntry.prependedToPath = $true
             $result = Test-GoVersion
