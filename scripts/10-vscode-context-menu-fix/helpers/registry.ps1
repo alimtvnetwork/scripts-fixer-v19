@@ -261,9 +261,26 @@ function Invoke-Edition {
 
     $logMsgs = Import-JsonConfig (Join-Path $ScriptDir "log-messages.json")
 
+    # Defensive fallback: older config.json files (or hand-edited ones) may be
+    # missing the per-edition contextMenuLabel field. Under Set-StrictMode the
+    # bare property access throws "property cannot be found on this object".
+    # Compute a safe label up-front so the rest of the function never trips.
+    $hasLabel = $false
+    if ($Edition.PSObject.Properties.Name -contains 'contextMenuLabel') {
+        $rawLabel = $Edition.contextMenuLabel
+        if (-not [string]::IsNullOrWhiteSpace($rawLabel)) { $hasLabel = $true }
+    }
+    if ($hasLabel) {
+        $editionLabel = $Edition.contextMenuLabel
+    } else {
+        $editionLabel = if ($EditionName -eq 'insiders') { 'Open with Code - Insiders' } else { 'Open with Code' }
+        $cfgPath = Join-Path $ScriptDir 'config.json'
+        Write-Log ("config.editions.$EditionName.contextMenuLabel is missing in $cfgPath -- falling back to default label '$editionLabel' (failure: property not present in config object)") -Level "warn"
+    }
+
     Write-Host ""
     Write-Host $logMsgs.messages.editionBorderLine -ForegroundColor DarkCyan
-    Write-Host ($logMsgs.messages.editionLabel -replace '\{label\}', $Edition.contextMenuLabel) -ForegroundColor Cyan
+    Write-Host ($logMsgs.messages.editionLabel -replace '\{label\}', $editionLabel) -ForegroundColor Cyan
     Write-Host $logMsgs.messages.editionBorderLine -ForegroundColor DarkCyan
 
     # Resolve exe
@@ -272,7 +289,7 @@ function Invoke-Edition {
 
     $isExeMissing = -not $VsCodeExe
     if ($isExeMissing) {
-        Write-Log ($logMsgs.messages.exeNotFound -replace '\{label\}', $Edition.contextMenuLabel) -Level "warn"
+        Write-Log ($logMsgs.messages.exeNotFound -replace '\{label\}', $editionLabel) -Level "warn"
         return $false
     }
     Write-Log ($logMsgs.messages.usingExe -replace '\{path\}', $VsCodeExe) -Level "success"
@@ -282,7 +299,7 @@ function Invoke-Edition {
         Save-ResolvedPath -ScriptDir $ScriptDir -EditionName $EditionName -ResolvedExe $VsCodeExe
     }
 
-    $Label   = $Edition.contextMenuLabel
+    $Label   = $editionLabel
     $IconVal = "`"$VsCodeExe`""
 
     # Define entries
