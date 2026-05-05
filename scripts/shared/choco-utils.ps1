@@ -574,7 +574,7 @@ function Invoke-ChocoProcess {
                 if ($isNoOpSuccess) {
                     Write-Log "[$Label] Exit code $($process.ExitCode) but Chocolatey reported nothing to do$noOpSuffix -- treating as success$warningSuffix." -Level "info"
                 } else {
-                    Write-Log "[$Label] Exit code $($process.ExitCode) but Chocolatey reported a successful operation -- treating as success$warningSuffix." -Level "warn"
+                    Write-Log "[$Label] Exit code $($process.ExitCode) but Chocolatey reported a successful operation -- treating as success$warningSuffix." -Level "info"
                 }
             }
         }
