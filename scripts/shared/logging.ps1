@@ -336,6 +336,7 @@ function Initialize-Logging {
     $script:_LogEvents   = [System.Collections.ArrayList]::new()
     $script:_LogErrors   = [System.Collections.ArrayList]::new()
     $script:_LogWarnings = [System.Collections.ArrayList]::new()
+    $script:_LogAlreadyInstalled = $false
 
     # Resolve identity ONCE per session and cache it. Every event written via
     # Write-Log / Write-FileError will copy these two fields onto its own
