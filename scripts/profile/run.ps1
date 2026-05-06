@@ -222,6 +222,10 @@ function Show-ProfileList {
         }
     }
 
+    if ($hasValidator -and $aliasValidation) {
+        Format-ProfileConfigIssues -Result $aliasValidation -Title "Profile aliases issues"
+    }
+
     # ── Copy-paste examples (both forms equivalent) ────────────────────
     Write-Host "  Copy-paste examples (profile <name> and install <name> are equivalent):" -ForegroundColor Yellow
     Write-Host ""
