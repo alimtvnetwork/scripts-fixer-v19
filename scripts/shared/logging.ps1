@@ -111,16 +111,40 @@ function Write-Log {
     $validStatuses = @("ok", "fail", "info", "warn", "skip")
     if ($Status -notin $validStatuses) { $Status = "info" }
 
-    $badge  = $null
-    $hasLogMessages = (Get-Variable -Name LogMessages -Scope Script -ErrorAction SilentlyContinue) -and
-                      $script:LogMessages.PSObject.Properties['status']
-    if ($hasLogMessages) {
-        $badge = $script:LogMessages.status.$Status
-    }
-    $isBadgeMissing = -not $badge
+    # Resolve the colored badge for this $Status. The lookup must survive
+    # every shape $script:LogMessages can be in:
+    #   - variable never set                                  (Get-Variable returns $null)
+    #   - variable set to $null                               (Properties access throws under StrictMode)
+    #   - object without a 'status' property                  (.status throws under StrictMode 3+)
+    #   - status object missing this specific level           ($obj.$Status throws under StrictMode 3+)
+    #   - status property/value being $null itself            (indexing $null throws "cannot index null array")
+    # Any failure must be invisible: fall back to the literal badge below
+    # so Write-Log can NEVER bring down its caller. CODE RED guarantee.
+    $badge = $null
+    try {
+        $varInfo = Get-Variable -Name LogMessages -Scope Script -ErrorAction SilentlyContinue
+        if ($varInfo -and $null -ne $varInfo.Value) {
+            $lm = $varInfo.Value
+            $statusContainer = $null
+            try {
+                $statusProp = $lm.PSObject.Properties['status']
+                if ($statusProp) { $statusContainer = $statusProp.Value }
+            } catch { $statusContainer = $null }
+            if ($null -ne $statusContainer) {
+                try {
+                    $badgeProp = $statusContainer.PSObject.Properties[$Status]
+                    if ($badgeProp -and -not [string]::IsNullOrWhiteSpace([string]$badgeProp.Value)) {
+                        $badge = [string]$badgeProp.Value
+                    }
+                } catch { $badge = $null }
+            }
+        }
+    } catch { $badge = $null }
+    $isBadgeMissing = [string]::IsNullOrWhiteSpace($badge)
     if ($isBadgeMissing) {
         $fallbackBadges = @{ ok = "[  OK  ]"; fail = "[ FAIL ]"; info = "[ INFO ]"; warn = "[ WARN ]"; skip = "[ SKIP ]" }
         $badge = $fallbackBadges[$Status]
+        if ([string]::IsNullOrWhiteSpace($badge)) { $badge = "[ INFO ]" }
     }
 
     $colors = @{
