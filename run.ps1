@@ -394,6 +394,25 @@ function Show-RootHelp {
     Write-Host "    $("install all-settings --exclude=conemu".PadRight($kc))" -NoNewline; Write-Host "Inline form (=) also accepted; valid tokens: vscode,npp,obs,wt,dbeaver,conemu" -ForegroundColor DarkGray
     Write-Host "    $("install all-settings --exclude obs,xyz --exclude-strict".PadRight($kc))" -NoNewline; Write-Host "Abort (exit 2) if any --exclude token is unknown instead of warning" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "      --exclude token reference:" -ForegroundColor DarkYellow
+    Write-Host "      Each token is looked up in the same keyword map as install <keyword>." -ForegroundColor DarkGray
+    Write-Host "      Whatever script IDs the token resolves to are subtracted from the bundle." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "      $("Token".PadRight(20))" -NoNewline -ForegroundColor White
+    Write-Host "$("Removes IDs".PadRight(18))" -NoNewline -ForegroundColor White
+    Write-Host "Aliases" -ForegroundColor White
+    Write-Host "      $("vscode".PadRight(20))" -NoNewline; Write-Host "$("[01, 11]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "vs-code, code, vscode-settings, settings-sync" -ForegroundColor DarkGray
+    Write-Host "      $("npp".PadRight(20))" -NoNewline; Write-Host "$("[33]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "notepad++, notepadpp, notepad-plus, npp+settings, npp-settings" -ForegroundColor DarkGray
+    Write-Host "      $("obs".PadRight(20))" -NoNewline; Write-Host "$("[36]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "obs-studio, obs+settings, obs-settings, install-obs" -ForegroundColor DarkGray
+    Write-Host "      $("wt".PadRight(20))" -NoNewline; Write-Host "$("[37]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "windows-terminal, wt+settings, wt-settings, install-wt" -ForegroundColor DarkGray
+    Write-Host "      $("dbeaver".PadRight(20))" -NoNewline; Write-Host "$("[32]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "db-viewer, dbviewer, dbeaver+settings, dbeaver-settings" -ForegroundColor DarkGray
+    Write-Host "      $("conemu".PadRight(20))" -NoNewline; Write-Host "$("[48]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "conemu+settings, conemu-settings, install-conemu" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "      Flag spellings (all equivalent):" -ForegroundColor DarkGray
+    Write-Host "        --exclude  -exclude  --ex  -ex  --without  -without  --skip  -skip" -ForegroundColor DarkGray
+    Write-Host "      Value formats: '--exclude obs,wt'  '--exclude obs wt'  '--exclude=obs,wt'" -ForegroundColor DarkGray
+    Write-Host "      Strict mode flags: --exclude-strict, --strict-exclude, --excludestrict" -ForegroundColor DarkGray
+    Write-Host ""
 
     Write-Host "    Python & pip libraries:" -ForegroundColor Magenta
     Write-Host ""
