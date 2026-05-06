@@ -535,7 +535,7 @@ function Show-RootHelp {
     Write-Host "    $("install dbeaver+settings".PadRight($kc))" -NoNewline; Write-Host "DBeaver + settings [32 install+settings]" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "      All settings at once:" -ForegroundColor DarkYellow
-    Write-Host "    $("install all-settings".PadRight($kc))" -NoNewline; Write-Host "Install + apply ALL bundled settings: VS Code, NPP, OBS, WT, DBeaver, ConEmu [01,11,32,33,36,37,48]" -ForegroundColor DarkGray
+    Write-Host "    $("install all-settings".PadRight($kc))" -NoNewline; Write-Host "Install + apply ALL bundled settings: VS Code, NPP, OBS, WT, DBeaver, ConEmu (+ ConEmu right-click) [01,11,32,33,36,37,48,59]" -ForegroundColor DarkGray
     Write-Host "    $("install settings".PadRight($kc))" -NoNewline; Write-Host "Same as all-settings (alias)" -ForegroundColor DarkGray
     Write-Host "    $("install all-settings --exclude obs,wt".PadRight($kc))" -NoNewline; Write-Host "Apply all settings EXCEPT the listed apps" -ForegroundColor DarkGray
     Write-Host "    $("install all-settings --exclude=conemu".PadRight($kc))" -NoNewline; Write-Host "Inline form (=) also accepted; valid tokens: vscode,npp,obs,wt,dbeaver,conemu" -ForegroundColor DarkGray
