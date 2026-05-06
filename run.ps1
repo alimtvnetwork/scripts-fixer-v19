@@ -384,9 +384,19 @@ function Show-RootHelp {
         }
     }
 
+    # Build "target -> aliases[]" map so each profile can list its own aliases.
+    $aliasesByTarget = @{}
+    if ($hasValidator -and (Get-Command Get-ProfileAliasesByTarget -ErrorAction SilentlyContinue)) {
+        $byTgt = Get-ProfileAliasesByTarget -FilePath $profileAliasesPath -KnownProfileNames $profileNamesForExamples
+        if ($byTgt) { $aliasesByTarget = $byTgt }
+    }
+
     Write-Host ("  Profiles ({0} available):" -f $profileEntries.Count) -ForegroundColor Yellow
     Write-Host "  (multi-step install recipes -- run with 'profile <name>' or 'install <name>')" -ForegroundColor DarkGray
     Write-Host ("  source: {0}" -f $profileCfgPath) -ForegroundColor DarkGray
+    if ($aliasesByTarget.Count -gt 0) {
+        Write-Host ("  aliases: {0} (grouped under their resolved profile)" -f $profileAliasesPath) -ForegroundColor DarkGray
+    }
     Write-Host ""
 
     if ($profileEntries.Count -gt 0) {
@@ -396,6 +406,23 @@ function Show-RootHelp {
             if ([string]::IsNullOrWhiteSpace($line)) { $line = $entry.Label }
             Write-Host "    $($entry.Name.PadRight($pc))" -NoNewline -ForegroundColor Green
             Write-Host $line -ForegroundColor DarkGray
+
+            # Show this profile's aliases inline, grouped underneath
+            if ($aliasesByTarget.ContainsKey($entry.Name)) {
+                foreach ($a in $aliasesByTarget[$entry.Name]) {
+                    $kindTag = if ($a.Kind -eq "fallback") { "[fallback]" } else { "[exact]   " }
+                    Write-Host ("    {0}  {1} " -f (" " * $pc), $kindTag) -NoNewline -ForegroundColor DarkCyan
+                    Write-Host ("{0,-14} -> {1}" -f $a.Name, $entry.Name) -NoNewline -ForegroundColor Cyan
+                    if ($entry.Description) {
+                        Write-Host ("  ({0})" -f $entry.Description) -ForegroundColor DarkGray
+                    } else {
+                        Write-Host ""
+                    }
+                    if ($a.Kind -eq "fallback" -and $a.Reason) {
+                        Write-Host ("    {0}             reason: {1}" -f (" " * $pc), $a.Reason) -ForegroundColor DarkGray
+                    }
+                }
+            }
         }
     } else {
         Write-Host "    (no profiles available -- see issues report below)" -ForegroundColor DarkYellow
@@ -408,37 +435,21 @@ function Show-RootHelp {
         Format-ProfileConfigIssues -Result $cfgValidation -Title "Profile config issues"
     }
 
-    # ── Profile aliases (so users see every name that resolves to a profile) ──
+    # Validate aliases (used both for issues report and orphan detection)
     if ($hasValidator) {
         $aliasValidation = Test-ProfileAliasesConfig -FilePath $profileAliasesPath -KnownProfileNames $profileNamesForExamples
     }
 
-    if (Test-Path $profileAliasesPath) {
-        try {
-            $aliasCfg = Get-Content $profileAliasesPath -Raw -ErrorAction Stop | ConvertFrom-Json
-            $aliasNames = @()
-            if ($aliasCfg -and $aliasCfg.aliases) {
-                $aliasNames = @($aliasCfg.aliases.PSObject.Properties.Name)
-            }
-            if ($aliasNames.Count -gt 0) {
-                Write-Host ("  Profile Aliases ({0}):" -f $aliasNames.Count) -ForegroundColor Yellow
-                Write-Host ("  source: {0}" -f $profileAliasesPath) -ForegroundColor DarkGray
-                Write-Host ""
-                $ac = 16
-                foreach ($aname in $aliasNames) {
-                    $adef   = $aliasCfg.aliases.$aname
-                    $atgt   = [string]$adef.target
-                    $akind  = "$($adef.kind)".ToLower()
-                    $note   = if ($akind -eq "fallback") { " (fallback -- closest local match)" } else { "" }
-                    Write-Host "    $($aname.PadRight($ac))" -NoNewline -ForegroundColor Cyan
-                    Write-Host ("-> {0}{1}" -f $atgt, $note) -ForegroundColor DarkGray
-                }
-                Write-Host ""
-            }
-        } catch {
-            Write-Host ("    (failed to parse {0} -- {1})" -f $profileAliasesPath, $_.Exception.Message) -ForegroundColor DarkYellow
-            Write-Host ""
+    # ── Orphan aliases (target not in profile catalog) ──────────────────
+    if ($aliasesByTarget.ContainsKey('__orphans__') -and $aliasesByTarget['__orphans__'].Count -gt 0) {
+        $orphans = $aliasesByTarget['__orphans__']
+        Write-Host ("  Orphan aliases ({0}) -- target not in profile catalog:" -f $orphans.Count) -ForegroundColor Yellow
+        Write-Host ("  source: {0}" -f $profileAliasesPath) -ForegroundColor DarkGray
+        Write-Host ""
+        foreach ($a in $orphans) {
+            Write-Host ("    [{0}] {1,-14} -> {2}  (UNRESOLVED)" -f $a.Kind, $a.Name, $a.Target) -ForegroundColor DarkYellow
         }
+        Write-Host ""
     }
 
     if ($hasValidator -and $aliasValidation) {

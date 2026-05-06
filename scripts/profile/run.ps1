@@ -160,15 +160,29 @@ function Show-ProfileList {
         }
     }
 
+    # Build "target -> aliases[]" map (used to group aliases under their profile)
+    $aliasesByTarget = @{}
+    if ($hasValidator -and (Get-Command Get-ProfileAliasesByTarget -ErrorAction SilentlyContinue)) {
+        $knownNames = @($entries | ForEach-Object { $_.Name })
+        $byTgt = Get-ProfileAliasesByTarget -FilePath $aliasesPath -KnownProfileNames $knownNames
+        if ($byTgt) { $aliasesByTarget = $byTgt }
+    }
+
     Write-Host ""
     Write-Host ("  Available Profiles ({0})" -f $entries.Count) -ForegroundColor Cyan
     Write-Host "  ========================" -ForegroundColor DarkGray
     Write-Host ("  source: {0}" -f $cfgPath) -ForegroundColor DarkGray
+    if ($aliasesByTarget.Count -gt 0) {
+        Write-Host ("  aliases: {0} (grouped under their resolved profile)" -f $aliasesPath) -ForegroundColor DarkGray
+    }
     Write-Host ""
 
     if ($entries.Count -eq 0) {
         Write-Host "    (no profiles found in config.json)" -ForegroundColor DarkYellow
         Write-Host ""
+        if ($hasValidator -and $cfgValidation) {
+            Format-ProfileConfigIssues -Result $cfgValidation -Title "Profile config issues"
+        }
         return
     }
 
@@ -178,6 +192,24 @@ function Show-ProfileList {
         if ($e.Description -and $e.Description -ne $e.Label) {
             Write-Host ("    {0}  {1}" -f (" " * $nameCol), $e.Description) -ForegroundColor DarkGray
         }
+        # Aliases that resolve to this profile, listed inline
+        if ($aliasesByTarget.ContainsKey($e.Name)) {
+            foreach ($a in $aliasesByTarget[$e.Name]) {
+                $kindTag = if ($a.Kind -eq "fallback") { "[fallback]" } else { "[exact]   " }
+                Write-Host ("    {0}  {1} " -f (" " * $nameCol), $kindTag) -NoNewline -ForegroundColor DarkCyan
+                Write-Host ("{0,-14} -> {1}" -f $a.Name, $e.Name) -NoNewline -ForegroundColor Cyan
+                if ($e.Description) {
+                    Write-Host ("  ({0})" -f $e.Description) -ForegroundColor DarkGray
+                } elseif ($e.Label) {
+                    Write-Host ("  ({0})" -f $e.Label) -ForegroundColor DarkGray
+                } else {
+                    Write-Host ""
+                }
+                if ($a.Kind -eq "fallback" -and $a.Reason) {
+                    Write-Host ("    {0}             reason: {1}" -f (" " * $nameCol), $a.Reason) -ForegroundColor DarkGray
+                }
+            }
+        }
     }
     Write-Host ""
 
@@ -186,40 +218,22 @@ function Show-ProfileList {
         Format-ProfileConfigIssues -Result $cfgValidation -Title "Profile config issues"
     }
 
-    # ── Aliases (exact + fallback) ─────────────────────────────────────
+    # Validate aliases (used for issues report + orphan detection)
     if ($hasValidator) {
         $knownNames = @($entries | ForEach-Object { $_.Name })
         $aliasValidation = Test-ProfileAliasesConfig -FilePath $aliasesPath -KnownProfileNames $knownNames
     }
-    if (Test-Path -LiteralPath $aliasesPath) {
-        try {
-            $aliasCfg = Get-Content -LiteralPath $aliasesPath -Raw | ConvertFrom-Json
-            $aliasNames = @()
-            if ($aliasCfg -and $aliasCfg.aliases) {
-                $aliasNames = @($aliasCfg.aliases.PSObject.Properties.Name | Sort-Object)
-            }
-            if ($aliasNames.Count -gt 0) {
-                Write-Host ("  Profile Aliases ({0})" -f $aliasNames.Count) -ForegroundColor Cyan
-                Write-Host "  ====================" -ForegroundColor DarkGray
-                Write-Host ("  source: {0}" -f $aliasesPath) -ForegroundColor DarkGray
-                Write-Host ""
-                $ac = 16
-                foreach ($aname in $aliasNames) {
-                    $adef  = $aliasCfg.aliases.$aname
-                    $atgt  = "$($adef.target)"
-                    $akind = "$($adef.kind)".ToLower()
-                    $note  = if ($akind -eq "fallback") { " (fallback -- closest local match)" } else { "" }
-                    Write-Host ("    {0}  -> {1}{2}" -f $aname.PadRight($ac), $atgt, $note) -ForegroundColor Cyan
-                    if ($adef.PSObject.Properties.Name -contains 'reason' -and $adef.reason) {
-                        Write-Host ("    {0}    reason: {1}" -f (" " * $ac), $adef.reason) -ForegroundColor DarkGray
-                    }
-                }
-                Write-Host ""
-            }
-        } catch {
-            Write-Host ("  [ WARN ] Failed to parse {0} -- {1}" -f $aliasesPath, $_.Exception.Message) -ForegroundColor DarkYellow
-            Write-Host ""
+
+    # ── Orphan aliases (target not in profile catalog) ──────────────────
+    if ($aliasesByTarget.ContainsKey('__orphans__') -and $aliasesByTarget['__orphans__'].Count -gt 0) {
+        $orphans = $aliasesByTarget['__orphans__']
+        Write-Host ("  Orphan aliases ({0}) -- target not in profile catalog:" -f $orphans.Count) -ForegroundColor Yellow
+        Write-Host ("  source: {0}" -f $aliasesPath) -ForegroundColor DarkGray
+        Write-Host ""
+        foreach ($a in $orphans) {
+            Write-Host ("    [{0}] {1,-14} -> {2}  (UNRESOLVED)" -f $a.Kind, $a.Name, $a.Target) -ForegroundColor DarkYellow
         }
+        Write-Host ""
     }
 
     if ($hasValidator -and $aliasValidation) {
