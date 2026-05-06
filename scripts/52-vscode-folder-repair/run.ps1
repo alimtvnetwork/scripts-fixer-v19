@@ -58,6 +58,7 @@ $sharedDir = Join-Path (Split-Path -Parent $scriptDir) "shared"
 . (Join-Path $sharedDir "admin-check.ps1")
 . (Join-Path $sharedDir "registry-backup.ps1")
 . (Join-Path $sharedDir "install-paths.ps1")
+. (Join-Path $sharedDir "interactive-verify.ps1")
 
 # -- Dot-source script helpers (also brings in script 10's registry helpers) -
 . (Join-Path $scriptDir "helpers\repair.ps1")
@@ -555,6 +556,19 @@ try {
     } else {
         Write-Log $logMessages.messages.completedWithWarnings -Level "warn"
     }
+
+    # -- Interactive right-click verification --------------------------------
+    # Ask the human to confirm the entry actually shows up in Explorer.
+    # Auto-skips on CI / -NonInteractive / redirected stdin.
+    $firstEdition  = if ($enabledEditions.Count -gt 0) { $enabledEditions[0] } else { 'stable' }
+    $editionCfg    = $config.editions.$firstEdition
+    $vscLabel      = if ($editionCfg -and $editionCfg.contextMenuLabel) { $editionCfg.contextMenuLabel } else { 'Open with Code' }
+    $retryHint     = ".\run.ps1 -I 52 repair"
+    $null = Invoke-RightClickVerification `
+        -Tool         'VS Code' `
+        -EntryLabel   $vscLabel `
+        -RetryCommand $retryHint `
+        -NonInteractive:$NonInteractive
 
     # -- Save resolved state --------------------------------------------------
     Save-ResolvedData -ScriptFolder "52-vscode-folder-repair" -Data @{
