@@ -1013,6 +1013,14 @@ function Resolve-InstallKeywords {
     $remoteEntries     = @($entries | Where-Object { $_.Kind -eq "remote" })
     $sortedScripts     = $scriptEntries | Sort-Object { [int]$_.Id }
     $sorted            = @($sortedScripts) + @($subcommandEntries) + @($remoteEntries)
+
+    if ($hasExcludes) {
+        $sorted = @($sorted | Where-Object {
+            $isScript = ($_.Kind -eq "script") -or ($null -eq $_.Kind)
+            if (-not $isScript) { return $true }
+            return -not $excludeIds.Contains([int]$_.Id)
+        })
+    }
     return $sorted
 }
 
