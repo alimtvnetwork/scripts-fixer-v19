@@ -1352,6 +1352,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 | 50 | **[OneNote](scripts/50-install-onenote/)** | Install OneNote — pure (default) or `+rm-onedrive` combo | Yes |
 | 51 | **[Lightshot](scripts/51-install-lightshot/)** | Install Lightshot + opinionated registry tweaks | Yes |
 | 52 | **[VSCode Folder Repair](scripts/52-vscode-folder-repair/)** | Repair VSCode folder context-menu (subcommands: dry-run, restore, refresh, ...) | Yes |
+| 59 | **[ConEmu Context Menu](scripts/59-conemu-context-menu/)** | Add "Open ConEmu Here" + admin variant to folder & background right-click menus | Yes |
 
 ---
 
