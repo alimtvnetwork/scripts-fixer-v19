@@ -1,0 +1,41 @@
+{
+  "_comment": "Script 59 -- ConEmu right-click context menu. Adds 'Open ConEmu Here' (normal + admin) to folder + folder background menus. Mirrors script 31 (PowerShell Here).",
+  "enabled": true,
+  "modes": {
+    "normal": {
+      "contextMenuLabel": "Open ConEmu Here",
+      "registryPaths": {
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuHere"
+      },
+      "commandArgs": {
+        "directory":  "\"{exe}\" -Dir \"%V\"",
+        "background": "\"{exe}\" -Dir \"%V\""
+      }
+    },
+    "admin": {
+      "contextMenuLabel": "Open ConEmu Here as Admin",
+      "registryPaths": {
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuHereAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuHereAdmin"
+      },
+      "commandArgs": {
+        "directory":  "\"{exe}\" -Dir \"%V\"",
+        "background": "\"{exe}\" -Dir \"%V\""
+      },
+      "runas": true,
+      "extended": false
+    }
+  },
+  "enabledModes": ["normal", "admin"],
+  "conemuPaths": {
+    "programFiles":      "C:\\Program Files\\ConEmu\\ConEmu64.exe",
+    "programFilesX86":   "C:\\Program Files (x86)\\ConEmu\\ConEmu64.exe",
+    "chocoShim":         "%ProgramData%\\chocolatey\\bin\\ConEmu64.exe",
+    "chocoToolsRoot":    "%ProgramData%\\chocolatey\\lib\\conemu\\tools\\ConEmuPack",
+    "userLocalAppData":  "%LOCALAPPDATA%\\ConEmu\\ConEmu64.exe"
+  },
+  "verifyCommand": "ConEmu64",
+  "versionFlag": "-version",
+  "fallbackTo32Bit": true
+}
