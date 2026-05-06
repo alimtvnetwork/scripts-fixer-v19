@@ -204,6 +204,21 @@ Cross-OS cleanup (script 65 shortcuts):
       --json                   Emit machine-readable summary on stdout
   os-clean-list                Print all defined cleanup categories
 
+Default-app management (cross-OS: Linux uses xdg-settings/xdg-mime, macOS uses duti):
+  browser <name> [--list] [--dry-run]   Set default web browser
+                                          Names: chrome | firefox | edge | brave |
+                                                 opera | vivaldi | librewolf |
+                                                 chromium | safari (mac only)
+  email <name> [--list] [--dry-run]     Set default mail (mailto:) client
+                                          Names: thunderbird | evolution | geary |
+                                                 kmail | mailspring | claws | mutt |
+                                                 apple-mail | outlook-mac |
+                                                 spark | airmail (mac only)
+      --list                              Print catalog of available names + exit
+      --dry-run                           Detect + plan only; no changes applied
+      Linux requires xdg-utils; macOS recommends `brew install duti` for
+      non-interactive setting (otherwise opens System Settings as fallback).
+
 macOS VS Code menu cleanup (script 66 shortcuts; macOS only):
   vscode-mac-clean             Remove Finder Services workflows, LaunchAgents/
                                Daemons, Login Items, code/code-insiders shims,
