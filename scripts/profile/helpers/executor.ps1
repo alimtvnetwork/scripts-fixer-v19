@@ -25,6 +25,7 @@ function Invoke-ProfileSteps {
         Write-Host ("  ----- Step {0}/{1} : [{2}] {3} -----" -f $n, $total, $kind, $label) -ForegroundColor Cyan
 
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $stepStart = Get-Date
         $status = "ok"
         $errorMsg = ""
 
@@ -47,6 +48,11 @@ function Invoke-ProfileSteps {
                     if (-not $ok) {
                         $status = "fail"
                         $errorMsg = "script id=$id returned non-success"
+                    } else {
+                        # Detect "already installed" reruns by sniffing the
+                        # freshest .logs/<name>.json the child just wrote.
+                        $childStatus = Get-LastChildLogStatus -RootDir $RootDir -SinceUtc $stepStart.ToUniversalTime()
+                        if ($childStatus -eq "already-installed") { $status = "already-installed" }
                     }
                 }
                 "choco" {
@@ -139,10 +145,11 @@ function Invoke-ProfileSteps {
         }) | Out-Null
 
         $color = switch ($status) {
-            "ok"   { "Green" }
-            "fail" { "Red" }
-            "skip" { "DarkGray" }
-            default { "Yellow" }
+            "ok"                { "Green" }
+            "already-installed" { "Cyan" }
+            "fail"              { "Red" }
+            "skip"              { "DarkGray" }
+            default             { "Yellow" }
         }
         Write-Host ("  >>> Step {0}/{1} {2} ({3}s)" -f $n, $total, $status.ToUpper(), [Math]::Round($elapsed, 1)) -ForegroundColor $color
         if ($status -eq "fail" -and $errorMsg) {
@@ -203,4 +210,37 @@ function Invoke-ScriptByIdSafe {
         Write-Host "  [ FAIL ] Script id=$prefix threw: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
+}
+
+function Get-LastChildLogStatus {
+    <#
+    .SYNOPSIS
+        Returns the "status" field of the most recently written .logs/*.json
+        file (excluding -error.json) modified at or after $SinceUtc.
+        Used by the profile executor to detect when a child install script
+        recorded status="already-installed" so the profile step can mirror it.
+        Returns $null if no fresh log was found or it cannot be parsed.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$RootDir,
+        [Parameter(Mandatory)][datetime]$SinceUtc
+    )
+
+    $logsDir = Join-Path $RootDir ".logs"
+    if (-not (Test-Path $logsDir)) { return $null }
+
+    try {
+        $candidate = Get-ChildItem -Path $logsDir -Filter "*.json" -File -ErrorAction Stop |
+            Where-Object { $_.Name -notlike "*-error.json" -and $_.LastWriteTimeUtc -ge $SinceUtc } |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+        if (-not $candidate) { return $null }
+        $payload = Get-Content $candidate.FullName -Raw -ErrorAction Stop | ConvertFrom-Json
+        if ($payload.PSObject.Properties.Name -contains 'status') {
+            return [string]$payload.status
+        }
+    } catch {
+        return $null
+    }
+    return $null
 }

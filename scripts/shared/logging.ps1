@@ -14,6 +14,25 @@ $script:_LogsDir     = $null
 # Cached identity fields (resolved once per session, stamped into every event
 # so log lines stay traceable even after grep / split / concat).
 $script:_LogIdentity = $null
+# When set to $true (typically by Test-AlreadyInstalled), Save-LogFile promotes
+# a successful "ok" status to "already-installed" in the JSON + console summary.
+$script:_LogAlreadyInstalled = $false
+
+function Set-LogAlreadyInstalled {
+    <#
+    .SYNOPSIS
+        Marks this script run as a no-op "already installed" rerun. When the
+        run finishes successfully, Save-LogFile records status="already-installed"
+        instead of "ok" so repeated installs report consistently.
+    #>
+    param([bool]$Value = $true)
+    $script:_LogAlreadyInstalled = $Value
+}
+
+function Get-LogAlreadyInstalled {
+    <# .SYNOPSIS Returns the current "already installed" flag. #>
+    return [bool]$script:_LogAlreadyInstalled
+}
 
 function ConvertTo-LogSafeMessage {
     <#
@@ -317,6 +336,7 @@ function Initialize-Logging {
     $script:_LogEvents   = [System.Collections.ArrayList]::new()
     $script:_LogErrors   = [System.Collections.ArrayList]::new()
     $script:_LogWarnings = [System.Collections.ArrayList]::new()
+    $script:_LogAlreadyInstalled = $false
 
     # Resolve identity ONCE per session and cache it. Every event written via
     # Write-Log / Write-FileError will copy these two fields onto its own
@@ -456,6 +476,13 @@ function Save-LogFile {
     $endTime  = Get-Date
     $duration = ($endTime - $script:_LogStart).TotalSeconds
 
+    # Promote "ok" -> "already-installed" when the run was a verified no-op.
+    # We only promote on a clean success; any errors/warnings keep their status.
+    $isCleanOk = ($Status -eq "ok") -and ($script:_LogErrors.Count -eq 0)
+    if ($isCleanOk -and $script:_LogAlreadyInstalled) {
+        $Status = "already-installed"
+    }
+
     # Identity fields stamped into every log payload (v0.42.2+) AND into
     # every event entry (v0.43.1+). Reuse the cached value from
     # Initialize-Logging so we don't walk the call stack twice.
@@ -530,7 +557,7 @@ function Save-LogFile {
     if ($hasErrors) { $summaryParts += "Errors: $($script:_LogErrors.Count)" }
     if ($hasWarnings) { $summaryParts += "Warnings: $($script:_LogWarnings.Count)" }
     $summaryLine = $summaryParts -join " | "
-    $summaryColor = if ($isOverallFailure) { "Red" } elseif ($hasWarnings) { "Yellow" } else { "Green" }
+    $summaryColor = if ($isOverallFailure) { "Red" } elseif ($hasWarnings) { "Yellow" } elseif ($Status -eq "already-installed") { "Cyan" } else { "Green" }
     Write-Host ""
     Write-Host "  $summaryLine" -ForegroundColor $summaryColor
 

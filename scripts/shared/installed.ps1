@@ -75,6 +75,11 @@ function Test-AlreadyInstalled {
     $isVersionMatch = $record.version -eq $CurrentVersion
     if ($isVersionMatch) {
         Update-InstalledLastChecked -Name $Name
+        # Flag the current logging session so Save-LogFile reports
+        # status="already-installed" instead of plain "ok".
+        if (Get-Command Set-LogAlreadyInstalled -ErrorAction SilentlyContinue) {
+            Set-LogAlreadyInstalled -Value $true
+        }
     }
     return $isVersionMatch
 }
