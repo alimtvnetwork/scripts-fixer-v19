@@ -1169,6 +1169,7 @@ function Resolve-InstallKeywords {
     $sortedScripts     = $scriptEntries | Sort-Object { [int]$_.Id }
     $sorted            = @($sortedScripts) + @($subcommandEntries) + @($remoteEntries)
 
+    $preFilterCount = @($sorted).Count
     if ($hasExcludes) {
         $sorted = @($sorted | Where-Object {
             $isScript = ($_.Kind -eq "script") -or ($null -eq $_.Kind)
@@ -1176,6 +1177,36 @@ function Resolve-InstallKeywords {
             return -not $excludeIds.Contains([int]$_.Id)
         })
     }
+    $postFilterCount = @($sorted).Count
+    $removedCount    = $preFilterCount - $postFilterCount
+
+    # ── Final --exclude summary ────────────────────────────────────────
+    # Always emit when the user passed any --exclude tokens, so the logs
+    # have a single, scannable summary of what the filter actually did.
+    if ($hasExcludeTokens) {
+        Write-Log "------ --exclude summary ------" -Level "info"
+        if ($acceptedExcl.Count -gt 0) {
+            $acceptedSummary = ($acceptedExcl | ForEach-Object {
+                $idStr = ($_.ResolvedIds | Sort-Object -Unique | ForEach-Object { "{0:D2}" -f $_ }) -join ","
+                "$($_.Token)->[$idStr]"
+            }) -join "  "
+            Write-Log "Accepted ($($acceptedExcl.Count)): $acceptedSummary" -Level "ok"
+        } else {
+            Write-Log "Accepted (0): none" -Level "warn"
+        }
+        if ($ignoredExcl.Count -gt 0) {
+            $ignoredSummary = ($ignoredExcl | ForEach-Object {
+                $sg = if ($_.Suggestions -and $_.Suggestions.Count -gt 0) { " (did you mean: $($_.Suggestions -join ','))" } else { "" }
+                "'$($_.Token)' [$($_.Reason)]$sg"
+            }) -join "; "
+            Write-Log "Ignored ($($ignoredExcl.Count)): $ignoredSummary" -Level "warn"
+        } else {
+            Write-Log "Ignored (0): none" -Level "ok"
+        }
+        Write-Log "Bundle: $postFilterCount item(s) included, $removedCount removed by --exclude (was $preFilterCount before filtering)" -Level "info"
+        Write-Log "-------------------------------" -Level "info"
+    }
+
     return $sorted
 }
 
