@@ -3,7 +3,7 @@
   "generatedAt": "2026-04-28T08:05:53Z",
   "repoRoot": "/dev-server",
   "mode": "dry-run",
-  "target": "scripts-fixer-v15",
+  "target": "scripts-fixer-v16",
   "legacyVersions": [8,9,10],
   "backupDir": null,
   "totals": { "filesChanged": 0, "totalReplacements": 0, "errors": 0 },

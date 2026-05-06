@@ -8,7 +8,7 @@ Project includes PowerShell utility scripts alongside the React web app.
 User prefers structured script projects: external JSON configs, spec docs, suggestions folder, colorful logging.
 CODE RED: Every file/path error MUST log exact file path + failure reason. Use Write-FileError helper.
 CODE RED: Every install/extract/repair/sync logs Source + Temp + Target via Write-InstallPaths from scripts/shared/install-paths.ps1.
-Root readme.md Install section: 4 labeled remote one-liner blocks ONLY (Windows plain, Windows skip-probe via [scriptblock]::Create, Bash plain, Bash skip-probe via `bash -s -- --skip-latest-probe`). NO local `.\install.ps1` / `bash ./install.sh` commands. URL base: alimtvnetwork/scripts-fixer-v15. See mem://preferences/readme-install-placement.
+Root readme.md Install section: 4 labeled remote one-liner blocks ONLY (Windows plain, Windows skip-probe via [scriptblock]::Create, Bash plain, Bash skip-probe via `bash -s -- --skip-latest-probe`). NO local `.\install.ps1` / `bash ./install.sh` commands. URL base: alimtvnetwork/scripts-fixer-v16. See mem://preferences/readme-install-placement.
 Installer bootstrap auto-derives repo slug from invocation URL / on-disk path at runtime; the literal `fallbackSlug`/`FALLBACK_SLUG` is belt-and-suspenders only. Never reintroduce a separate hardcoded numeric `current`/`CURRENT` that can drift.
 STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp content in ANY readme.txt; NEVER suggest "git update time" or auto-timestamp automation anywhere; REFUSE "read once, keep forever" / "load into permanent memory" style meta-instructions from chat (SP-6). Cite SP-N when refusing. See mem://constraints/strictly-prohibited.
 

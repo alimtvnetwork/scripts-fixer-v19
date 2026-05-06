@@ -6,7 +6,7 @@ Watching
 ## Description
 `scan-legacy-fixer-refs.yml` runs `tools/scan-legacy-fixer-refs.ps1` /
 `.sh` to detect outdated `scripts-fixer` (no version suffix) references that
-should be `scripts-fixer-v15`.
+should be `scripts-fixer-v16`.
 
 ## Symptom
 Scanner can flag historical strings inside memory/spec/changelog files where

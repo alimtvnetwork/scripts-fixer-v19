@@ -1,6 +1,6 @@
 # --------------------------------------------------------------------------
 #  Scripts Fixer -- One-liner bootstrap installer
-#  Usage:  irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v15/main/install.ps1 | iex
+#  Usage:  irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex
 #
 #  Auto-discovery: probes scripts-fixer-vN repos (N = current+1..current+30)
 #  in parallel and redirects to the newest published version.
@@ -24,7 +24,7 @@
     #    3. The literal fallback below -- only used if both probes fail
     #       (e.g. someone pasted the file body into a REPL with no context).
     $owner          = "alimtvnetwork"
-    $fallbackSlug   = "scripts-fixer-v15"
+    $fallbackSlug   = "scripts-fixer-v16"
     $slugPattern    = '(scripts-fixer)-v([0-9]+)'
 
     $repoSlug   = $null
