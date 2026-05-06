@@ -124,9 +124,7 @@ function Invoke-VsCodeSetup {
             Install-VsCodeEditionByKey "stable"
         }
         "insiders" {
-            Install-VsCodeEdition -ChocoPackageName $editions.insiders.chocoPackageName `
-                                   -Label $editions.insiders.label `
-                                   -LogMessages $LogMessages
+            Install-VsCodeEditionByKey "insiders"
         }
         "all" {
             # Check env var from orchestrator questionnaire first
@@ -139,16 +137,8 @@ function Invoke-VsCodeSetup {
                 $isStable   = $editionsEnv -match "stable"
                 $isInsiders = $editionsEnv -match "insiders"
 
-                if ($isStable) {
-                    Install-VsCodeEdition -ChocoPackageName $editions.stable.chocoPackageName `
-                                           -Label $editions.stable.label `
-                                           -LogMessages $LogMessages
-                }
-                if ($isInsiders) {
-                    Install-VsCodeEdition -ChocoPackageName $editions.insiders.chocoPackageName `
-                                           -Label $editions.insiders.label `
-                                           -LogMessages $LogMessages
-                }
+                if ($isStable)   { Install-VsCodeEditionByKey "stable" }
+                if ($isInsiders) { Install-VsCodeEditionByKey "insiders" }
             }
             elseif ($shouldPrompt -and -not $isAutoYes) {
                 Write-Host ""
@@ -164,44 +154,27 @@ function Invoke-VsCodeSetup {
                 $isBoth = $choice -eq "3"
 
                 if ($isDefaultOrStable) {
-                    Install-VsCodeEdition -ChocoPackageName $editions.stable.chocoPackageName `
-                                           -Label $editions.stable.label `
-                                           -LogMessages $LogMessages
+                    Install-VsCodeEditionByKey "stable"
                 }
                 elseif ($isInsiders) {
-                    Install-VsCodeEdition -ChocoPackageName $editions.insiders.chocoPackageName `
-                                           -Label $editions.insiders.label `
-                                           -LogMessages $LogMessages
+                    Install-VsCodeEditionByKey "insiders"
                 }
                 elseif ($isBoth) {
-                    Install-VsCodeEdition -ChocoPackageName $editions.stable.chocoPackageName `
-                                           -Label $editions.stable.label `
-                                           -LogMessages $LogMessages
-                    Install-VsCodeEdition -ChocoPackageName $editions.insiders.chocoPackageName `
-                                           -Label $editions.insiders.label `
-                                           -LogMessages $LogMessages
+                    Install-VsCodeEditionByKey "stable"
+                    Install-VsCodeEditionByKey "insiders"
                 }
                 else {
-                    Install-VsCodeEdition -ChocoPackageName $editions.stable.chocoPackageName `
-                                           -Label $editions.stable.label `
-                                           -LogMessages $LogMessages
+                    Install-VsCodeEditionByKey "stable"
                 }
             }
             else {
                 # No prompt: install what's enabled in config
-                if ($editions.stable.enabled) {
-                    Install-VsCodeEdition -ChocoPackageName $editions.stable.chocoPackageName `
-                                           -Label $editions.stable.label `
-                                           -LogMessages $LogMessages
-                }
-                if ($editions.insiders.enabled) {
-                    Install-VsCodeEdition -ChocoPackageName $editions.insiders.chocoPackageName `
-                                           -Label $editions.insiders.label `
-                                           -LogMessages $LogMessages
-                }
+                if ($editions.stable.enabled)   { Install-VsCodeEditionByKey "stable" }
+                if ($editions.insiders.enabled) { Install-VsCodeEditionByKey "insiders" }
             }
         }
     }
+}
 }
 
 function Uninstall-VsCode {
