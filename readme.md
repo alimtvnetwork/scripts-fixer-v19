@@ -952,6 +952,29 @@ without rebooting. Requires elevation (writes to `HKEY_CLASSES_ROOT`).
 .\run.ps1 os fix-vscode-context-menu --non-interactive  # CI mode: no prompts
 ```
 
+#### ConEmu context menu (install / uninstall / restore)
+
+`os conemu-context-menu` delegates to
+[`scripts/59-conemu-context-menu/`](scripts/59-conemu-context-menu/).
+Uninstall snapshots every affected `HKCR` key to a single `.reg` file
+under `scripts/59-conemu-context-menu/.logs/registry-backups/` BEFORE
+deletion, records each delete in a JSON change ledger, and prints a
+copy-paste `reg import "<file>"` rollback hint. `--restore` re-imports
+the newest snapshot (or pass `--snapshot-file <path>` to pick one).
+Requires elevation for write operations; `--dry-run-uninstall`,
+`--restore --dry-run`, and `--list-snapshots` are read-only.
+
+```powershell
+.\run.ps1 os conemu-context-menu                          # install registry entries (default)
+.\run.ps1 os conemu-context-menu install                  # same, explicit
+.\run.ps1 os conemu-context-menu --uninstall              # snapshot HKCR keys to .reg, then remove
+.\run.ps1 os conemu-context-menu --dry-run-uninstall      # preview removal, no writes
+.\run.ps1 os conemu-context-menu --restore                # re-import newest snapshot
+.\run.ps1 os conemu-context-menu --restore --dry-run      # preview restore (read-only)
+.\run.ps1 os conemu-context-menu --restore --snapshot-file C:\path\to\backup.reg
+.\run.ps1 os conemu-context-menu --list-snapshots         # list newest-first .reg backups
+```
+
 #### Help (all four show the same OS subcommand catalog)
 
 ```powershell
