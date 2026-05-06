@@ -29,7 +29,7 @@ try {
         $result.Notes += "DISM ResetBase succeeded"
     } else {
         $result.Status = "warn"
-        $result.Notes += "DISM exited $LASTEXITCODE: $($output | Select-Object -Last 5)"
+        $result.Notes += "DISM exited ${LASTEXITCODE}: $($output | Select-Object -Last 5)"
     }
 } catch {
     $result.Status = "fail"
