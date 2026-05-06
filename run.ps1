@@ -991,6 +991,21 @@ function Resolve-InstallKeywords {
         }
     }
 
+    # --exclude-strict: abort the entire run if any --exclude tokens were unknown
+    # or otherwise unresolvable. Prints a clear actionable error before exiting.
+    if ($isExcludeStrict -and $ignoredExcl.Count -gt 0) {
+        $badList = ($ignoredExcl | ForEach-Object { "'$($_.Token)'" }) -join ", "
+        Write-Log "--exclude-strict is set and $($ignoredExcl.Count) --exclude token(s) were invalid: $badList" -Level "fail"
+        foreach ($bad in $ignoredExcl) {
+            $sugg = if ($bad.Suggestions -and $bad.Suggestions.Count -gt 0) { " (did you mean: $($bad.Suggestions -join ', ')?)" } else { "" }
+            Write-Log "  - '$($bad.Token)': $($bad.Reason)$sugg" -Level "fail"
+        }
+        $validSample = ($validExcludeTokens | Sort-Object | Select-Object -First 12) -join ", "
+        Write-Log "Valid --exclude tokens include: $validSample ..." -Level "info"
+        Write-Log "Aborting. Re-run without --exclude-strict to continue with the valid tokens only." -Level "info"
+        exit 2
+    }
+
     $hasExcludes = $excludeIds.Count -gt 0
     if ($hasExcludes) {
         $excludeList = ($excludeIds | Sort-Object | ForEach-Object { "{0:D2}" -f $_ }) -join ", "
