@@ -129,6 +129,19 @@ function Show-ProfileList {
     $cfgPath     = Join-Path $scriptDir "config.json"
     $aliasesPath = Join-Path $scriptDir "profile-aliases.json"
 
+    # Lazy-load shared schema validator (graceful degradation if missing)
+    $rootDirLocal  = Split-Path -Parent (Split-Path -Parent $scriptDir)
+    $validatorPath = Join-Path $rootDirLocal "scripts\shared\profile-config-validator.ps1"
+    $hasValidator  = Test-Path $validatorPath
+    if ($hasValidator -and -not (Get-Command Test-ProfileConfig -ErrorAction SilentlyContinue)) {
+        try { . $validatorPath } catch { $hasValidator = $false }
+    }
+    $cfgValidation   = $null
+    $aliasValidation = $null
+    if ($hasValidator) {
+        $cfgValidation = Test-ProfileConfig -FilePath $cfgPath
+    }
+
     # Collect profile entries (sorted alphabetically for stable output)
     $entries = @()
     if ($Config -and $Config.profiles) {
@@ -168,7 +181,16 @@ function Show-ProfileList {
     }
     Write-Host ""
 
+    # Issues report for the profiles config (errors + warnings, with file paths)
+    if ($hasValidator -and $cfgValidation) {
+        Format-ProfileConfigIssues -Result $cfgValidation -Title "Profile config issues"
+    }
+
     # ── Aliases (exact + fallback) ─────────────────────────────────────
+    if ($hasValidator) {
+        $knownNames = @($entries | ForEach-Object { $_.Name })
+        $aliasValidation = Test-ProfileAliasesConfig -FilePath $aliasesPath -KnownProfileNames $knownNames
+    }
     if (Test-Path -LiteralPath $aliasesPath) {
         try {
             $aliasCfg = Get-Content -LiteralPath $aliasesPath -Raw | ConvertFrom-Json
@@ -198,6 +220,10 @@ function Show-ProfileList {
             Write-Host ("  [ WARN ] Failed to parse {0} -- {1}" -f $aliasesPath, $_.Exception.Message) -ForegroundColor DarkYellow
             Write-Host ""
         }
+    }
+
+    if ($hasValidator -and $aliasValidation) {
+        Format-ProfileConfigIssues -Result $aliasValidation -Title "Profile aliases issues"
     }
 
     # ── Copy-paste examples (both forms equivalent) ────────────────────

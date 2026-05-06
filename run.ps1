@@ -338,40 +338,55 @@ function Show-RootHelp {
     Write-Host "    $(".\run.ps1 -List".PadRight($col))" -NoNewline; Write-Host "Show keyword table only" -ForegroundColor DarkGray
     Write-Host ""
 
-    # ── Profiles section (dynamic, read from scripts/profile/config.json + profile-aliases.json) ──
+    # ── Profiles section (dynamic, schema-validated against scripts/profile/*.json) ──
     $profileCfgPath     = Join-Path $RootDir "scripts\profile\config.json"
     $profileAliasesPath = Join-Path $RootDir "scripts\profile\profile-aliases.json"
-    $hasProfileCfg      = Test-Path $profileCfgPath
-    $hasProfileAliases  = Test-Path $profileAliasesPath
 
-    $profileEntries           = @()   # @{ name; label; description }
-    $profileNamesForExamples  = @()
-    $profileLoadError         = $null
+    # Lazy-load the shared schema validator (graceful degradation if missing)
+    $validatorPath = Join-Path $RootDir "scripts\shared\profile-config-validator.ps1"
+    $hasValidator  = Test-Path $validatorPath
+    if ($hasValidator -and -not (Get-Command Test-ProfileConfig -ErrorAction SilentlyContinue)) {
+        try { . $validatorPath } catch { $hasValidator = $false }
+    }
 
-    if ($hasProfileCfg) {
-        try {
-            $profCfgHelp = Get-Content $profileCfgPath -Raw -ErrorAction Stop | ConvertFrom-Json
-            foreach ($pname in $profCfgHelp.profiles.PSObject.Properties.Name) {
-                $pdef  = $profCfgHelp.profiles.$pname
-                $plabel = if ($pdef.label) { [string]$pdef.label } else { "" }
-                $pdesc  = if ($pdef.description) { [string]$pdef.description } elseif ($plabel) { $plabel } else { "" }
-                $profileEntries += [pscustomobject]@{
-                    Name        = [string]$pname
-                    Label       = $plabel
-                    Description = $pdesc
-                }
-                $profileNamesForExamples += [string]$pname
+    $profileEntries          = @()
+    $profileNamesForExamples = @()
+    $cfgValidation           = $null
+    $aliasValidation         = $null
+
+    if ($hasValidator) {
+        $cfgValidation = Test-ProfileConfig -FilePath $profileCfgPath
+        foreach ($pname in $cfgValidation.ProfileNames) {
+            $pdef   = $null
+            try { $pdef = (Get-Content $profileCfgPath -Raw | ConvertFrom-Json).profiles.$pname } catch {}
+            $plabel = if ($pdef -and $pdef.label) { [string]$pdef.label } else { "" }
+            $pdesc  = if ($pdef -and $pdef.description) { [string]$pdef.description } elseif ($plabel) { $plabel } else { "" }
+            $profileEntries += [pscustomobject]@{
+                Name        = [string]$pname
+                Label       = $plabel
+                Description = $pdesc
             }
-        } catch {
-            $profileLoadError = "Failed to parse $profileCfgPath -- $($_.Exception.Message)"
+            $profileNamesForExamples += [string]$pname
         }
     } else {
-        $profileLoadError = "Profile config not found at: $profileCfgPath"
+        # Validator unavailable -- best-effort raw read so --help still works
+        if (Test-Path $profileCfgPath) {
+            try {
+                $profCfgHelp = Get-Content $profileCfgPath -Raw | ConvertFrom-Json
+                foreach ($pname in $profCfgHelp.profiles.PSObject.Properties.Name) {
+                    $pdef   = $profCfgHelp.profiles.$pname
+                    $plabel = if ($pdef.label) { [string]$pdef.label } else { "" }
+                    $pdesc  = if ($pdef.description) { [string]$pdef.description } elseif ($plabel) { $plabel } else { "" }
+                    $profileEntries += [pscustomobject]@{ Name = [string]$pname; Label = $plabel; Description = $pdesc }
+                    $profileNamesForExamples += [string]$pname
+                }
+            } catch {}
+        }
     }
 
     Write-Host ("  Profiles ({0} available):" -f $profileEntries.Count) -ForegroundColor Yellow
     Write-Host "  (multi-step install recipes -- run with 'profile <name>' or 'install <name>')" -ForegroundColor DarkGray
-    Write-Host "  source: scripts\profile\config.json" -ForegroundColor DarkGray
+    Write-Host ("  source: {0}" -f $profileCfgPath) -ForegroundColor DarkGray
     Write-Host ""
 
     if ($profileEntries.Count -gt 0) {
@@ -383,25 +398,37 @@ function Show-RootHelp {
             Write-Host $line -ForegroundColor DarkGray
         }
     } else {
-        Write-Host "    (no profiles found -- $profileLoadError)" -ForegroundColor DarkYellow
+        Write-Host "    (no profiles available -- see issues report below)" -ForegroundColor DarkYellow
         Write-Host "    Try: .\run.ps1 profile list" -ForegroundColor DarkYellow
     }
     Write-Host ""
 
+    # Issues report for the profiles config (errors + warnings, with file paths)
+    if ($hasValidator -and $cfgValidation) {
+        Format-ProfileConfigIssues -Result $cfgValidation -Title "Profile config issues"
+    }
+
     # ── Profile aliases (so users see every name that resolves to a profile) ──
-    if ($hasProfileAliases) {
+    if ($hasValidator) {
+        $aliasValidation = Test-ProfileAliasesConfig -FilePath $profileAliasesPath -KnownProfileNames $profileNamesForExamples
+    }
+
+    if (Test-Path $profileAliasesPath) {
         try {
             $aliasCfg = Get-Content $profileAliasesPath -Raw -ErrorAction Stop | ConvertFrom-Json
-            $aliasNames = @($aliasCfg.aliases.PSObject.Properties.Name)
+            $aliasNames = @()
+            if ($aliasCfg -and $aliasCfg.aliases) {
+                $aliasNames = @($aliasCfg.aliases.PSObject.Properties.Name)
+            }
             if ($aliasNames.Count -gt 0) {
                 Write-Host ("  Profile Aliases ({0}):" -f $aliasNames.Count) -ForegroundColor Yellow
-                Write-Host "  source: scripts\profile\profile-aliases.json" -ForegroundColor DarkGray
+                Write-Host ("  source: {0}" -f $profileAliasesPath) -ForegroundColor DarkGray
                 Write-Host ""
                 $ac = 16
                 foreach ($aname in $aliasNames) {
                     $adef   = $aliasCfg.aliases.$aname
                     $atgt   = [string]$adef.target
-                    $akind  = [string]$adef.kind
+                    $akind  = "$($adef.kind)".ToLower()
                     $note   = if ($akind -eq "fallback") { " (fallback -- closest local match)" } else { "" }
                     Write-Host "    $($aname.PadRight($ac))" -NoNewline -ForegroundColor Cyan
                     Write-Host ("-> {0}{1}" -f $atgt, $note) -ForegroundColor DarkGray
@@ -412,6 +439,10 @@ function Show-RootHelp {
             Write-Host ("    (failed to parse {0} -- {1})" -f $profileAliasesPath, $_.Exception.Message) -ForegroundColor DarkYellow
             Write-Host ""
         }
+    }
+
+    if ($hasValidator -and $aliasValidation) {
+        Format-ProfileConfigIssues -Result $aliasValidation -Title "Profile aliases issues"
     }
 
     Write-Host "  Profile Examples (copy-paste):" -ForegroundColor Yellow
