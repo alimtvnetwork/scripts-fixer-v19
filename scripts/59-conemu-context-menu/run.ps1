@@ -2,15 +2,32 @@
 #  Script 59 -- ConEmu Context Menu
 #  Adds "Open ConEmu Here" (normal + admin) to the right-click menu for
 #  folders and folder backgrounds. Mirrors script 31 (PowerShell Here).
+#
+#  Subcommands:
+#    install            (default) Add registry entries for all enabledModes
+#    uninstall          Snapshot affected HKCR keys to a .reg file, then
+#                       remove the entries. Prints copy-paste rollback hint.
+#    dry-run-uninstall  Preview uninstall (no snapshot file kept beyond
+#                       enumeration, no registry writes).
+#    restore            Re-import the newest .reg snapshot from
+#                       .logs/registry-backups/ (use -SnapshotFile to pick
+#                       a specific one). Add -DryRun to preview.
+#    list-snapshots     List newest-first conemu-context-menu .reg backups.
+#    help               Show usage.
 # --------------------------------------------------------------------------
 param(
     [Parameter(Position = 0)]
-    [string]$Command = "all",
+    [string]$Command = "install",
 
     [Parameter(Position = 1)]
     [string]$Path,
 
-    [switch]$Help
+    [string]$SnapshotFile = '',
+    [switch]$DryRun,
+    [switch]$Help,
+
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Rest
 )
 
 Set-StrictMode -Version Latest
@@ -27,6 +44,7 @@ $script:ScriptDir = $scriptDir
 . (Join-Path $sharedDir "help.ps1")
 . (Join-Path $sharedDir "installed.ps1")
 . (Join-Path $sharedDir "install-paths.ps1")
+. (Join-Path $sharedDir "registry-backup.ps1")
 
 # -- Dot-source script helpers ------------------------------------------------
 . (Join-Path $scriptDir "helpers\conemu-menu.ps1")
@@ -36,9 +54,28 @@ $config      = Import-JsonConfig (Join-Path $scriptDir "config.json")
 $logMessages = Import-JsonConfig (Join-Path $scriptDir "log-messages.json")
 
 # -- Help ---------------------------------------------------------------------
-if ($Help -or $Command -eq "--help" -or $Command -eq "-h" -or $Command -eq "-help") {
+$normalizedCommand = ''
+if (-not [string]::IsNullOrWhiteSpace($Command)) { $normalizedCommand = $Command.Trim().ToLower() }
+if ($Help -or $normalizedCommand -in @('--help','-help','-h','/?','help','?')) {
     Show-ScriptHelp -LogMessages $logMessages
     return
+}
+
+# Pull --dry-run / --snapshot-file out of $Rest so callers can use the
+# friendly forms ("uninstall --dry-run", "restore --snapshot-file C:\x.reg")
+# instead of named PowerShell parameters.
+if ($null -ne $Rest -and $Rest.Count -gt 0) {
+    for ($i = 0; $i -lt $Rest.Count; $i++) {
+        $tok = "$($Rest[$i])".Trim().ToLower()
+        switch -Regex ($tok) {
+            '^(--?dry-run|dry-run)$'                  { $DryRun = $true }
+            '^(--?snapshot-file|snapshot-file|--?file|file)$' {
+                $i++
+                if ($i -lt $Rest.Count) { $SnapshotFile = "$($Rest[$i])" }
+            }
+            default { }
+        }
+    }
 }
 
 # -- Banner --------------------------------------------------------------------
@@ -66,18 +103,58 @@ if (-not $config.enabled) {
     return
 }
 
+# -- Read-only subcommands skip the admin gate --------------------------------
+$readOnlyCommands = @('list-snapshots','dry-run-uninstall')
+$isReadOnly = $readOnlyCommands -contains $normalizedCommand
+if ($normalizedCommand -eq 'restore' -and $DryRun) { $isReadOnly = $true }
+
 # -- Assert admin --------------------------------------------------------------
-$hasAdminRights = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $hasAdminRights) {
-    Write-Log $logMessages.messages.notAdmin -Level "error"
-    return
+if (-not $isReadOnly) {
+    $hasAdminRights = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $hasAdminRights) {
+        Write-Log $logMessages.messages.notAdmin -Level "error"
+        return
+    }
 }
 
-# -- Uninstall path ------------------------------------------------------------
-$isUninstall = $Command.ToLower() -eq "uninstall"
-if ($isUninstall) {
-    Uninstall-ConEmuContextMenu -Config $config -LogMessages $logMessages
-    return
+# -- Subcommand dispatcher ----------------------------------------------------
+switch ($normalizedCommand) {
+    'list-snapshots' {
+        $snaps = Get-ConEmuContextMenuSnapshots
+        if ($snaps.Count -eq 0) {
+            $backupRoot = Join-Path $script:ScriptDir ".logs\registry-backups"
+            Write-Log ("No snapshots found under: " + $backupRoot) -Level "warn"
+            Write-Log "Run '.\\run.ps1 -I 59 uninstall' to create one." -Level "info"
+            return
+        }
+        Write-Host ""
+        Write-Host "  ConEmu context menu :: snapshots (newest first)" -ForegroundColor Cyan
+        Write-Host  "  -------------------------------------------------" -ForegroundColor DarkGray
+        $i = 0
+        foreach ($s in $snaps) {
+            $i++
+            $marker = if ($i -eq 1) { "*" } else { " " }
+            Write-Host ("  {0} [{1,2}]  {2}  {3,8} bytes  {4}" -f $marker, $i, ($s.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')), $s.Length, $s.FullName) -ForegroundColor White
+        }
+        Write-Host ""
+        Write-Host "  Restore newest:  .\run.ps1 -I 59 restore" -ForegroundColor DarkGray
+        Write-Host "  Restore picked:  .\run.ps1 -I 59 restore --snapshot-file <path>" -ForegroundColor DarkGray
+        return
+    }
+    { $_ -in @('uninstall','remove','rollback') } {
+        Uninstall-ConEmuContextMenu -Config $config -LogMessages $logMessages
+        return
+    }
+    { $_ -in @('dry-run-uninstall','uninstall-dry-run','preview-uninstall') } {
+        Uninstall-ConEmuContextMenu -Config $config -LogMessages $logMessages -DryRun
+        return
+    }
+    { $_ -in @('restore','restore-snapshot') } {
+        $ok = Restore-ConEmuContextMenuSnapshot -SnapshotFile $SnapshotFile -DryRun:$DryRun -LogMessages $logMessages
+        if (-not $ok) { exit 1 }
+        return
+    }
+    default { } # 'install' / '' / 'all' -> fall through to legacy install path
 }
 
 # -- Detect ConEmu64.exe ------------------------------------------------------
