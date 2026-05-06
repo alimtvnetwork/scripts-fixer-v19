@@ -408,27 +408,44 @@ Write-Host ""
 Write-Host ("  Profile '{0}' Summary" -f $resolvedName) -ForegroundColor Cyan
 Write-Host ("  " + ("=" * (20 + $resolvedName.Length))) -ForegroundColor DarkGray
 
-$totalElapsed = 0.0
-$failedCount  = 0
+$totalElapsed       = 0.0
+$failedCount        = 0
+$alreadyInstalled   = 0
+$freshlyInstalled   = 0
 for ($i = 0; $i -lt $results.Count; $i++) {
     $r = $results[$i]
     $statusColor = switch ($r.Status) {
-        "ok"   { "Green" }
-        "fail" { "Red" }
-        "skip" { "DarkGray" }
-        "warn" { "Yellow" }
-        default { "Gray" }
+        "ok"                { "Green" }
+        "already-installed" { "Cyan" }
+        "fail"              { "Red" }
+        "skip"              { "DarkGray" }
+        "warn"              { "Yellow" }
+        default             { "Gray" }
     }
-    Write-Host ("    {0,3}. [{1,-10}] {2,-40} {3,-6} {4,6}s" -f ($i + 1), $r.Kind, $r.Label, $r.Status.ToUpper(), [Math]::Round($r.Elapsed, 1)) -ForegroundColor $statusColor
+    Write-Host ("    {0,3}. [{1,-10}] {2,-40} {3,-17} {4,6}s" -f ($i + 1), $r.Kind, $r.Label, $r.Status.ToUpper(), [Math]::Round($r.Elapsed, 1)) -ForegroundColor $statusColor
     $totalElapsed += $r.Elapsed
-    if ($r.Status -eq "fail") { $failedCount++ }
+    if ($r.Status -eq "fail")              { $failedCount++ }
+    elseif ($r.Status -eq "already-installed") { $alreadyInstalled++ }
+    elseif ($r.Status -eq "ok")            { $freshlyInstalled++ }
 }
 
 Write-Host ""
 $totalElapsedRounded = [Math]::Round($totalElapsed, 1)
 if ($failedCount -eq 0) {
+    $isAllAlready = ($alreadyInstalled -gt 0) -and ($freshlyInstalled -eq 0)
+    if ($isAllAlready) {
+        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+        Write-Host ("All {0} step(s) were already installed -- nothing to do ({1}s)." -f $totalSteps, $totalElapsedRounded)
+        Set-LogAlreadyInstalled -Value $true
+        Save-LogFile -Status "ok"   # promoted to "already-installed" by Save-LogFile
+        exit 0
+    }
     Write-Host "  [  OK  ] " -ForegroundColor Green -NoNewline
-    Write-Host ("All {0} step(s) succeeded in {1}s." -f $totalSteps, $totalElapsedRounded)
+    if ($alreadyInstalled -gt 0) {
+        Write-Host ("All {0} step(s) succeeded in {1}s ({2} freshly installed, {3} already installed)." -f $totalSteps, $totalElapsedRounded, $freshlyInstalled, $alreadyInstalled)
+    } else {
+        Write-Host ("All {0} step(s) succeeded in {1}s." -f $totalSteps, $totalElapsedRounded)
+    }
     Save-LogFile -Status "ok"
     exit 0
 } else {
