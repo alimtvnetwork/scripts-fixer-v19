@@ -338,31 +338,82 @@ function Show-RootHelp {
     Write-Host "    $(".\run.ps1 -List".PadRight($col))" -NoNewline; Write-Host "Show keyword table only" -ForegroundColor DarkGray
     Write-Host ""
 
-    # ── Profiles section (dynamic, read from scripts/profile/config.json) ──
-    Write-Host "  Profiles:" -ForegroundColor Yellow
-    Write-Host "  (multi-step install recipes -- run with 'profile <name>' or 'install <name>')" -ForegroundColor DarkGray
-    Write-Host ""
-    $profileCfgPath = Join-Path $RootDir "scripts\profile\config.json"
-    $hasProfileCfg = Test-Path $profileCfgPath
-    $profileNamesForExamples = @()
+    # ── Profiles section (dynamic, read from scripts/profile/config.json + profile-aliases.json) ──
+    $profileCfgPath     = Join-Path $RootDir "scripts\profile\config.json"
+    $profileAliasesPath = Join-Path $RootDir "scripts\profile\profile-aliases.json"
+    $hasProfileCfg      = Test-Path $profileCfgPath
+    $hasProfileAliases  = Test-Path $profileAliasesPath
+
+    $profileEntries           = @()   # @{ name; label; description }
+    $profileNamesForExamples  = @()
+    $profileLoadError         = $null
+
     if ($hasProfileCfg) {
         try {
-            $profCfgHelp = Get-Content $profileCfgPath -Raw | ConvertFrom-Json
-            $pc = 22
+            $profCfgHelp = Get-Content $profileCfgPath -Raw -ErrorAction Stop | ConvertFrom-Json
             foreach ($pname in $profCfgHelp.profiles.PSObject.Properties.Name) {
-                $pdef = $profCfgHelp.profiles.$pname
-                $pdesc = if ($pdef.description) { $pdef.description } elseif ($pdef.label) { $pdef.label } else { "" }
-                Write-Host "    $($pname.PadRight($pc))" -NoNewline -ForegroundColor Green
-                Write-Host $pdesc -ForegroundColor DarkGray
-                $profileNamesForExamples += $pname
+                $pdef  = $profCfgHelp.profiles.$pname
+                $plabel = if ($pdef.label) { [string]$pdef.label } else { "" }
+                $pdesc  = if ($pdef.description) { [string]$pdef.description } elseif ($plabel) { $plabel } else { "" }
+                $profileEntries += [pscustomobject]@{
+                    Name        = [string]$pname
+                    Label       = $plabel
+                    Description = $pdesc
+                }
+                $profileNamesForExamples += [string]$pname
             }
         } catch {
-            Write-Host "    (failed to read $profileCfgPath -- run '.\run.ps1 profile list')" -ForegroundColor DarkYellow
+            $profileLoadError = "Failed to parse $profileCfgPath -- $($_.Exception.Message)"
         }
     } else {
-        Write-Host "    (profile config not found at: $profileCfgPath)" -ForegroundColor DarkYellow
+        $profileLoadError = "Profile config not found at: $profileCfgPath"
+    }
+
+    Write-Host ("  Profiles ({0} available):" -f $profileEntries.Count) -ForegroundColor Yellow
+    Write-Host "  (multi-step install recipes -- run with 'profile <name>' or 'install <name>')" -ForegroundColor DarkGray
+    Write-Host "  source: scripts\profile\config.json" -ForegroundColor DarkGray
+    Write-Host ""
+
+    if ($profileEntries.Count -gt 0) {
+        $pc = 16
+        foreach ($entry in $profileEntries) {
+            $line = $entry.Description
+            if ([string]::IsNullOrWhiteSpace($line)) { $line = $entry.Label }
+            Write-Host "    $($entry.Name.PadRight($pc))" -NoNewline -ForegroundColor Green
+            Write-Host $line -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Host "    (no profiles found -- $profileLoadError)" -ForegroundColor DarkYellow
+        Write-Host "    Try: .\run.ps1 profile list" -ForegroundColor DarkYellow
     }
     Write-Host ""
+
+    # ── Profile aliases (so users see every name that resolves to a profile) ──
+    if ($hasProfileAliases) {
+        try {
+            $aliasCfg = Get-Content $profileAliasesPath -Raw -ErrorAction Stop | ConvertFrom-Json
+            $aliasNames = @($aliasCfg.aliases.PSObject.Properties.Name)
+            if ($aliasNames.Count -gt 0) {
+                Write-Host ("  Profile Aliases ({0}):" -f $aliasNames.Count) -ForegroundColor Yellow
+                Write-Host "  source: scripts\profile\profile-aliases.json" -ForegroundColor DarkGray
+                Write-Host ""
+                $ac = 16
+                foreach ($aname in $aliasNames) {
+                    $adef   = $aliasCfg.aliases.$aname
+                    $atgt   = [string]$adef.target
+                    $akind  = [string]$adef.kind
+                    $note   = if ($akind -eq "fallback") { " (fallback -- closest local match)" } else { "" }
+                    Write-Host "    $($aname.PadRight($ac))" -NoNewline -ForegroundColor Cyan
+                    Write-Host ("-> {0}{1}" -f $atgt, $note) -ForegroundColor DarkGray
+                }
+                Write-Host ""
+            }
+        } catch {
+            Write-Host ("    (failed to parse {0} -- {1})" -f $profileAliasesPath, $_.Exception.Message) -ForegroundColor DarkYellow
+            Write-Host ""
+        }
+    }
+
     Write-Host "  Profile Examples (copy-paste):" -ForegroundColor Yellow
     Write-Host "  (both forms are equivalent -- pick whichever you prefer)" -ForegroundColor DarkGray
     Write-Host ""
