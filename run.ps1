@@ -353,8 +353,39 @@ function Show-RootHelp {
     Write-Host "    $("install flutter".PadRight($kc))" -NoNewline; Write-Host "Install Flutter SDK + Dart" -ForegroundColor DarkGray
     Write-Host "    $("install dotnet".PadRight($kc))" -NoNewline; Write-Host "Install .NET SDK (latest)" -ForegroundColor DarkGray
     Write-Host "    $("install java".PadRight($kc))" -NoNewline; Write-Host "Install OpenJDK (latest LTS)" -ForegroundColor DarkGray
-    Write-Host "    $("install settingssync".PadRight($kc))" -NoNewline; Write-Host "Sync VSCode settings + extensions" -ForegroundColor DarkGray
-    Write-Host "    $("install contextmenu".PadRight($kc))" -NoNewline; Write-Host "Fix VSCode right-click context menu" -ForegroundColor DarkGray
+    Write-Host "    $("install settingssync".PadRight($kc))" -NoNewline; Write-Host "Sync VSCode settings + extensions (auto-installs VS Code)" -ForegroundColor DarkGray
+    Write-Host "    $("install contextmenu".PadRight($kc))" -NoNewline; Write-Host "Fix VSCode right-click menu (auto-installs VS Code + settings)" -ForegroundColor DarkGray
+    Write-Host ""
+
+    Write-Host "    Settings & Context Menus:" -ForegroundColor Magenta
+    Write-Host "      Each keyword auto-installs its prerequisite app first, then applies settings," -ForegroundColor DarkGray
+    Write-Host "      and finally registers the right-click menu (where applicable)." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "      VS Code:" -ForegroundColor DarkYellow
+    Write-Host "    $("install vscode+settings".PadRight($kc))" -NoNewline; Write-Host "VS Code + sync settings/keybindings/extensions [01,11]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode-settings".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+settings (alias) [01,11]" -ForegroundColor DarkGray
+    Write-Host "    $("install settings-sync".PadRight($kc))" -NoNewline; Write-Host "Same as above -- ensures VS Code installed first [01,11]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+menu+settings (= vms)".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + right-click menu [01,11,10]" -ForegroundColor DarkGray
+    Write-Host "    $("install context-menu".PadRight($kc))" -NoNewline; Write-Host "VS Code right-click menu (auto-installs VS Code+settings) [01,11,10]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as context-menu (explicit alias) [01,11,10]" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "      PowerShell:" -ForegroundColor DarkYellow
+    Write-Host "    $("install pwsh-menu".PadRight($kc))" -NoNewline; Write-Host "Open PowerShell Here menu (auto-installs PowerShell) [17,31]" -ForegroundColor DarkGray
+    Write-Host "    $("install pwsh-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as pwsh-menu (alias) [17,31]" -ForegroundColor DarkGray
+    Write-Host "    $("install ps-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as pwsh-menu (alias) [17,31]" -ForegroundColor DarkGray
+    Write-Host "    $("install powershell-menu".PadRight($kc))" -NoNewline; Write-Host "Same as pwsh-menu (alias) [17,31]" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "      ConEmu:" -ForegroundColor DarkYellow
+    Write-Host "    $("install conemu".PadRight($kc))" -NoNewline; Write-Host "ConEmu + settings auto-applied (ConEmu.xml) [48 install+settings]" -ForegroundColor DarkGray
+    Write-Host "    $("install conemu+settings".PadRight($kc))" -NoNewline; Write-Host "Same as conemu (explicit) [48 install+settings]" -ForegroundColor DarkGray
+    Write-Host "    $("install conemu-settings".PadRight($kc))" -NoNewline; Write-Host "Apply ConEmu.xml only (skip install) [48 settings-only]" -ForegroundColor DarkGray
+    Write-Host "    $("install install-conemu".PadRight($kc))" -NoNewline; Write-Host "Install ConEmu only (skip settings) [48 install-only]" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "      Other apps with bundled settings:" -ForegroundColor DarkYellow
+    Write-Host "    $("install npp+settings".PadRight($kc))" -NoNewline; Write-Host "Notepad++ + settings [33 install+settings]" -ForegroundColor DarkGray
+    Write-Host "    $("install obs+settings".PadRight($kc))" -NoNewline; Write-Host "OBS Studio + settings [36 install+settings]" -ForegroundColor DarkGray
+    Write-Host "    $("install wt+settings".PadRight($kc))" -NoNewline; Write-Host "Windows Terminal + settings [37 install+settings]" -ForegroundColor DarkGray
+    Write-Host "    $("install dbeaver+settings".PadRight($kc))" -NoNewline; Write-Host "DBeaver + settings [32 install+settings]" -ForegroundColor DarkGray
     Write-Host ""
 
     Write-Host "    Python & pip libraries:" -ForegroundColor Magenta
