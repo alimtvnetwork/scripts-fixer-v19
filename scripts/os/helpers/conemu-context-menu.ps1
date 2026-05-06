@@ -21,6 +21,9 @@
         --restore --dry-run   -> preview restore (no writes)
         --list-snapshots      -> list newest-first .reg backups
         --snapshot-file <p>   -> explicit snapshot for --restore
+        --yes / -y            -> skip the confirmation prompt
+        --non-interactive     -> headless mode (refuses destructive ops
+                                 unless --yes is also supplied)
 
     Refuses cleanly on non-Windows so cross-OS callers see actionable text
     instead of a cryptic registry error (CODE RED rule).
