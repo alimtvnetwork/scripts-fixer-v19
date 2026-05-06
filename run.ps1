@@ -803,7 +803,63 @@ function Show-KeywordTable {
     }
 
 
+# Levenshtein distance -- used to rank "did you mean" suggestions for unknown
+# --exclude tokens. Pure PowerShell, no external deps. O(len(a) * len(b)).
+function Get-LevenshteinDistance {
+    param([string]$A, [string]$B)
+    if ([string]::IsNullOrEmpty($A)) { return [int]$B.Length }
+    if ([string]::IsNullOrEmpty($B)) { return [int]$A.Length }
+    $la = $A.Length; $lb = $B.Length
+    $prev = New-Object 'int[]' ($lb + 1)
+    $curr = New-Object 'int[]' ($lb + 1)
+    for ($j = 0; $j -le $lb; $j++) { $prev[$j] = $j }
+    for ($i = 1; $i -le $la; $i++) {
+        $curr[0] = $i
+        for ($j = 1; $j -le $lb; $j++) {
+            $cost = if ($A[$i - 1] -eq $B[$j - 1]) { 0 } else { 1 }
+            $del = $prev[$j] + 1
+            $ins = $curr[$j - 1] + 1
+            $sub = $prev[$j - 1] + $cost
+            $min = $del; if ($ins -lt $min) { $min = $ins }; if ($sub -lt $min) { $min = $sub }
+            $curr[$j] = $min
+        }
+        $tmp = $prev; $prev = $curr; $curr = $tmp
+    }
+    return [int]$prev[$lb]
+}
 
+# Rank candidates by Levenshtein distance, with prefix/substring bonuses, and
+# return the top N closest matches. Filters by a length-aware cutoff so wildly
+# different tokens do not surface noisy suggestions.
+function Get-DidYouMean {
+    param(
+        [string]   $Token,
+        [string[]] $Candidates,
+        [int]      $Top = 3
+    )
+    if ([string]::IsNullOrWhiteSpace($Token)) { return @() }
+    if ($null -eq $Candidates -or $Candidates.Count -eq 0) { return @() }
+    $tokLower = $Token.ToLower()
+    $tokLen   = $tokLower.Length
+    $cutoff   = [Math]::Max(2, [int][Math]::Ceiling($tokLen / 2.0))
+
+    $scored = foreach ($c in ($Candidates | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($c)) { continue }
+        $cLower = $c.ToLower()
+        $d = Get-LevenshteinDistance -A $tokLower -B $cLower
+        $isPrefix   = $cLower.StartsWith($tokLower) -or $tokLower.StartsWith($cLower)
+        $isContains = $cLower.Contains($tokLower) -or $tokLower.Contains($cLower)
+        $score = $d
+        if ($isPrefix)        { $score -= 2 }
+        elseif ($isContains)  { $score -= 1 }
+        if ($score -lt 0) { $score = 0 }
+        [pscustomobject]@{ Candidate = $c; Distance = $d; Score = $score; Prefix = $isPrefix; Contains = $isContains }
+    }
+
+    $kept = $scored | Where-Object { $_.Distance -le $cutoff -or $_.Prefix -or $_.Contains }
+    if (-not $kept -or $kept.Count -eq 0) { return @() }
+    return @($kept | Sort-Object Score, Distance, Candidate | Select-Object -First $Top -ExpandProperty Candidate)
+}
 
 
 function Resolve-InstallKeywords {
@@ -888,10 +944,8 @@ function Resolve-InstallKeywords {
             if ($null -ne $exIds) { $matchedKey = $exStripped }
         }
         if ($null -eq $exIds) {
-            # Build a small "did you mean" suggestion list (cheap prefix/contains match).
-            $suggestions = @($validExcludeTokens | Where-Object {
-                $_.StartsWith($exTok) -or $exTok.StartsWith($_) -or $_.Contains($exTok) -or $exTok.Contains($_)
-            } | Select-Object -Unique -First 5)
+            # Rank closest valid tokens by Levenshtein distance (with prefix/substring bonus).
+            $suggestions = Get-DidYouMean -Token $exTok -Candidates $validExcludeTokens -Top 3
             $hint = if ($suggestions.Count -gt 0) { " Did you mean: $($suggestions -join ', ')?" } else { "" }
             Write-Log "Unknown --exclude token '$exTok' -- ignored.$hint" -Level "warn"
             $ignoredExcl.Add([pscustomobject]@{ Token = $exTok; Reason = "no matching keyword"; Suggestions = $suggestions })
