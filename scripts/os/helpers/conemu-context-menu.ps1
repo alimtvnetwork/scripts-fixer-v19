@@ -109,6 +109,8 @@ if ($null -ne $Rest -and $Rest.Count -gt 0) {
                 break
             }
             '^(--?dry-run|dry-run|--?whatif|whatif)$'         { $wantsDryRun = $true; break }
+            '^(--?non-interactive|non-interactive|--?headless|headless)$' { $nonInteractive = $true; break }
+            '^(--?yes|-y|yes|--?assume-yes|assume-yes|--?force|force)$'   { $assumeYes      = $true; break }
             '^(--?snapshot-file|snapshot-file|--?file|file)$' {
                 $i++
                 if ($i -lt $Rest.Count) { $snapshotFile = "$($Rest[$i])" }
