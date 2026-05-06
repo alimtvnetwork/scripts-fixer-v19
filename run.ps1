@@ -387,6 +387,12 @@ function Show-RootHelp {
     Write-Host "    $("install wt+settings".PadRight($kc))" -NoNewline; Write-Host "Windows Terminal + settings [37 install+settings]" -ForegroundColor DarkGray
     Write-Host "    $("install dbeaver+settings".PadRight($kc))" -NoNewline; Write-Host "DBeaver + settings [32 install+settings]" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "      All settings at once:" -ForegroundColor DarkYellow
+    Write-Host "    $("install all-settings".PadRight($kc))" -NoNewline; Write-Host "Install + apply ALL bundled settings: VS Code, NPP, OBS, WT, DBeaver, ConEmu [01,11,32,33,36,37,48]" -ForegroundColor DarkGray
+    Write-Host "    $("install settings".PadRight($kc))" -NoNewline; Write-Host "Same as all-settings (alias)" -ForegroundColor DarkGray
+    Write-Host "    $("install all-settings --exclude obs,wt".PadRight($kc))" -NoNewline; Write-Host "Apply all settings EXCEPT the listed apps" -ForegroundColor DarkGray
+    Write-Host "    $("install all-settings --exclude=conemu".PadRight($kc))" -NoNewline; Write-Host "Inline form (=) also accepted; valid tokens: vscode,npp,obs,wt,dbeaver,conemu" -ForegroundColor DarkGray
+    Write-Host ""
 
     Write-Host "    Python & pip libraries:" -ForegroundColor Magenta
     Write-Host ""
@@ -819,16 +825,67 @@ function Resolve-InstallKeywords {
     $remoteMap = $keywordData.remote
 
     $tokens = [System.Collections.Generic.List[string]]::new()
+    $excludeTokens = [System.Collections.Generic.List[string]]::new()
+    $pendingExclude = $false
     foreach ($keywordGroup in $Keywords) {
         $isKeywordGroupMissing = [string]::IsNullOrWhiteSpace($keywordGroup)
         if ($isKeywordGroupMissing) {
             continue
         }
 
+        $rawTrim  = "$keywordGroup".Trim()
+        $rawLower = $rawTrim.ToLower()
+
+        # --exclude / -exclude / --ex / --without (consumes the next arg as CSV/space list)
+        $isExcludeFlag = $rawLower -in @("--exclude","-exclude","--ex","-ex","--without","-without","--skip","-skip")
+        if ($isExcludeFlag) { $pendingExclude = $true; continue }
+
+        # --exclude=val,val (inline form)
+        $hasExcludePrefix = $rawLower.StartsWith("--exclude=") -or $rawLower.StartsWith("-exclude=") -or $rawLower.StartsWith("--ex=") -or $rawLower.StartsWith("-ex=") -or $rawLower.StartsWith("--without=") -or $rawLower.StartsWith("-without=") -or $rawLower.StartsWith("--skip=") -or $rawLower.StartsWith("-skip=")
+        if ($hasExcludePrefix) {
+            $excludeValue = $rawTrim.Substring($rawTrim.IndexOf("=") + 1)
+            $exParts = $excludeValue -split '[,\s]+' | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_.Length -gt 0 }
+            foreach ($ep in $exParts) { $excludeTokens.Add($ep) }
+            continue
+        }
+
         $parts = $keywordGroup -split '[,\s]+' | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_.Length -gt 0 }
         foreach ($part in $parts) {
-            $tokens.Add($part)
+            if ($pendingExclude) {
+                $excludeTokens.Add($part)
+            } else {
+                $tokens.Add($part)
+            }
         }
+        if ($pendingExclude) { $pendingExclude = $false }
+    }
+
+    # Resolve excludeTokens -> set of script IDs to drop. Each exclude token
+    # is looked up via the same keywordMap so users can write "obs", "vscode",
+    # "conemu", "npp", "wt", "dbeaver" -- whatever maps to a script ID.
+    $excludeIds = [System.Collections.Generic.HashSet[int]]::new()
+    foreach ($exTok in $excludeTokens) {
+        $exIds = $keywordMap.$exTok
+        if ($null -eq $exIds) {
+            $exStripped = $exTok -replace '-', ''
+            $exIds = $keywordMap.$exStripped
+        }
+        if ($null -eq $exIds) {
+            Write-Host "  [ WARN ] " -ForegroundColor Yellow -NoNewline
+            Write-Host "Unknown --exclude token: '$exTok' (ignored)"
+            continue
+        }
+        foreach ($exId in $exIds) {
+            if ($exId -is [int] -or ($exId -is [string] -and $exId -match '^\d+$')) {
+                [void]$excludeIds.Add([int]$exId)
+            }
+        }
+    }
+    $hasExcludes = $excludeIds.Count -gt 0
+    if ($hasExcludes) {
+        $excludeList = ($excludeIds | Sort-Object | ForEach-Object { "{0:D2}" -f $_ }) -join ", "
+        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+        Write-Host "Excluding script IDs: $excludeList"
     }
 
     # Mode priority: install+settings > install-only / settings-only > null
@@ -962,6 +1019,14 @@ function Resolve-InstallKeywords {
     $remoteEntries     = @($entries | Where-Object { $_.Kind -eq "remote" })
     $sortedScripts     = $scriptEntries | Sort-Object { [int]$_.Id }
     $sorted            = @($sortedScripts) + @($subcommandEntries) + @($remoteEntries)
+
+    if ($hasExcludes) {
+        $sorted = @($sorted | Where-Object {
+            $isScript = ($_.Kind -eq "script") -or ($null -eq $_.Kind)
+            if (-not $isScript) { return $true }
+            return -not $excludeIds.Contains([int]$_.Id)
+        })
+    }
     return $sorted
 }
 
