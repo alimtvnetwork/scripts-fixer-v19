@@ -1779,6 +1779,7 @@ scripts/
   44-install-rust/             # Rust toolchain via rustup
   45-install-docker/           # Docker Desktop + Compose
   46-install-kubernetes/       # kubectl + minikube + Helm
+  59-conemu-context-menu/      # "Open ConEmu Here" right-click menu
   audit/                       # Audit scanner
 spec/                          # Specifications per script
 suggestions/                   # Improvement ideas
