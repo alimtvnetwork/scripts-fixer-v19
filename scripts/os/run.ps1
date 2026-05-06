@@ -182,6 +182,17 @@ function Show-OsHelp {
     Write-Host "    add-group <name> [--description T] [--ask] [--dry-run] Create a local group" -ForegroundColor Green
     Write-Host "    add-group-json <file.json> [--dry-run]                 Bulk groups from JSON" -ForegroundColor Green
     Write-Host ""
+    Write-Host "  DEFAULT APPS (open Settings deeplink scoped to the app, then verify)" -ForegroundColor Cyan
+    Write-Host "    browser <name> [--list] [--dry-run] [--yes]            Set default web browser" -ForegroundColor Green
+    Write-Host "      Names: chrome | firefox | edge | brave | opera | vivaldi | librewolf" -ForegroundColor DarkGray
+    Write-Host "      --list           Print catalog (display names + aliases) and exit" -ForegroundColor DarkGray
+    Write-Host "      --dry-run        Detect + plan only; do not open Settings" -ForegroundColor DarkGray
+    Write-Host "      --yes            Skip the 60s wait/verify loop (CI/non-interactive)" -ForegroundColor DarkGray
+    Write-Host "    email <name> [--list] [--dry-run] [--yes]              Set default mail (mailto:) client" -ForegroundColor Green
+    Write-Host "      Names: outlook | outlook-new | thunderbird | mailbird | em-client | windows-mail" -ForegroundColor DarkGray
+    Write-Host "      Note: Windows 10/11 requires you to click 'Set default' in the Settings dialog." -ForegroundColor DarkGray
+    Write-Host "            On Linux uses xdg-settings / xdg-mime; on macOS uses duti or System Settings." -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "  SSH KEY MANAGEMENT (cross-OS, idempotent)" -ForegroundColor Cyan
     Write-Host "    gen-key [--type ed25519|rsa] [--out PATH] [--ask] [--dry-run]" -ForegroundColor Green
     Write-Host "    install-key --key '...' | --key-file PATH [--user N] [--dry-run]" -ForegroundColor Green
@@ -451,6 +462,14 @@ switch ($normalizedAction) {
     }
     { $_ -in @("power", "power-settings", "display-sleep", "no-sleep") } {
         & (Join-Path $scriptDir "helpers\power.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("browser", "default-browser", "set-browser", "web-browser") } {
+        & (Join-Path $scriptDir "helpers\browser.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("email", "mail", "default-email", "default-mail", "set-email", "mail-client") } {
+        & (Join-Path $scriptDir "helpers\email.ps1") @Rest
         exit $LASTEXITCODE
     }
     { $_ -in @("help", "--help", "-help", "-h", "/?", "?", "") } {
