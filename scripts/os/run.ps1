@@ -161,6 +161,12 @@ function Show-OsHelp {
     Write-Host "    hib-off | hib-on                                       Disable/enable hibernation" -ForegroundColor Green
     Write-Host "    flp                                                    Enable Win32 long-path support" -ForegroundColor Green
     Write-Host "    update [--dry-run] [--reboot] [--yes]                  Run Windows Update (PSWindowsUpdate / UsoClient / wuauclt)" -ForegroundColor Green
+    Write-Host "    power [flags]                                          Set display/sleep/disk/hibernate timeouts" -ForegroundColor Green
+    Write-Host "      --display N | --sleep N | --disk N | --hibernate N   (minutes; 0 = Never)" -ForegroundColor DarkGray
+    Write-Host "      --never                Force ALL four timeouts to Never (AC + DC)" -ForegroundColor DarkGray
+    Write-Host "      --ac-only | --dc-only  Apply only to plugged-in or only to battery" -ForegroundColor DarkGray
+    Write-Host "      --dry-run              Preview without applying" -ForegroundColor DarkGray
+    Write-Host "      Defaults come from scripts/os/config.json -> 'power' (display+sleep = Never)" -ForegroundColor DarkGray
     Write-Host "    add-user <name> <pass> [pin] [email] [flags]          Create local Windows user" -ForegroundColor Green
     Write-Host "      --admin | --standard          Role (default: standard)" -ForegroundColor DarkGray
     Write-Host "      --microsoft-account <email>   Note an Outlook/Live email (interactive link)" -ForegroundColor DarkGray
@@ -441,6 +447,10 @@ switch ($normalizedAction) {
     }
     { $_ -in @("update", "win-update", "windows-update", "os-update") } {
         & (Join-Path $scriptDir "helpers\update.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("power", "power-settings", "display-sleep", "no-sleep") } {
+        & (Join-Path $scriptDir "helpers\power.ps1") @Rest
         exit $LASTEXITCODE
     }
     { $_ -in @("help", "--help", "-h", "") } {
