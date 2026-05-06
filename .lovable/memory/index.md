@@ -42,6 +42,7 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 - [Install bootstrap](mem://features/install-bootstrap) — Auto-discovery, version reporting, and root-cause rule: derive current vN from repo slug only
 - [Default apps cross-OS](mem://features/default-apps-cross-os) — `os browser` / `os email` set default web browser + mail client on Windows (ms-settings deeplink + UserChoice verify), Linux (xdg-settings/xdg-mime), macOS (duti)
 - [Right-click verification helper](mem://features/rightclick-verification) — scripts/shared/interactive-verify.ps1 prompts user to test folder/empty-folder/background right-click after script 52 (VS Code) and 59 (ConEmu) installs; auto-skips on CI
+- [Write-Log bulletproof contract](mem://features/write-log-bulletproof) — scripts/shared/logging.ps1 Write-Log wrapped in outer try/catch; can NEVER throw, always falls back to plain "[ INFO ] msg"; eliminates "Cannot index into a null array" crashes at caller's Write-Log line on PS 5.1
 
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).
