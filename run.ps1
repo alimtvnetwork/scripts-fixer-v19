@@ -313,7 +313,9 @@ function Show-RootHelp {
     Write-Host "    $(".\run.ps1 -M".PadRight($col))" -NoNewline; Write-Host "Shortcut for 'models'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 os <action>".PadRight($col))" -NoNewline; Write-Host "OS housekeeping: clean, temp-clean, hib-off, flp, add-user ('os help')" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 vscode-folder <action>".PadRight($col))" -NoNewline; Write-Host "VS Code folder-only context-menu repair ('vscode-folder help')" -ForegroundColor DarkGray
-    Write-Host "    $(".\run.ps1 profile <name>".PadRight($col))" -NoNewline; Write-Host "Run a profile recipe (minimal, base, advance, small-dev, ...)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 profile <name>".PadRight($col))" -NoNewline; Write-Host "Run a profile recipe (see 'Profiles' section below for list)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 install <profile>".PadRight($col))" -NoNewline; Write-Host "Same as above -- 'install minimal' == 'profile minimal'" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 profile list".PadRight($col))" -NoNewline; Write-Host "Show all available profiles with descriptions" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 gsa".PadRight($col))" -NoNewline; Write-Host "git safe.directory='*' (wildcard, idempotent)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 gsa --scan <path>".PadRight($col))" -NoNewline; Write-Host "Add each .git repo under <path> individually" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 git-tools <action>".PadRight($col))" -NoNewline; Write-Host "Git config helpers ('git-tools help' for actions)" -ForegroundColor DarkGray
@@ -334,6 +336,39 @@ function Show-RootHelp {
     Write-Host "    $(".\run.ps1 -CleanOnly".PadRight($col))" -NoNewline; Write-Host "Wipe all cached data" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 -Help".PadRight($col))" -NoNewline; Write-Host "Show this help" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 -List".PadRight($col))" -NoNewline; Write-Host "Show keyword table only" -ForegroundColor DarkGray
+    Write-Host ""
+
+    # ── Profiles section (dynamic, read from scripts/profile/config.json) ──
+    Write-Host "  Profiles:" -ForegroundColor Yellow
+    Write-Host "  (multi-step install recipes -- run with 'profile <name>' or 'install <name>')" -ForegroundColor DarkGray
+    Write-Host ""
+    $profileCfgPath = Join-Path $RootDir "scripts\profile\config.json"
+    $hasProfileCfg = Test-Path $profileCfgPath
+    if ($hasProfileCfg) {
+        try {
+            $profCfgHelp = Get-Content $profileCfgPath -Raw | ConvertFrom-Json
+            $pc = 22
+            foreach ($pname in $profCfgHelp.profiles.PSObject.Properties.Name) {
+                $pdef = $profCfgHelp.profiles.$pname
+                $pdesc = if ($pdef.description) { $pdef.description } elseif ($pdef.label) { $pdef.label } else { "" }
+                Write-Host "    $($pname.PadRight($pc))" -NoNewline -ForegroundColor Green
+                Write-Host $pdesc -ForegroundColor DarkGray
+            }
+        } catch {
+            Write-Host "    (failed to read $profileCfgPath -- run '.\run.ps1 profile list')" -ForegroundColor DarkYellow
+        }
+    } else {
+        Write-Host "    (profile config not found at: $profileCfgPath)" -ForegroundColor DarkYellow
+    }
+    Write-Host ""
+    Write-Host "  Profile Examples:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "    .\run.ps1 profile list                  " -NoNewline; Write-Host "List all profiles with full descriptions" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 profile minimal               " -NoNewline; Write-Host "Run the 'minimal' bootstrap recipe" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 install minimal               " -NoNewline; Write-Host "Same as above (install <profile> shortcut)" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 profile base --dry-run        " -NoNewline; Write-Host "Print the expanded step list, do not execute" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 profile advance -y            " -NoNewline; Write-Host "Run 'advance' and skip confirmation prompts" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 install dev-advance           " -NoNewline; Write-Host "Run the 'dev-advance' profile via install shortcut" -ForegroundColor DarkGray
     Write-Host ""
 
     Write-Host "  Install by Keyword:" -ForegroundColor Yellow
@@ -2768,6 +2803,51 @@ if ($hasCommand) {
             Write-Host ""
             Write-Host "  Run .\run.ps1 -Help to see all available keywords" -ForegroundColor Cyan
             exit 1
+        }
+
+        # ── Profile-name shortcut ─────────────────────────────────────────
+        # Allow `install minimal` (or any profile name / alias) to route to the
+        # profile dispatcher, in addition to the existing `install profile-minimal`.
+        # Only triggers when the FIRST token is unambiguously a profile name --
+        # so real package keywords (e.g. `install python`) are unaffected.
+        $firstToken = "$($Install[0])".Trim().ToLower()
+        $profileConfigPath = Join-Path $RootDir "scripts\profile\config.json"
+        $profileAliasesPath = Join-Path $RootDir "scripts\profile\profile-aliases.json"
+        $profileNameSet = @{}
+        if (Test-Path $profileConfigPath) {
+            try {
+                $profCfg = Get-Content $profileConfigPath -Raw | ConvertFrom-Json
+                if ($profCfg.profiles) {
+                    foreach ($p in $profCfg.profiles.PSObject.Properties.Name) {
+                        $profileNameSet[$p.ToLower()] = $true
+                    }
+                }
+            } catch { }
+        }
+        if (Test-Path $profileAliasesPath) {
+            try {
+                $aliasCfg = Get-Content $profileAliasesPath -Raw | ConvertFrom-Json
+                if ($aliasCfg.aliases) {
+                    foreach ($a in $aliasCfg.aliases.PSObject.Properties.Name) {
+                        $profileNameSet[$a.ToLower()] = $true
+                    }
+                }
+            } catch { }
+        }
+        $isProfileToken = $profileNameSet.ContainsKey($firstToken)
+        if ($isProfileToken) {
+            Show-VersionHeader
+            $profileScript = Join-Path $RootDir "scripts\profile\run.ps1"
+            $isProfileScriptPresent = Test-Path $profileScript
+            if (-not $isProfileScriptPresent) {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "Profile dispatcher missing at: $profileScript"
+                exit 1
+            }
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Routing 'install $firstToken' to profile dispatcher (matched profile name)" -ForegroundColor DarkGray
+            & $profileScript @Install
+            exit $LASTEXITCODE
         }
     } elseif ($isBareExportCommand) {
         Show-VersionHeader
