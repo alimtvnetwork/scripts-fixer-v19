@@ -2769,6 +2769,51 @@ if ($hasCommand) {
             Write-Host "  Run .\run.ps1 -Help to see all available keywords" -ForegroundColor Cyan
             exit 1
         }
+
+        # ── Profile-name shortcut ─────────────────────────────────────────
+        # Allow `install minimal` (or any profile name / alias) to route to the
+        # profile dispatcher, in addition to the existing `install profile-minimal`.
+        # Only triggers when the FIRST token is unambiguously a profile name --
+        # so real package keywords (e.g. `install python`) are unaffected.
+        $firstToken = "$($Install[0])".Trim().ToLower()
+        $profileConfigPath = Join-Path $RootDir "scripts\profile\config.json"
+        $profileAliasesPath = Join-Path $RootDir "scripts\profile\profile-aliases.json"
+        $profileNameSet = @{}
+        if (Test-Path $profileConfigPath) {
+            try {
+                $profCfg = Get-Content $profileConfigPath -Raw | ConvertFrom-Json
+                if ($profCfg.profiles) {
+                    foreach ($p in $profCfg.profiles.PSObject.Properties.Name) {
+                        $profileNameSet[$p.ToLower()] = $true
+                    }
+                }
+            } catch { }
+        }
+        if (Test-Path $profileAliasesPath) {
+            try {
+                $aliasCfg = Get-Content $profileAliasesPath -Raw | ConvertFrom-Json
+                if ($aliasCfg.aliases) {
+                    foreach ($a in $aliasCfg.aliases.PSObject.Properties.Name) {
+                        $profileNameSet[$a.ToLower()] = $true
+                    }
+                }
+            } catch { }
+        }
+        $isProfileToken = $profileNameSet.ContainsKey($firstToken)
+        if ($isProfileToken) {
+            Show-VersionHeader
+            $profileScript = Join-Path $RootDir "scripts\profile\run.ps1"
+            $isProfileScriptPresent = Test-Path $profileScript
+            if (-not $isProfileScriptPresent) {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "Profile dispatcher missing at: $profileScript"
+                exit 1
+            }
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Routing 'install $firstToken' to profile dispatcher (matched profile name)" -ForegroundColor DarkGray
+            & $profileScript @Install
+            exit $LASTEXITCODE
+        }
     } elseif ($isBareExportCommand) {
         Show-VersionHeader
         Invoke-ExportCommand -Args $Install
