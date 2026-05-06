@@ -512,6 +512,10 @@ function Show-RootHelp {
     Write-Host "    $("install vscode+menu+settings (= vms)".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + right-click menu [01,11,10]" -ForegroundColor DarkGray
     Write-Host "    $("install context-menu".PadRight($kc))" -NoNewline; Write-Host "VS Code right-click menu (auto-installs VS Code+settings) [01,11,10]" -ForegroundColor DarkGray
     Write-Host "    $("install vscode-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as context-menu (explicit alias) [01,11,10]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode-fix-menu".PadRight($kc))" -NoNewline; Write-Host "Repair-only: fix VS Code folder right-click registry (no reinstall) [52]" -ForegroundColor DarkGray
+    Write-Host "    $("install fix-vscode-menu".PadRight($kc))" -NoNewline; Write-Host "Same as vscode-fix-menu (alias) [52]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+fix".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + folder right-click repair [01,11,52]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+menu+fix".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + install menu + repair menu [01,11,10,52]" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "      PowerShell:" -ForegroundColor DarkYellow
     Write-Host "    $("install pwsh-menu".PadRight($kc))" -NoNewline; Write-Host "Open PowerShell Here menu (auto-installs PowerShell) [17,31]" -ForegroundColor DarkGray
@@ -549,6 +553,7 @@ function Show-RootHelp {
     Write-Host "$("Removes IDs".PadRight(18))" -NoNewline -ForegroundColor White
     Write-Host "Aliases" -ForegroundColor White
     Write-Host "      $("vscode".PadRight(20))" -NoNewline; Write-Host "$("[01, 11]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "vs-code, code, vscode-settings, settings-sync" -ForegroundColor DarkGray
+    Write-Host "      $("vscode-fix-menu".PadRight(20))" -NoNewline; Write-Host "$("[52]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "fix-vscode-menu, vscode-menu-fix, vscode-menu-repair, fix-vscode-context-menu (folder right-click repair only)" -ForegroundColor DarkGray
     Write-Host "      $("npp".PadRight(20))" -NoNewline; Write-Host "$("[33]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "notepad++, notepadpp, notepad-plus, npp+settings, npp-settings" -ForegroundColor DarkGray
     Write-Host "      $("obs".PadRight(20))" -NoNewline; Write-Host "$("[36]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "obs-studio, obs+settings, obs-settings, install-obs" -ForegroundColor DarkGray
     Write-Host "      $("wt".PadRight(20))" -NoNewline; Write-Host "$("[37]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "windows-terminal, wt+settings, wt-settings, install-wt" -ForegroundColor DarkGray
