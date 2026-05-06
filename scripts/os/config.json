@@ -33,6 +33,15 @@
   "hibernate": {
     "hiberfilPath": "C:\\hiberfil.sys"
   },
+  "power": {
+    "_comment": "powercfg timeouts in MINUTES. 0 = Never. Applied to both AC (plugged-in) and DC (battery) by default.",
+    "monitorTimeoutMinutes": 0,
+    "standbyTimeoutMinutes": 0,
+    "diskTimeoutMinutes": 0,
+    "hibernateTimeoutMinutes": 0,
+    "applyToAc": true,
+    "applyToDc": true
+  },
   "longPath": {
     "registryKey": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
     "valueName": "LongPathsEnabled"

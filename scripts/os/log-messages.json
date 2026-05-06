@@ -42,6 +42,18 @@
     "on": "Hibernation enabled.",
     "powercfgFailed": "powercfg.exe /hibernate {mode} failed with exit code {code}."
   },
+  "power": {
+    "header": "Configuring Windows power timeouts (display + sleep + disk + hibernate)",
+    "applying": "Applying {kind} timeout = {value} ({scope})",
+    "applied": "{kind} timeout set to {value} on {scope}.",
+    "powercfgFailed": "powercfg.exe {args} failed with exit code {code}: {stderr}",
+    "schemeActivated": "Active power scheme: {name} ({guid})",
+    "schemeQueryFailed": "Could not query active power scheme: {error}",
+    "summaryHeader": "Power Settings Summary",
+    "summaryRow": "  {kind,-12} | AC: {ac,-8} | DC: {dc,-8} | status: {status}",
+    "allDone": "Power settings updated. Display and sleep timeouts applied.",
+    "neverLabel": "Never"
+  },
   "longPath": {
     "alreadyEnabled": "Long paths already enabled (LongPathsEnabled=1).",
     "enabled": "Long paths enabled (LongPathsEnabled=1). Reboot recommended.",
