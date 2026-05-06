@@ -133,6 +133,8 @@ Write-Host "  ======================" -ForegroundColor DarkGray
 Write-Host ("  Mode      : " + $subCommand) -ForegroundColor Yellow
 Write-Host ("  Delegates : " + $script59Run) -ForegroundColor DarkGray
 if ($wantsDryRun)                              { Write-Host  "  Dry-run   : on" -ForegroundColor DarkGray }
+if ($nonInteractive)                           { Write-Host  "  Prompt    : non-interactive" -ForegroundColor DarkGray }
+if ($assumeYes)                                { Write-Host  "  Confirm   : auto-yes" -ForegroundColor DarkGray }
 if (-not [string]::IsNullOrWhiteSpace($snapshotFile)) {
     Write-Host ("  Snapshot  : " + $snapshotFile) -ForegroundColor DarkGray
 }
