@@ -557,7 +557,7 @@ function Save-LogFile {
     if ($hasErrors) { $summaryParts += "Errors: $($script:_LogErrors.Count)" }
     if ($hasWarnings) { $summaryParts += "Warnings: $($script:_LogWarnings.Count)" }
     $summaryLine = $summaryParts -join " | "
-    $summaryColor = if ($isOverallFailure) { "Red" } elseif ($hasWarnings) { "Yellow" } else { "Green" }
+    $summaryColor = if ($isOverallFailure) { "Red" } elseif ($hasWarnings) { "Yellow" } elseif ($Status -eq "already-installed") { "Cyan" } else { "Green" }
     Write-Host ""
     Write-Host "  $summaryLine" -ForegroundColor $summaryColor
 
