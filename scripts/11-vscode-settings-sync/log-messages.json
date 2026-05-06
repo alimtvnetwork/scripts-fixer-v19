@@ -47,7 +47,7 @@
     "extInstalled": "Installed {ext}",
     "extInstallFailed": "Failed to install {ext} -- {error}",
     "checkingCli": "Checking CLI command: {cli}",
-    "cliMissing": "'{cli}' not found in PATH -- skipping this edition",
+    "cliMissing": "'{cli}' not found in PATH -- this edition is not installed on this machine, skipping (not an error)",
     "cliFound": "'{cli}' found in PATH",
     "settingsPathRaw": "Settings path (raw): {path}",
     "settingsPathExpanded": "Settings path (expanded): {path}",
