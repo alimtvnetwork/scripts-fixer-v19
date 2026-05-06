@@ -129,6 +129,19 @@ function Show-ProfileList {
     $cfgPath     = Join-Path $scriptDir "config.json"
     $aliasesPath = Join-Path $scriptDir "profile-aliases.json"
 
+    # Lazy-load shared schema validator (graceful degradation if missing)
+    $rootDirLocal  = Split-Path -Parent (Split-Path -Parent $scriptDir)
+    $validatorPath = Join-Path $rootDirLocal "scripts\shared\profile-config-validator.ps1"
+    $hasValidator  = Test-Path $validatorPath
+    if ($hasValidator -and -not (Get-Command Test-ProfileConfig -ErrorAction SilentlyContinue)) {
+        try { . $validatorPath } catch { $hasValidator = $false }
+    }
+    $cfgValidation   = $null
+    $aliasValidation = $null
+    if ($hasValidator) {
+        $cfgValidation = Test-ProfileConfig -FilePath $cfgPath
+    }
+
     # Collect profile entries (sorted alphabetically for stable output)
     $entries = @()
     if ($Config -and $Config.profiles) {
