@@ -85,6 +85,8 @@ function ConvertTo-LogSafeMessage {
 function Write-Log {
     param(
         [Parameter(Position = 0)]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string]$Message,
 
         [Parameter(Position = 1)]
@@ -93,113 +95,177 @@ function Write-Log {
         [string]$Level
     )
 
-    # Defensive scrub: drop \r-progress noise even when callers forget to
-    # sanitize at the source (covers Write-Log calls that interpolate raw
-    # choco/installer output into the message body).
-    $Message = ConvertTo-LogSafeMessage -Text $Message
-
-    # -Level alias: map new-style names to old-style names
-    if ($Level) {
-        $Status = switch ($Level.ToLower()) {
-            "success" { "ok" }
-            "error"   { "fail" }
-            default   { $Level }
-        }
-    }
-
-    # Validate
-    $validStatuses = @("ok", "fail", "info", "warn", "skip")
-    if ($Status -notin $validStatuses) { $Status = "info" }
-
-    # Resolve the colored badge for this $Status. The lookup must survive
-    # every shape $script:LogMessages can be in:
-    #   - variable never set                                  (Get-Variable returns $null)
-    #   - variable set to $null                               (Properties access throws under StrictMode)
-    #   - object without a 'status' property                  (.status throws under StrictMode 3+)
-    #   - status object missing this specific level           ($obj.$Status throws under StrictMode 3+)
-    #   - status property/value being $null itself            (indexing $null throws "cannot index null array")
-    # Any failure must be invisible: fall back to the literal badge below
-    # so Write-Log can NEVER bring down its caller. CODE RED guarantee.
-    $badge = $null
+    # ------------------------------------------------------------------
+    # CODE RED guarantee: Write-Log is called from EVERY script. If it
+    # ever throws, the caller's stack trace points to the Write-Log call
+    # site (e.g. "logging.ps1:697 Write-Log $msgLoading") which is highly
+    # misleading. The real bug is always inside this function. To prevent
+    # that whole class of "Cannot index into a null array" / "property
+    # not found" errors that have repeatedly leaked out from internal
+    # niceties (badge lookup, version highlighting, identity stamping,
+    # event recording), we wrap the entire body in a defensive try/catch.
+    # On any internal failure we fall back to a plain Write-Host so the
+    # message still reaches the user and the caller is NEVER aborted.
+    # ------------------------------------------------------------------
     try {
-        $varInfo = Get-Variable -Name LogMessages -Scope Script -ErrorAction SilentlyContinue
-        if ($varInfo -and $null -ne $varInfo.Value) {
-            $lm = $varInfo.Value
-            $statusContainer = $null
-            try {
-                $statusProp = $lm.PSObject.Properties['status']
-                if ($statusProp) { $statusContainer = $statusProp.Value }
-            } catch { $statusContainer = $null }
-            if ($null -ne $statusContainer) {
-                try {
-                    $badgeProp = $statusContainer.PSObject.Properties[$Status]
-                    if ($badgeProp -and -not [string]::IsNullOrWhiteSpace([string]$badgeProp.Value)) {
-                        $badge = [string]$badgeProp.Value
-                    }
-                } catch { $badge = $null }
+        # Defensive scrub: drop \r-progress noise even when callers forget to
+        # sanitize at the source.
+        if ($null -eq $Message) { $Message = '' }
+        try { $Message = ConvertTo-LogSafeMessage -Text $Message } catch { }
+        if ($null -eq $Message) { $Message = '' }
+
+        # -Level alias: map new-style names to old-style names
+        if ($Level) {
+            $Status = switch ($Level.ToLower()) {
+                "success" { "ok" }
+                "error"   { "fail" }
+                default   { $Level }
             }
         }
-    } catch { $badge = $null }
-    $isBadgeMissing = [string]::IsNullOrWhiteSpace($badge)
-    if ($isBadgeMissing) {
-        $fallbackBadges = @{ ok = "[  OK  ]"; fail = "[ FAIL ]"; info = "[ INFO ]"; warn = "[ WARN ]"; skip = "[ SKIP ]" }
-        $badge = $fallbackBadges[$Status]
-        if ([string]::IsNullOrWhiteSpace($badge)) { $badge = "[ INFO ]" }
-    }
 
-    $colors = @{
-        ok   = "Green"
-        fail = "Red"
-        info = "Cyan"
-        warn = "Yellow"
-        skip = "DarkGray"
-    }
+        # Validate
+        $validStatuses = @("ok", "fail", "info", "warn", "skip")
+        if ($Status -notin $validStatuses) { $Status = "info" }
 
-    Write-Host "  $badge " -ForegroundColor $colors[$Status] -NoNewline
-
-    # Highlight version numbers in a distinct color
-    $versionPattern = '(v?\d+\.\d+[\.\d]*[a-zA-Z0-9\-\.]*)'
-    $parts = [regex]::Split($Message, $versionPattern)
-    foreach ($part in $parts) {
-        $isVersion = [regex]::IsMatch($part, "^$versionPattern$")
-        if ($isVersion) {
-            Write-Host $part -ForegroundColor Yellow -NoNewline
+        # Resolve the colored badge for this $Status. The lookup must survive
+        # every shape $script:LogMessages can be in. Any failure -> fallback.
+        $badge = $null
+        try {
+            $varInfo = Get-Variable -Name LogMessages -Scope Script -ErrorAction SilentlyContinue
+            if ($varInfo -and $null -ne $varInfo.Value) {
+                $lm = $varInfo.Value
+                $statusContainer = $null
+                try {
+                    $statusProp = $lm.PSObject.Properties['status']
+                    if ($statusProp) { $statusContainer = $statusProp.Value }
+                } catch { $statusContainer = $null }
+                if ($null -ne $statusContainer) {
+                    try {
+                        $badgeProp = $statusContainer.PSObject.Properties[$Status]
+                        if ($badgeProp -and -not [string]::IsNullOrWhiteSpace([string]$badgeProp.Value)) {
+                            $badge = [string]$badgeProp.Value
+                        }
+                    } catch { $badge = $null }
+                }
+            }
+        } catch { $badge = $null }
+        if ([string]::IsNullOrWhiteSpace($badge)) {
+            $fallbackBadges = @{ ok = "[  OK  ]"; fail = "[ FAIL ]"; info = "[ INFO ]"; warn = "[ WARN ]"; skip = "[ SKIP ]" }
+            $badge = $fallbackBadges[$Status]
+            if ([string]::IsNullOrWhiteSpace($badge)) { $badge = "[ INFO ]" }
         }
-        else {
-            Write-Host $part -NoNewline
-        }
-    }
-    Write-Host ""
 
-    # ── Record structured event ──────────────────────────────────────────
-    # Stamp identity (projectVersion + invokedFrom) onto every event so a
-    # single grepped line is still traceable to its origin script and version.
-    $hasCachedIdentity = $null -ne $script:_LogIdentity
-    if (-not $hasCachedIdentity) {
-        try { $script:_LogIdentity = Get-LogIdentityFields } catch {
-            $script:_LogIdentity = @{ projectVersion = "unknown"; invokedFrom = "unknown"; gitSha = "unknown"; gitShaFull = "unknown"; gitBranch = "unknown"; gitDirty = $false; gitRemote = "unknown" }
+        $colors = @{
+            ok   = "Green"
+            fail = "Red"
+            info = "Cyan"
+            warn = "Yellow"
+            skip = "DarkGray"
         }
-    }
-    $event = [ordered]@{
-        timestamp      = (Get-Date -Format "o")
-        level          = $Status
-        message        = $Message
-        projectVersion = $script:_LogIdentity.projectVersion
-        invokedFrom    = $script:_LogIdentity.invokedFrom
-        gitSha         = $script:_LogIdentity.gitSha
-        gitBranch      = $script:_LogIdentity.gitBranch
-        scriptName     = $script:_LogName
-    }
-    $script:_LogEvents.Add($event) | Out-Null
+        $statusColor = $colors[$Status]
+        if ([string]::IsNullOrWhiteSpace($statusColor)) { $statusColor = "Gray" }
 
-    # Track errors and warnings separately
-    $isError = $Status -eq "fail"
-    if ($isError) {
-        $script:_LogErrors.Add($event) | Out-Null
-    }
-    $isWarn = $Status -eq "warn"
-    if ($isWarn) {
-        $script:_LogWarnings.Add($event) | Out-Null
+        Write-Host "  $badge " -ForegroundColor $statusColor -NoNewline
+
+        # Highlight version numbers in a distinct color. Wrapped in its own
+        # try/catch because [regex]::Split / IsMatch on hostile inputs has
+        # been the source of past "Cannot index into a null array" reports
+        # on Windows PowerShell 5.1 under Set-StrictMode -Version Latest.
+        $printedColored = $false
+        try {
+            $versionPattern = '(v?\d+\.\d+[\.\d]*[a-zA-Z0-9\-\.]*)'
+            $parts = $null
+            try { $parts = [regex]::Split([string]$Message, $versionPattern) } catch { $parts = $null }
+            if ($null -ne $parts -and $parts.Count -gt 0) {
+                foreach ($part in $parts) {
+                    if ($null -eq $part) { continue }
+                    $partStr = [string]$part
+                    if ($partStr.Length -eq 0) { continue }
+                    $isVersion = $false
+                    try { $isVersion = [regex]::IsMatch($partStr, "^$versionPattern$") } catch { $isVersion = $false }
+                    if ($isVersion) {
+                        Write-Host $partStr -ForegroundColor Yellow -NoNewline
+                    } else {
+                        Write-Host $partStr -NoNewline
+                    }
+                }
+                $printedColored = $true
+            }
+        } catch { $printedColored = $false }
+        if (-not $printedColored) {
+            # Safe fallback: print the message verbatim, no highlighting.
+            Write-Host ([string]$Message) -NoNewline
+        }
+        Write-Host ""
+
+        # Record structured event. Wrapped so identity / list failures
+        # never abort the caller.
+        try {
+            $hasCachedIdentity = $null -ne $script:_LogIdentity
+            if (-not $hasCachedIdentity) {
+                try { $script:_LogIdentity = Get-LogIdentityFields } catch {
+                    $script:_LogIdentity = @{ projectVersion = "unknown"; invokedFrom = "unknown"; gitSha = "unknown"; gitShaFull = "unknown"; gitBranch = "unknown"; gitDirty = $false; gitRemote = "unknown" }
+                }
+            }
+            # Pull identity fields defensively -- $script:_LogIdentity may be a
+            # hashtable OR a PSCustomObject depending on which fallback branch
+            # populated it.
+            $idProjectVersion = "unknown"
+            $idInvokedFrom    = "unknown"
+            $idGitSha         = "unknown"
+            $idGitBranch      = "unknown"
+            try {
+                if ($null -ne $script:_LogIdentity) {
+                    if ($script:_LogIdentity -is [hashtable]) {
+                        if ($script:_LogIdentity.ContainsKey('projectVersion')) { $idProjectVersion = [string]$script:_LogIdentity['projectVersion'] }
+                        if ($script:_LogIdentity.ContainsKey('invokedFrom'))    { $idInvokedFrom    = [string]$script:_LogIdentity['invokedFrom'] }
+                        if ($script:_LogIdentity.ContainsKey('gitSha'))         { $idGitSha         = [string]$script:_LogIdentity['gitSha'] }
+                        if ($script:_LogIdentity.ContainsKey('gitBranch'))      { $idGitBranch      = [string]$script:_LogIdentity['gitBranch'] }
+                    } else {
+                        $idProps = $script:_LogIdentity.PSObject.Properties
+                        if ($idProps['projectVersion']) { $idProjectVersion = [string]$idProps['projectVersion'].Value }
+                        if ($idProps['invokedFrom'])    { $idInvokedFrom    = [string]$idProps['invokedFrom'].Value }
+                        if ($idProps['gitSha'])         { $idGitSha         = [string]$idProps['gitSha'].Value }
+                        if ($idProps['gitBranch'])      { $idGitBranch      = [string]$idProps['gitBranch'].Value }
+                    }
+                }
+            } catch { }
+
+            $logName = $null
+            try {
+                $logNameVar = Get-Variable -Name _LogName -Scope Script -ErrorAction SilentlyContinue
+                if ($logNameVar) { $logName = $logNameVar.Value }
+            } catch { }
+
+            $event = [ordered]@{
+                timestamp      = (Get-Date -Format "o")
+                level          = $Status
+                message        = $Message
+                projectVersion = $idProjectVersion
+                invokedFrom    = $idInvokedFrom
+                gitSha         = $idGitSha
+                gitBranch      = $idGitBranch
+                scriptName     = $logName
+            }
+
+            # Lazily ensure the event arrays exist (re-sourcing logging.ps1
+            # in the same session can leave them in an unexpected state on
+            # Windows PowerShell 5.1).
+            if ($null -eq $script:_LogEvents)   { $script:_LogEvents   = [System.Collections.ArrayList]::new() }
+            if ($null -eq $script:_LogErrors)   { $script:_LogErrors   = [System.Collections.ArrayList]::new() }
+            if ($null -eq $script:_LogWarnings) { $script:_LogWarnings = [System.Collections.ArrayList]::new() }
+
+            $null = $script:_LogEvents.Add($event)
+            if ($Status -eq "fail") { $null = $script:_LogErrors.Add($event) }
+            if ($Status -eq "warn") { $null = $script:_LogWarnings.Add($event) }
+        } catch { } # Recording failures must never bubble up.
+    } catch {
+        # Last-resort fallback: a guaranteed plain print so the caller
+        # still sees the message and is never aborted by Write-Log.
+        try {
+            $safeMsg = if ($null -eq $Message) { '' } else { [string]$Message }
+            Write-Host "  [ INFO ] $safeMsg"
+        } catch { }
     }
 }
 
