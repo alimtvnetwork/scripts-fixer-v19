@@ -40,6 +40,7 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 - [Choco runner hardening](mem://features/choco-runner-hardening) — v0.238–v0.242 layered fix for false [ FAIL ]: log filter, structured parser, no-op detection, success-marker promotion, npm/yarn cmd.exe wrap
 - [Install self-relocation](mem://features/install-self-relocation) — install.ps1/.sh detection cases (cwd-is-target / sibling / safe / fallback), fresh-clone guarantee, temp-staging fallback, [LOCATE]/[CD]/[CLEAN]/[GIT] tag stream
 - [Install bootstrap](mem://features/install-bootstrap) — Auto-discovery, version reporting, and root-cause rule: derive current vN from repo slug only
+- [Default apps cross-OS](mem://features/default-apps-cross-os) — `os browser` / `os email` set default web browser + mail client on Windows (ms-settings deeplink + UserChoice verify), Linux (xdg-settings/xdg-mime), macOS (duti)
 
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).
