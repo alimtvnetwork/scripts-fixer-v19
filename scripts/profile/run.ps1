@@ -116,16 +116,108 @@ function Show-ProfileHelp {
 }
 
 function Show-ProfileList {
+    <#
+    .SYNOPSIS
+        Prints the complete, sorted list of profiles (with descriptions),
+        plus alias resolutions from profile-aliases.json, and copy-paste
+        examples for both 'profile <name>' and 'install <name>' forms.
+        Mirrors the Profiles section of '.\run.ps1 --help' so both views
+        stay in sync.
+    #>
     param([PSObject]$Config)
-    Write-Host ""
-    Write-Host "  Available Profiles" -ForegroundColor Cyan
-    Write-Host "  ==================" -ForegroundColor DarkGray
-    foreach ($prop in $Config.profiles.PSObject.Properties) {
-        $name  = $prop.Name
-        $p     = $prop.Value
-        $count = ($p.steps | Measure-Object).Count
-        Write-Host ("    {0,-14}  steps: {1,2}  -- {2}" -f $name, $count, $p.label) -ForegroundColor White
+
+    $cfgPath     = Join-Path $scriptDir "config.json"
+    $aliasesPath = Join-Path $scriptDir "profile-aliases.json"
+
+    # Collect profile entries (sorted alphabetically for stable output)
+    $entries = @()
+    if ($Config -and $Config.profiles) {
+        foreach ($prop in ($Config.profiles.PSObject.Properties | Sort-Object Name)) {
+            $name  = $prop.Name
+            $p     = $prop.Value
+            $count = ($p.steps | Measure-Object).Count
+            $label = if ($p.label) { [string]$p.label } else { "" }
+            $desc  = if ($p.description) { [string]$p.description } elseif ($label) { $label } else { "" }
+            $entries += [pscustomobject]@{
+                Name        = $name
+                Steps       = $count
+                Label       = $label
+                Description = $desc
+            }
+        }
     }
+
+    Write-Host ""
+    Write-Host ("  Available Profiles ({0})" -f $entries.Count) -ForegroundColor Cyan
+    Write-Host "  ========================" -ForegroundColor DarkGray
+    Write-Host ("  source: {0}" -f $cfgPath) -ForegroundColor DarkGray
+    Write-Host ""
+
+    if ($entries.Count -eq 0) {
+        Write-Host "    (no profiles found in config.json)" -ForegroundColor DarkYellow
+        Write-Host ""
+        return
+    }
+
+    $nameCol = 16
+    foreach ($e in $entries) {
+        Write-Host ("    {0}  steps: {1,2}  -- {2}" -f $e.Name.PadRight($nameCol), $e.Steps, $e.Label) -ForegroundColor White
+        if ($e.Description -and $e.Description -ne $e.Label) {
+            Write-Host ("    {0}  {1}" -f (" " * $nameCol), $e.Description) -ForegroundColor DarkGray
+        }
+    }
+    Write-Host ""
+
+    # ── Aliases (exact + fallback) ─────────────────────────────────────
+    if (Test-Path -LiteralPath $aliasesPath) {
+        try {
+            $aliasCfg = Get-Content -LiteralPath $aliasesPath -Raw | ConvertFrom-Json
+            $aliasNames = @()
+            if ($aliasCfg -and $aliasCfg.aliases) {
+                $aliasNames = @($aliasCfg.aliases.PSObject.Properties.Name | Sort-Object)
+            }
+            if ($aliasNames.Count -gt 0) {
+                Write-Host ("  Profile Aliases ({0})" -f $aliasNames.Count) -ForegroundColor Cyan
+                Write-Host "  ====================" -ForegroundColor DarkGray
+                Write-Host ("  source: {0}" -f $aliasesPath) -ForegroundColor DarkGray
+                Write-Host ""
+                $ac = 16
+                foreach ($aname in $aliasNames) {
+                    $adef  = $aliasCfg.aliases.$aname
+                    $atgt  = "$($adef.target)"
+                    $akind = "$($adef.kind)".ToLower()
+                    $note  = if ($akind -eq "fallback") { " (fallback -- closest local match)" } else { "" }
+                    Write-Host ("    {0}  -> {1}{2}" -f $aname.PadRight($ac), $atgt, $note) -ForegroundColor Cyan
+                    if ($adef.PSObject.Properties.Name -contains 'reason' -and $adef.reason) {
+                        Write-Host ("    {0}    reason: {1}" -f (" " * $ac), $adef.reason) -ForegroundColor DarkGray
+                    }
+                }
+                Write-Host ""
+            }
+        } catch {
+            Write-Host ("  [ WARN ] Failed to parse {0} -- {1}" -f $aliasesPath, $_.Exception.Message) -ForegroundColor DarkYellow
+            Write-Host ""
+        }
+    }
+
+    # ── Copy-paste examples (both forms equivalent) ────────────────────
+    Write-Host "  Copy-paste examples (profile <name> and install <name> are equivalent):" -ForegroundColor Yellow
+    Write-Host ""
+    $ec = 40
+    foreach ($e in $entries) {
+        Write-Host ("    {0}# run '{1}' profile" -f (".\run.ps1 profile $($e.Name)").PadRight($ec), $e.Name) -ForegroundColor Green
+        Write-Host ("    {0}# same, via 'install' shortcut" -f (".\run.ps1 install $($e.Name)").PadRight($ec)) -ForegroundColor Green
+        Write-Host ""
+    }
+
+    Write-Host "  Common flags:" -ForegroundColor Yellow
+    $sample = $entries[0].Name
+    Write-Host ("    .\run.ps1 profile {0} --dry-run".PadRight(44) -f $sample) -NoNewline -ForegroundColor Gray
+    Write-Host "# preview steps, do not execute" -ForegroundColor DarkGray
+    Write-Host ("    .\run.ps1 profile {0} -y".PadRight(44) -f $sample)        -NoNewline -ForegroundColor Gray
+    Write-Host "# skip confirmation prompts" -ForegroundColor DarkGray
+    Write-Host ("    .\run.ps1 install {0} -y".PadRight(44) -f $sample)        -NoNewline -ForegroundColor Gray
+    Write-Host "# install shortcut + auto-confirm" -ForegroundColor DarkGray
     Write-Host ""
 }
 
