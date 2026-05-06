@@ -78,6 +78,7 @@ function Invoke-VsCodeSetup {
 
     $editions = $Config.editions
     $isAutoYes = $env:SCRIPTS_AUTO_YES -eq "1"
+    $shouldPrompt = [bool]$Config.promptEdition
 
     switch ($Command) {
         "stable" {
