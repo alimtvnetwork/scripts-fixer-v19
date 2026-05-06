@@ -438,6 +438,10 @@ switch ($normalizedAction) {
         & $bash.Source $macHelper @Rest
         exit $LASTEXITCODE
     }
+    { $_ -in @("update", "win-update", "windows-update", "os-update") } {
+        & (Join-Path $scriptDir "helpers\update.ps1") @Rest
+        exit $LASTEXITCODE
+    }
     { $_ -in @("help", "--help", "-h", "") } {
         Show-OsHelp
         exit 0
