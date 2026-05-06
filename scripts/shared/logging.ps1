@@ -14,6 +14,25 @@ $script:_LogsDir     = $null
 # Cached identity fields (resolved once per session, stamped into every event
 # so log lines stay traceable even after grep / split / concat).
 $script:_LogIdentity = $null
+# When set to $true (typically by Test-AlreadyInstalled), Save-LogFile promotes
+# a successful "ok" status to "already-installed" in the JSON + console summary.
+$script:_LogAlreadyInstalled = $false
+
+function Set-LogAlreadyInstalled {
+    <#
+    .SYNOPSIS
+        Marks this script run as a no-op "already installed" rerun. When the
+        run finishes successfully, Save-LogFile records status="already-installed"
+        instead of "ok" so repeated installs report consistently.
+    #>
+    param([bool]$Value = $true)
+    $script:_LogAlreadyInstalled = $Value
+}
+
+function Get-LogAlreadyInstalled {
+    <# .SYNOPSIS Returns the current "already installed" flag. #>
+    return [bool]$script:_LogAlreadyInstalled
+}
 
 function ConvertTo-LogSafeMessage {
     <#
