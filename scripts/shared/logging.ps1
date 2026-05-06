@@ -685,9 +685,11 @@ function Import-JsonConfig {
     $callerInfo = (Get-PSCallStack | Select-Object -Skip 1 -First 1)
     $callerName = if ($null -ne $callerInfo) { $callerInfo.Command } else { '<unknown>' }
 
+    $rawForReport     = if ($null -eq $FilePath) { '<null>' } else { "'$FilePath'" }
+    $trimmedCandidate = if ($null -eq $FilePath) { '' } else { $FilePath.Trim() }
     $isFilePathMissing = [string]::IsNullOrWhiteSpace($FilePath)
     if ($isFilePathMissing) {
-        $reason = "Import-JsonConfig was called with a null or empty -FilePath (caller: $callerName). Pass an absolute or repo-relative path to a .json file."
+        $reason = "Import-JsonConfig was called with a null or empty -FilePath (caller: $callerName, raw value: $rawForReport, trimmed: '$trimmedCandidate'). Pass an absolute or repo-relative path to a .json file."
         if (Get-Command Write-FileError -ErrorAction SilentlyContinue) {
             Write-FileError `
                 -FilePath '<null-or-empty>' `
@@ -700,10 +702,14 @@ function Import-JsonConfig {
             Write-Host "Import-JsonConfig: -FilePath is null or empty."
             Write-Host ("          Reason : " + $reason) -ForegroundColor Gray
         }
-        throw [System.ArgumentException]::new(
-            "Import-JsonConfig: -FilePath is required and cannot be null or empty (caller: $callerName).",
+        $ex = [System.ArgumentException]::new(
+            "Import-JsonConfig: -FilePath is required and cannot be null or empty (caller: $callerName, raw value: $rawForReport, trimmed: '$trimmedCandidate').",
             'FilePath'
         )
+        $ex.Data['TrimmedFilePath'] = $trimmedCandidate
+        $ex.Data['RawFilePath']     = $FilePath
+        $ex.Data['Caller']          = $callerName
+        throw $ex
     }
 
     # Trim and normalize so accidental trailing whitespace from JSON-driven
@@ -712,16 +718,35 @@ function Import-JsonConfig {
 
     # Reject obviously-bogus paths (control chars, wildcards) before we
     # touch the filesystem -- gives the caller a useful message instead of
-    # a generic "Cannot find path" further down.
+    # a generic "Cannot find path" further down. We collect the EXACT
+    # offending characters (with codepoints + index) so the error tells the
+    # caller what to fix instead of just "invalid path".
     $hasInvalidChars = $false
+    $badCharDetails  = @()
     try {
         $invalid = [System.IO.Path]::GetInvalidPathChars()
-        foreach ($ch in $FilePath.ToCharArray()) {
-            if ($invalid -contains $ch) { $hasInvalidChars = $true; break }
+        $seen    = @{}
+        for ($i = 0; $i -lt $FilePath.Length; $i++) {
+            $ch = $FilePath[$i]
+            if ($invalid -contains $ch) {
+                $hasInvalidChars = $true
+                $code = [int][char]$ch
+                $key  = "U+{0:X4}" -f $code
+                if (-not $seen.ContainsKey($key)) {
+                    $seen[$key] = $true
+                    $display = if ($code -lt 0x20 -or $code -eq 0x7F) {
+                        "<ctrl $key>"
+                    } else {
+                        "'$ch' ($key)"
+                    }
+                    $badCharDetails += "$display at index $i"
+                }
+            }
         }
     } catch { $hasInvalidChars = $false }
     if ($hasInvalidChars) {
-        $reason = "Path contains characters that are illegal on this filesystem (caller: $callerName)."
+        $badList = if ($badCharDetails.Count -gt 0) { ($badCharDetails -join ', ') } else { '<unknown>' }
+        $reason  = "Path contains characters that are illegal on this filesystem (caller: $callerName). Trimmed FilePath: '$FilePath'. Invalid character(s): $badList."
         if (Get-Command Write-FileError -ErrorAction SilentlyContinue) {
             Write-FileError `
                 -FilePath $FilePath `
@@ -729,10 +754,14 @@ function Import-JsonConfig {
                 -Reason    $reason `
                 -Module    'Import-JsonConfig'
         }
-        throw [System.ArgumentException]::new(
-            "Import-JsonConfig: -FilePath '$FilePath' contains invalid path characters.",
+        $ex = [System.ArgumentException]::new(
+            "Import-JsonConfig: -FilePath '$FilePath' contains invalid path characters: $badList (caller: $callerName). Trimmed FilePath: '$FilePath'.",
             'FilePath'
         )
+        $ex.Data['TrimmedFilePath']   = $FilePath
+        $ex.Data['InvalidCharacters'] = $badCharDetails
+        $ex.Data['Caller']            = $callerName
+        throw $ex
     }
 
     # Resolve $script:SharedLogMessages defensively. Under StrictMode Latest,
