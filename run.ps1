@@ -344,6 +344,7 @@ function Show-RootHelp {
     Write-Host ""
     $profileCfgPath = Join-Path $RootDir "scripts\profile\config.json"
     $hasProfileCfg = Test-Path $profileCfgPath
+    $profileNamesForExamples = @()
     if ($hasProfileCfg) {
         try {
             $profCfgHelp = Get-Content $profileCfgPath -Raw | ConvertFrom-Json
@@ -353,6 +354,7 @@ function Show-RootHelp {
                 $pdesc = if ($pdef.description) { $pdef.description } elseif ($pdef.label) { $pdef.label } else { "" }
                 Write-Host "    $($pname.PadRight($pc))" -NoNewline -ForegroundColor Green
                 Write-Host $pdesc -ForegroundColor DarkGray
+                $profileNamesForExamples += $pname
             }
         } catch {
             Write-Host "    (failed to read $profileCfgPath -- run '.\run.ps1 profile list')" -ForegroundColor DarkYellow
@@ -361,14 +363,28 @@ function Show-RootHelp {
         Write-Host "    (profile config not found at: $profileCfgPath)" -ForegroundColor DarkYellow
     }
     Write-Host ""
-    Write-Host "  Profile Examples:" -ForegroundColor Yellow
+    Write-Host "  Profile Examples (copy-paste):" -ForegroundColor Yellow
+    Write-Host "  (both forms are equivalent -- pick whichever you prefer)" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "    .\run.ps1 profile list                  " -NoNewline; Write-Host "List all profiles with full descriptions" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 profile minimal               " -NoNewline; Write-Host "Run the 'minimal' bootstrap recipe" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 install minimal               " -NoNewline; Write-Host "Same as above (install <profile> shortcut)" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 profile base --dry-run        " -NoNewline; Write-Host "Print the expanded step list, do not execute" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 profile advance -y            " -NoNewline; Write-Host "Run 'advance' and skip confirmation prompts" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 install dev-advance           " -NoNewline; Write-Host "Run the 'dev-advance' profile via install shortcut" -ForegroundColor DarkGray
+    if ($profileNamesForExamples.Count -gt 0) {
+        $ec = 40
+        foreach ($pname in $profileNamesForExamples) {
+            Write-Host "    $((".\run.ps1 profile $pname").PadRight($ec))" -NoNewline -ForegroundColor Green
+            Write-Host "# run '$pname' profile" -ForegroundColor DarkGray
+            Write-Host "    $((".\run.ps1 install $pname").PadRight($ec))" -NoNewline -ForegroundColor Green
+            Write-Host "# same, via 'install' shortcut" -ForegroundColor DarkGray
+            Write-Host ""
+        }
+    }
+    Write-Host "  Common profile flags:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "    .\run.ps1 profile list                  " -NoNewline; Write-Host "# list all profiles with full descriptions" -ForegroundColor DarkGray
+    if ($profileNamesForExamples.Count -gt 0) {
+        $sample = $profileNamesForExamples[0]
+        Write-Host "    .\run.ps1 profile $sample --dry-run".PadRight(44) -NoNewline; Write-Host "# preview steps, do not execute" -ForegroundColor DarkGray
+        Write-Host "    .\run.ps1 profile $sample -y".PadRight(44)        -NoNewline; Write-Host "# skip confirmation prompts" -ForegroundColor DarkGray
+        Write-Host "    .\run.ps1 install $sample -y".PadRight(44)        -NoNewline; Write-Host "# install shortcut + auto-confirm" -ForegroundColor DarkGray
+    }
     Write-Host ""
 
     Write-Host "  Install by Keyword:" -ForegroundColor Yellow
