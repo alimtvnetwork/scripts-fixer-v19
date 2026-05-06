@@ -228,13 +228,15 @@ function Invoke-Edition {
     $cliCmd = $Edition.cliCommand
     $isAllOk = $true
 
-    # Check CLI
+    # Check CLI. A missing CLI just means this VS Code edition isn't installed
+    # on this machine -- that's the normal case for Insiders. Log it as a SKIP
+    # (info-level) so it doesn't pollute the warn count / error log.
     Write-Log ($LogMessages.messages.checkingCli -replace '\{cli\}', $cliCmd) -Level "info"
     $cliExists = Get-Command $cliCmd -ErrorAction SilentlyContinue
     $isCliMissing = -not $cliExists
     if ($isCliMissing) {
-        Write-Log ($LogMessages.messages.cliMissing -replace '\{cli\}', $cliCmd) -Level "warn"
-        return $false
+        Write-Log ($LogMessages.messages.cliMissing -replace '\{cli\}', $cliCmd) -Level "skip"
+        return $true   # not a failure -- edition simply not installed
     }
     Write-Log ($LogMessages.messages.cliFound -replace '\{cli\}', $cliCmd) -Level "success"
 
