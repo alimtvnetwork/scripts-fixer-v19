@@ -47,6 +47,10 @@ function Test-AlreadyInstalled {
         Returns $true if the tool was previously installed at exactly this version
         and had no errors. If the previous attempt had an error, logs a friendly
         message about the prior failure and returns $false so it retries.
+
+        On a positive match this also bumps 'lastChecked' in the record so the
+        JSON reflects the most recent verification time without rewriting the
+        installedAt timestamp.
     #>
     param(
         [Parameter(Mandatory)]
@@ -69,7 +73,38 @@ function Test-AlreadyInstalled {
     }
 
     $isVersionMatch = $record.version -eq $CurrentVersion
+    if ($isVersionMatch) {
+        Update-InstalledLastChecked -Name $Name
+    }
     return $isVersionMatch
+}
+
+function Update-InstalledLastChecked {
+    <#
+    .SYNOPSIS
+        Bumps 'lastChecked' (and ensures status='installed') in an existing
+        .installed/<name>.json record. Silent if the record is missing.
+    #>
+    param([Parameter(Mandatory)][string]$Name)
+
+    $record = Get-InstalledRecord -Name $Name
+    if (-not $record) { return }
+
+    $data = @{
+        name         = $record.name
+        version      = $record.version
+        status       = "installed"
+        method       = if ($record.PSObject.Properties.Name -contains 'method')      { $record.method }      else { "chocolatey" }
+        installedAt  = if ($record.PSObject.Properties.Name -contains 'installedAt') { $record.installedAt } else { (Get-Date -Format "o") }
+        lastChecked  = (Get-Date -Format "o")
+        installedBy  = if ($record.PSObject.Properties.Name -contains 'installedBy') { $record.installedBy } else { $env:USERNAME }
+        lastError    = ""
+        errorAt      = ""
+    }
+
+    $installedDir = Get-InstalledDir
+    $filePath = Join-Path $installedDir "$Name.json"
+    $data | ConvertTo-Json -Depth 3 | Set-Content -Path $filePath -Encoding UTF8
 }
 
 function Save-InstalledRecord {
@@ -98,19 +133,21 @@ function Save-InstalledRecord {
     $installedDir = Get-InstalledDir
 
     $data = @{
-        name        = $Name
-        version     = $Version
-        method      = $Method
-        installedAt = (Get-Date -Format "o")
-        installedBy = $env:USERNAME
-        lastError   = ""
-        errorAt     = ""
+        name         = $Name
+        version      = $Version
+        status       = "installed"
+        method       = $Method
+        installedAt  = (Get-Date -Format "o")
+        lastChecked  = (Get-Date -Format "o")
+        installedBy  = $env:USERNAME
+        lastError    = ""
+        errorAt      = ""
     }
 
     $filePath = Join-Path $installedDir "$Name.json"
     $data | ConvertTo-Json -Depth 3 | Set-Content -Path $filePath -Encoding UTF8
 
-    Write-Log "Saved install record: .installed/$Name.json ($Version)" -Level "info"
+    Write-Log "Saved install record: .installed/$Name.json (status=installed, version=$Version)" -Level "info"
 }
 
 function Save-InstalledError {

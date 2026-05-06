@@ -57,7 +57,7 @@ function Install-VsCodeEdition {
         # Check .installed/ tracking
         $isAlreadyTracked = Test-AlreadyInstalled -Name $TrackingName -CurrentVersion $chocoVersion
         if ($isAlreadyTracked) {
-            Write-Log ($LogMessages.messages.editionAlreadyInstalled -replace '\{label\}', $Label) -Level "info"
+            Write-Log "$Label is already installed at version $chocoVersion -- skipping (status=installed in .installed/$TrackingName.json)" -Level "success"
             return $true
         }
 
