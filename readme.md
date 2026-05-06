@@ -758,6 +758,7 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 | `os email <name>` | Set default mail (`mailto:`) client. Same cross-OS strategy. Names: `outlook`, `outlook-new`, `thunderbird`, `mailbird`, `em-client`, `windows-mail` (+ `evolution`/`geary`/`kmail`/`mailspring`/`apple-mail`/`outlook-mac`/`spark`/`airmail` on POSIX) | 👤 No | [Examples](#default-apps-browser--mail-client) |
 | **Windows context-menu repair** | | | |
 | `os fix-vscode-context-menu` | One-shot repair of the Windows folder right-click "Open with VS Code" entries. Thin wrapper that delegates to script 52 (`scripts/52-vscode-folder-repair/`): backs up `HKCR\Directory\shell\VSCode` + Background + Drive variants, rewrites entries, runs PASS/FAIL handler verification, and refreshes Explorer. Flags: `--dry-run`, `--verify`, `--verify-handlers`, `--no-restart`, `--trace`, `--restore`, `--rollback`, `--refresh`, `--edition stable\|insiders` | 🛡️ Yes | [Examples](#fix-vscode-context-menu-windows-folder-right-click) |
+| `os conemu-context-menu` | Manage the "Open ConEmu Here" folder right-click entries (normal + admin). Thin wrapper that delegates to script 59 (`scripts/59-conemu-context-menu/`). Uninstall snapshots affected `HKCR\Directory\(Background\)shell\ConEmuHere(Admin)` keys to a `.reg` file under `.logs/registry-backups/` BEFORE deletion and prints a copy-paste `reg import` rollback hint. Flags: `install`, `--uninstall`, `--dry-run-uninstall`, `--restore` (newest snapshot), `--restore --dry-run`, `--list-snapshots`, `--snapshot-file <p>` | 🛡️ Yes | [Examples](#conemu-context-menu-installuninstallrestore) |
 | **macOS** | | | |
 | `os clean-vscode-mac` | macOS-only: surgical removal of VS Code Services, `code` CLI symlink, LaunchServices entries, login items, LaunchAgents | 👤 No | [Examples](#os-commands) |
 
@@ -949,6 +950,29 @@ without rebooting. Requires elevation (writes to `HKEY_CLASSES_ROOT`).
 .\run.ps1 os fix-vscode-context-menu --refresh          # lightweight Explorer/shell refresh only
 .\run.ps1 os fix-vscode-context-menu --edition insiders # target VS Code Insiders specifically
 .\run.ps1 os fix-vscode-context-menu --non-interactive  # CI mode: no prompts
+```
+
+#### ConEmu context menu (install / uninstall / restore)
+
+`os conemu-context-menu` delegates to
+[`scripts/59-conemu-context-menu/`](scripts/59-conemu-context-menu/).
+Uninstall snapshots every affected `HKCR` key to a single `.reg` file
+under `scripts/59-conemu-context-menu/.logs/registry-backups/` BEFORE
+deletion, records each delete in a JSON change ledger, and prints a
+copy-paste `reg import "<file>"` rollback hint. `--restore` re-imports
+the newest snapshot (or pass `--snapshot-file <path>` to pick one).
+Requires elevation for write operations; `--dry-run-uninstall`,
+`--restore --dry-run`, and `--list-snapshots` are read-only.
+
+```powershell
+.\run.ps1 os conemu-context-menu                          # install registry entries (default)
+.\run.ps1 os conemu-context-menu install                  # same, explicit
+.\run.ps1 os conemu-context-menu --uninstall              # snapshot HKCR keys to .reg, then remove
+.\run.ps1 os conemu-context-menu --dry-run-uninstall      # preview removal, no writes
+.\run.ps1 os conemu-context-menu --restore                # re-import newest snapshot
+.\run.ps1 os conemu-context-menu --restore --dry-run      # preview restore (read-only)
+.\run.ps1 os conemu-context-menu --restore --snapshot-file C:\path\to\backup.reg
+.\run.ps1 os conemu-context-menu --list-snapshots         # list newest-first .reg backups
 ```
 
 #### Help (all four show the same OS subcommand catalog)

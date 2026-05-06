@@ -210,6 +210,16 @@ function Show-OsHelp {
     Write-Host "      --require-signature  Enforce Authenticode signer check" -ForegroundColor DarkGray
     Write-Host "      --non-interactive    Suppress prompts (CI mode)" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "    conemu-context-menu [flags]                            Manage 'Open ConEmu Here' folder right-click (delegates to script 59)" -ForegroundColor Green
+    Write-Host "      (no flag)              Install registry entries (normal + admin)" -ForegroundColor DarkGray
+    Write-Host "      install                Same as no flag (explicit)" -ForegroundColor DarkGray
+    Write-Host "      --uninstall            Snapshot HKCR keys to .reg, then remove entries (rollback hint printed)" -ForegroundColor DarkGray
+    Write-Host "      --dry-run-uninstall    Preview uninstall (no snapshot kept, no registry writes)" -ForegroundColor DarkGray
+    Write-Host "      --restore              Re-import the newest .reg snapshot from .logs\registry-backups\" -ForegroundColor DarkGray
+    Write-Host "      --restore --dry-run    Preview restore (read-only, prints reg.exe import command + snapshot header)" -ForegroundColor DarkGray
+    Write-Host "      --list-snapshots       List newest-first conemu-context-menu .reg backups" -ForegroundColor DarkGray
+    Write-Host "      --snapshot-file <p>    Use a specific .reg snapshot for --restore" -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "  SSH KEY MANAGEMENT (cross-OS, idempotent)" -ForegroundColor Cyan
     Write-Host "    gen-key [--type ed25519|rsa] [--out PATH] [--ask] [--dry-run]" -ForegroundColor Green
     Write-Host "    install-key --key '...' | --key-file PATH [--user N] [--dry-run]" -ForegroundColor Green
@@ -496,6 +506,15 @@ switch ($normalizedAction) {
         "repair-vscode-menu"
     ) } {
         & (Join-Path $scriptDir "helpers\fix-vscode-context-menu.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @(
+        "conemu-context-menu", "conemu-menu",
+        "conemu-folder-menu", "conemu-right-click",
+        "fix-conemu-context-menu", "fix-conemu-menu",
+        "manage-conemu-menu"
+    ) } {
+        & (Join-Path $scriptDir "helpers\conemu-context-menu.ps1") @Rest
         exit $LASTEXITCODE
     }
     { $_ -in @("help", "--help", "-help", "-h", "/?", "?", "") } {

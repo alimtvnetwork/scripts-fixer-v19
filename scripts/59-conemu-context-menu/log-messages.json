@@ -45,13 +45,24 @@
   },
   "help": {
     "commands": {
-      "uninstall": "Uninstall completely, remove registry entries + tracking"
+      "install":           "(default) Add 'Open ConEmu Here' (+ admin) registry entries",
+      "uninstall":         "Snapshot affected HKCR keys to a .reg file, then remove the entries",
+      "dry-run-uninstall": "Preview uninstall (no snapshot kept beyond enumeration, no writes)",
+      "restore":           "Re-import the newest .reg snapshot (or pass --snapshot-file <path>)",
+      "list-snapshots":    "List newest-first conemu-context-menu .reg backups under .logs/registry-backups/"
     },
     "examples": [
       ".\\run.ps1 -I 59",
       ".\\run.ps1 -I 59 -Help",
       ".\\run.ps1 -I 59 uninstall",
-      ".\\run.ps1 install conemu-context-menu"
+      ".\\run.ps1 -I 59 dry-run-uninstall",
+      ".\\run.ps1 -I 59 restore",
+      ".\\run.ps1 -I 59 restore --dry-run",
+      ".\\run.ps1 -I 59 restore --snapshot-file <path-to-.reg>",
+      ".\\run.ps1 -I 59 list-snapshots",
+      ".\\run.ps1 install conemu-context-menu",
+      ".\\run.ps1 os conemu-context-menu uninstall",
+      ".\\run.ps1 os conemu-context-menu restore --dry-run"
     ]
   }
 }
