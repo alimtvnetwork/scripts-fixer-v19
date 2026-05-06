@@ -137,7 +137,7 @@ for ($idx = 0; $idx -lt $count; $idx++) {
     if (-not [string]::IsNullOrWhiteSpace($desc)) { $childArgs += @("--description", $desc) }
     if ($hasDryRun) { $childArgs += "--dry-run" }
 
-    Write-Log "--- record $($idx+1)/$count: group='$name' ---" -Level "info"
+    Write-Log "--- record $($idx+1)/${count}: group='$name' ---" -Level "info"
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $addGroup @childArgs
     if ($LASTEXITCODE -ne 0) { $rcTotal = 1 }
 }

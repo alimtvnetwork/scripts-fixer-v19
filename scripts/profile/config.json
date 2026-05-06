@@ -3,12 +3,13 @@
   "profiles": {
     "minimal": {
       "label": "Minimal Bootstrap",
-      "description": "Quick fresh-Windows bootstrap: choco + git + 7zip + chrome + Win11 classic right-click menu.",
+      "description": "Quick fresh-Windows bootstrap: choco + git + 7zip + chrome + Ubuntu font + Win11 classic right-click menu.",
       "steps": [
         { "kind": "script",     "id": 2,  "label": "Chocolatey package manager" },
         { "kind": "script",     "id": 7,  "label": "Git + LFS" },
         { "kind": "choco",      "package": "7zip.install", "label": "7-Zip archiver" },
         { "kind": "choco",      "package": "googlechrome", "label": "Google Chrome" },
+        { "kind": "script",     "id": 47, "label": "Ubuntu font" },
         { "kind": "inline",     "function": "Restore-Win11ClassicContext", "label": "Win11 classic right-click menu" }
       ]
     },

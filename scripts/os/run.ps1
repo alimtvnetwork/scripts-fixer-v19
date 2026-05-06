@@ -160,6 +160,7 @@ function Show-OsHelp {
     Write-Host "    temp-clean [flags]                                     Temp dirs only (legacy helper)" -ForegroundColor Green
     Write-Host "    hib-off | hib-on                                       Disable/enable hibernation" -ForegroundColor Green
     Write-Host "    flp                                                    Enable Win32 long-path support" -ForegroundColor Green
+    Write-Host "    update [--dry-run] [--reboot] [--yes]                  Run Windows Update (PSWindowsUpdate / UsoClient / wuauclt)" -ForegroundColor Green
     Write-Host "    add-user <name> <pass> [pin] [email] [flags]          Create local Windows user" -ForegroundColor Green
     Write-Host "      --admin | --standard          Role (default: standard)" -ForegroundColor DarkGray
     Write-Host "      --microsoft-account <email>   Note an Outlook/Live email (interactive link)" -ForegroundColor DarkGray
@@ -436,6 +437,10 @@ switch ($normalizedAction) {
             exit 2
         }
         & $bash.Source $macHelper @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("update", "win-update", "windows-update", "os-update") } {
+        & (Join-Path $scriptDir "helpers\update.ps1") @Rest
         exit $LASTEXITCODE
     }
     { $_ -in @("help", "--help", "-h", "") } {

@@ -527,7 +527,7 @@ function Remove-SummaryTailArg {
 
         $isInlineForm = $false
         foreach ($n in $names) {
-            if ($low.StartsWith("$n=") -or $low.StartsWith("$n:")) {
+            if ($low.StartsWith("${n}=") -or $low.StartsWith("${n}:")) {
                 $isInlineForm = $true; break
             }
         }

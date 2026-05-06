@@ -19,7 +19,7 @@ try {
         $result.Notes += "ipconfig /flushdns succeeded"
     } else {
         $result.Status = "warn"
-        $result.Notes += "ipconfig exited $LASTEXITCODE: $output"
+        $result.Notes += "ipconfig exited ${LASTEXITCODE}: $output"
     }
 } catch {
     $result.Status = "fail"
