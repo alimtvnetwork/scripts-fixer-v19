@@ -114,12 +114,15 @@ Write-Log $logMessages.power.header -Level "info"
 
 # -- Resolved plan (so '--never --ac-only' and '--display 0 --sleep 0 --ac-only'
 #    are visibly identical when config defaults are all 0) -------------------
+# -- Resolved plan (so '--never --ac-only' and '--display 0 --sleep 0 --ac-only'
+#    are visibly identical when config defaults are all 0) -------------------
+function Format-MinShort([int]$m) { if ($m -le 0) { "Never" } else { "$m min" } }
 $scopeLabel = if ($applyAc -and $applyDc) { "AC + DC" } elseif ($applyAc) { "AC only" } elseif ($applyDc) { "DC only" } else { "(none)" }
 Write-Log ("Resolved plan: display={0}, sleep={1}, disk={2}, hibernate={3}  scope={4}" -f `
-    (if ($dispMin -le 0) { "Never" } else { "$dispMin min" }), `
-    (if ($sleepMin -le 0){ "Never" } else { "$sleepMin min" }), `
-    (if ($diskMin -le 0) { "Never" } else { "$diskMin min" }), `
-    (if ($hibMin -le 0)  { "Never" } else { "$hibMin min" }), `
+    (Format-MinShort $dispMin), `
+    (Format-MinShort $sleepMin), `
+    (Format-MinShort $diskMin), `
+    (Format-MinShort $hibMin), `
     $scopeLabel) -Level "info"
 
 # -- Show active scheme -------------------------------------------------------
