@@ -25,6 +25,9 @@ param(
     [string]$SnapshotFile = '',
     [switch]$DryRun,
     [switch]$Help,
+    [switch]$NonInteractive,
+    [Alias('Yes','y')]
+    [switch]$AssumeYes,
 
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest
@@ -46,6 +49,7 @@ $script:ScriptDir = $scriptDir
 . (Join-Path $sharedDir "install-paths.ps1")
 . (Join-Path $sharedDir "registry-backup.ps1")
 . (Join-Path $sharedDir "interactive-verify.ps1")
+. (Join-Path $sharedDir "confirm-prompt.ps1")
 
 # -- Dot-source script helpers ------------------------------------------------
 . (Join-Path $scriptDir "helpers\conemu-menu.ps1")
@@ -70,6 +74,8 @@ if ($null -ne $Rest -and $Rest.Count -gt 0) {
         $tok = "$($Rest[$i])".Trim().ToLower()
         switch -Regex ($tok) {
             '^(--?dry-run|dry-run)$'                  { $DryRun = $true }
+            '^(--?non-interactive|non-interactive|--?headless|headless)$' { $NonInteractive = $true }
+            '^(--?yes|-y|yes|--?assume-yes|assume-yes|--?force|force)$'   { $AssumeYes = $true }
             '^(--?snapshot-file|snapshot-file|--?file|file)$' {
                 $i++
                 if ($i -lt $Rest.Count) { $SnapshotFile = "$($Rest[$i])" }
@@ -143,6 +149,12 @@ switch ($normalizedCommand) {
         return
     }
     { $_ -in @('uninstall','remove','rollback') } {
+        $confirmed = Confirm-DestructiveAction `
+            -Title  "Uninstall ConEmu context menu (registry rollback)" `
+            -Detail "Snapshots affected HKCR keys to a .reg file, then DELETES the right-click entries. Restore via '.\run.ps1 -I 59 restore'." `
+            -NonInteractive:$NonInteractive `
+            -AssumeYes:$AssumeYes
+        if (-not $confirmed) { Write-Log "Uninstall aborted by user." -Level "warn"; return }
         Uninstall-ConEmuContextMenu -Config $config -LogMessages $logMessages
         return
     }
@@ -151,6 +163,15 @@ switch ($normalizedCommand) {
         return
     }
     { $_ -in @('restore','restore-snapshot') } {
+        if (-not $DryRun) {
+            $snapLabel = if ([string]::IsNullOrWhiteSpace($SnapshotFile)) { '<newest snapshot>' } else { $SnapshotFile }
+            $confirmed = Confirm-DestructiveAction `
+                -Title  "Restore ConEmu context menu from .reg snapshot" `
+                -Detail ("Re-imports registry entries from: " + $snapLabel + ". This OVERWRITES current HKCR keys.") `
+                -NonInteractive:$NonInteractive `
+                -AssumeYes:$AssumeYes
+            if (-not $confirmed) { Write-Log "Restore aborted by user." -Level "warn"; return }
+        }
         $ok = Restore-ConEmuContextMenuSnapshot -SnapshotFile $SnapshotFile -DryRun:$DryRun -LogMessages $logMessages
         if (-not $ok) { exit 1 }
         return

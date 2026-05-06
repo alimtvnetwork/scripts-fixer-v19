@@ -21,6 +21,9 @@
         --restore --dry-run   -> preview restore (no writes)
         --list-snapshots      -> list newest-first .reg backups
         --snapshot-file <p>   -> explicit snapshot for --restore
+        --yes / -y            -> skip the confirmation prompt
+        --non-interactive     -> headless mode (refuses destructive ops
+                                 unless --yes is also supplied)
 
     Refuses cleanly on non-Windows so cross-OS callers see actionable text
     instead of a cryptic registry error (CODE RED rule).
@@ -76,10 +79,12 @@ if (-not (Test-Path -LiteralPath $script59Run)) {
 }
 
 # -- Argument parser --------------------------------------------------------
-$subCommand   = $null
-$snapshotFile = ''
-$wantsDryRun  = $false
-$passthrough  = @()
+$subCommand     = $null
+$snapshotFile   = ''
+$wantsDryRun    = $false
+$nonInteractive = $false
+$assumeYes      = $false
+$passthrough    = @()
 
 if ($null -ne $Rest -and $Rest.Count -gt 0) {
     for ($i = 0; $i -lt $Rest.Count; $i++) {
@@ -107,6 +112,8 @@ if ($null -ne $Rest -and $Rest.Count -gt 0) {
                 break
             }
             '^(--?dry-run|dry-run|--?whatif|whatif)$'         { $wantsDryRun = $true; break }
+            '^(--?non-interactive|non-interactive|--?headless|headless)$' { $nonInteractive = $true; break }
+            '^(--?yes|-y|yes|--?assume-yes|assume-yes|--?force|force)$'   { $assumeYes      = $true; break }
             '^(--?snapshot-file|snapshot-file|--?file|file)$' {
                 $i++
                 if ($i -lt $Rest.Count) { $snapshotFile = "$($Rest[$i])" }
@@ -129,6 +136,8 @@ Write-Host "  ======================" -ForegroundColor DarkGray
 Write-Host ("  Mode      : " + $subCommand) -ForegroundColor Yellow
 Write-Host ("  Delegates : " + $script59Run) -ForegroundColor DarkGray
 if ($wantsDryRun)                              { Write-Host  "  Dry-run   : on" -ForegroundColor DarkGray }
+if ($nonInteractive)                           { Write-Host  "  Prompt    : non-interactive" -ForegroundColor DarkGray }
+if ($assumeYes)                                { Write-Host  "  Confirm   : auto-yes" -ForegroundColor DarkGray }
 if (-not [string]::IsNullOrWhiteSpace($snapshotFile)) {
     Write-Host ("  Snapshot  : " + $snapshotFile) -ForegroundColor DarkGray
 }
@@ -148,8 +157,10 @@ try {
     }
 
     $named = @{}
-    if ($wantsDryRun)                                      { $named['DryRun']       = $true }
-    if (-not [string]::IsNullOrWhiteSpace($snapshotFile))  { $named['SnapshotFile'] = $snapshotFile }
+    if ($wantsDryRun)                                      { $named['DryRun']         = $true }
+    if ($nonInteractive)                                   { $named['NonInteractive'] = $true }
+    if ($assumeYes)                                        { $named['AssumeYes']      = $true }
+    if (-not [string]::IsNullOrWhiteSpace($snapshotFile))  { $named['SnapshotFile']   = $snapshotFile }
 
     if ($passthrough.Count -gt 0) {
         & $script59Run $subCommand @named @passthrough
