@@ -161,5 +161,26 @@ Save-ResolvedData -ScriptFolder "11-vscode-settings-sync" -Data @{
     timestamp  = (Get-Date -Format "o")
 }
 
+} catch {
+    Write-Log "Unhandled error: $_" -Level "error"
+    Write-Log "Stack: $($_.ScriptStackTrace)" -Level "error"
+} finally {
+    # -- Save log (always runs, even on crash) --
+    $hasAnyErrors = $script:_LogErrors.Count -gt 0
+    Save-LogFile -Status $(if ($hasAnyErrors) { "fail" } else { "ok" })
+}
+    Write-Log $logMessages.messages.done -Level "success"
+} else {
+    Write-Log $logMessages.messages.completedWithWarnings -Level "warn"
+}
+
+# -- Save resolved state -------------------------------------------------------
+Save-ResolvedData -ScriptFolder "11-vscode-settings-sync" -Data @{
+    editions   = ($enabledEditions -join ',')
+    mergeMode  = $Merge.IsPresent
+    extensions = $sources.Extensions.Count
+    timestamp  = (Get-Date -Format "o")
+}
+
 # -- Save log ------------------------------------------------------------------
 Save-LogFile -Status $(if ($isAllSuccessful) { "ok" } else { "fail" })
