@@ -535,18 +535,28 @@ $results = Invoke-ProfileSteps `
     -RootDir      (Split-Path -Parent (Split-Path -Parent $scriptDir)) `
     -AutoYes      $isAutoYes
 
+# ---------------------------------------------------------------------------
 # Final summary
-Write-Host ""
-Write-Host ("  Profile '{0}' Summary" -f $resolvedName) -ForegroundColor Cyan
-Write-Host ("  " + ("=" * (20 + $resolvedName.Length))) -ForegroundColor DarkGray
-
-$totalElapsed       = 0.0
-$failedCount        = 0
-$alreadyInstalled   = 0
-$freshlyInstalled   = 0
-for ($i = 0; $i -lt $results.Count; $i++) {
-    $r = $results[$i]
-    $statusColor = switch ($r.Status) {
+# ---------------------------------------------------------------------------
+# Console-safe status marks: bracketed ASCII glyphs render correctly in
+# Windows PowerShell, ConEmu, Windows Terminal, and CI logs without the
+# "gibberish" you get from wide Unicode emoji on legacy code pages.
+# Color carries the visual meaning; the glyph carries the text meaning.
+#   [OK]   green  -- freshly installed / step succeeded
+#   [==]   cyan   -- already installed (no-op rerun)
+#   [XX]   red    -- failed
+#   [--]   gray   -- skipped
+#   [!!]   yellow -- warning
+$statusMark = @{
+    "ok"                = "[OK]"
+    "already-installed" = "[==]"
+    "fail"              = "[XX]"
+    "skip"              = "[--]"
+    "warn"              = "[!!]"
+}
+function _MarkFor($s) { if ($statusMark.ContainsKey($s)) { $statusMark[$s] } else { "[??]" } }
+function _ColorFor($s) {
+    switch ($s) {
         "ok"                { "Green" }
         "already-installed" { "Cyan" }
         "fail"              { "Red" }
@@ -554,15 +564,82 @@ for ($i = 0; $i -lt $results.Count; $i++) {
         "warn"              { "Yellow" }
         default             { "Gray" }
     }
-    Write-Host ("    {0,3}. [{1,-10}] {2,-40} {3,-17} {4,6}s" -f ($i + 1), $r.Kind, $r.Label, $r.Status.ToUpper(), [Math]::Round($r.Elapsed, 1)) -ForegroundColor $statusColor
-    $totalElapsed += $r.Elapsed
-    if ($r.Status -eq "fail")              { $failedCount++ }
-    elseif ($r.Status -eq "already-installed") { $alreadyInstalled++ }
-    elseif ($r.Status -eq "ok")            { $freshlyInstalled++ }
 }
 
 Write-Host ""
+$header = "  Profile '{0}' -- Install Summary" -f $resolvedName
+Write-Host $header -ForegroundColor Cyan
+Write-Host ("  " + ("=" * ($header.Length - 2))) -ForegroundColor DarkGray
+
+$totalElapsed       = 0.0
+$failedCount        = 0
+$alreadyInstalled   = 0
+$freshlyInstalled   = 0
+$skippedCount       = 0
+
+for ($i = 0; $i -lt $results.Count; $i++) {
+    $r = $results[$i]
+    $mark  = _MarkFor $r.Status
+    $color = _ColorFor $r.Status
+    Write-Host ("    {0,3}. {1} [{2,-10}] {3,-40} {4,-18} {5,6}s" -f `
+        ($i + 1), $mark, $r.Kind, $r.Label, $r.Status.ToUpper(), [Math]::Round($r.Elapsed, 1)) `
+        -ForegroundColor $color
+    $totalElapsed += $r.Elapsed
+    switch ($r.Status) {
+        "fail"              { $failedCount++ }
+        "already-installed" { $alreadyInstalled++ }
+        "ok"                { $freshlyInstalled++ }
+        "skip"              { $skippedCount++ }
+    }
+}
+
+# ---------------------------------------------------------------------------
+# "What did this run actually install?" breakdown -- grouped by status so the
+# operator can see at a glance the freshly installed items vs. the no-ops.
+# ---------------------------------------------------------------------------
+$grouped = @{
+    "ok"                = @()
+    "already-installed" = @()
+    "fail"              = @()
+    "skip"              = @()
+}
+foreach ($r in $results) {
+    if ($grouped.ContainsKey($r.Status)) { $grouped[$r.Status] += $r.Label }
+}
+
+Write-Host ""
+Write-Host "  What was installed this run:" -ForegroundColor White
+Write-Host "  -----------------------------" -ForegroundColor DarkGray
+
+if ($grouped["ok"].Count -gt 0) {
+    Write-Host ("    {0} Freshly installed ({1}):" -f (_MarkFor "ok"), $grouped["ok"].Count) -ForegroundColor Green
+    foreach ($n in $grouped["ok"]) { Write-Host "        + $n" -ForegroundColor Green }
+}
+if ($grouped["already-installed"].Count -gt 0) {
+    Write-Host ("    {0} Already installed ({1}):" -f (_MarkFor "already-installed"), $grouped["already-installed"].Count) -ForegroundColor Cyan
+    foreach ($n in $grouped["already-installed"]) { Write-Host "        = $n" -ForegroundColor Cyan }
+}
+if ($grouped["skip"].Count -gt 0) {
+    Write-Host ("    {0} Skipped ({1}):" -f (_MarkFor "skip"), $grouped["skip"].Count) -ForegroundColor DarkGray
+    foreach ($n in $grouped["skip"]) { Write-Host "        - $n" -ForegroundColor DarkGray }
+}
+if ($grouped["fail"].Count -gt 0) {
+    Write-Host ("    {0} Failed ({1}):" -f (_MarkFor "fail"), $grouped["fail"].Count) -ForegroundColor Red
+    foreach ($n in $grouped["fail"]) { Write-Host "        x $n" -ForegroundColor Red }
+}
+if (($grouped["ok"].Count + $grouped["already-installed"].Count + $grouped["skip"].Count + $grouped["fail"].Count) -eq 0) {
+    Write-Host "    (no items recorded)" -ForegroundColor DarkGray
+}
+
+# ---------------------------------------------------------------------------
+# Totals row + final outcome line
+# ---------------------------------------------------------------------------
+Write-Host ""
+Write-Host ("  Totals: {0} installed | {1} already | {2} skipped | {3} failed | {4} total" -f `
+    $freshlyInstalled, $alreadyInstalled, $skippedCount, $failedCount, $totalSteps) -ForegroundColor White
+
 $totalElapsedRounded = [Math]::Round($totalElapsed, 1)
+Write-Host ""
 if ($failedCount -eq 0) {
     $isAllAlready = ($alreadyInstalled -gt 0) -and ($freshlyInstalled -eq 0)
     if ($isAllAlready) {
