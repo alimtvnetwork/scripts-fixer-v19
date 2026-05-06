@@ -305,3 +305,55 @@ function Format-ProfileConfigIssues {
     }
     Write-Host ""
 }
+
+function Get-ProfileAliasesByTarget {
+    <#
+    .SYNOPSIS
+        Returns a hashtable: target-profile-name -> @(alias entries), where each
+        alias entry is @{ Name; Kind; Target; Reason }. Plus a synthetic key
+        '__orphans__' for aliases whose target is not in $KnownProfileNames.
+        Aliases inside each bucket are sorted alphabetically by Name.
+        Returns $null if the file is missing or unparseable.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [string[]]$KnownProfileNames = @()
+    )
+
+    if (-not (Test-Path -LiteralPath $FilePath)) { return $null }
+
+    try {
+        $cfg = Get-Content -LiteralPath $FilePath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        return $null
+    }
+    if (-not ($cfg.PSObject.Properties.Name -contains 'aliases') -or $null -eq $cfg.aliases) { return $null }
+
+    $byTarget = @{}
+    $known = @{}
+    foreach ($n in $KnownProfileNames) { $known[$n] = $true }
+
+    foreach ($prop in $cfg.aliases.PSObject.Properties) {
+        $aname = $prop.Name
+        $adef  = $prop.Value
+        if ($null -eq $adef) { continue }
+        $target = "$($adef.target)"
+        $kind   = "$($adef.kind)".ToLower()
+        $reason = if ($adef.PSObject.Properties.Name -contains 'reason') { "$($adef.reason)" } else { "" }
+
+        $bucket = if ($known.ContainsKey($target)) { $target } else { '__orphans__' }
+        if (-not $byTarget.ContainsKey($bucket)) { $byTarget[$bucket] = @() }
+        $byTarget[$bucket] += [pscustomobject]@{
+            Name   = $aname
+            Kind   = $kind
+            Target = $target
+            Reason = $reason
+        }
+    }
+
+    # Sort each bucket
+    foreach ($k in @($byTarget.Keys)) {
+        $byTarget[$k] = @($byTarget[$k] | Sort-Object Name)
+    }
+    return $byTarget
+}
