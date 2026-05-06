@@ -76,10 +76,12 @@ if (-not (Test-Path -LiteralPath $script59Run)) {
 }
 
 # -- Argument parser --------------------------------------------------------
-$subCommand   = $null
-$snapshotFile = ''
-$wantsDryRun  = $false
-$passthrough  = @()
+$subCommand     = $null
+$snapshotFile   = ''
+$wantsDryRun    = $false
+$nonInteractive = $false
+$assumeYes      = $false
+$passthrough    = @()
 
 if ($null -ne $Rest -and $Rest.Count -gt 0) {
     for ($i = 0; $i -lt $Rest.Count; $i++) {
