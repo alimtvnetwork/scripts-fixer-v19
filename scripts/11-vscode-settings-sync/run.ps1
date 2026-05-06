@@ -105,15 +105,6 @@ if ($hasSyncModeEnv) {
     $isSyncSkip = $env:VSCODE_SYNC_MODE -eq "skip"
     if ($isSyncSkip) {
         Write-Log "VS Code settings sync skipped (questionnaire choice)" -Level "skip"
-
-} catch {
-    Write-Log "Unhandled error: $_" -Level "error"
-    Write-Log "Stack: $($_.ScriptStackTrace)" -Level "error"
-} finally {
-    # -- Save log (always runs, even on crash) --
-    $hasAnyErrors = $script:_LogErrors.Count -gt 0
-    Save-LogFile -Status $(if ($hasAnyErrors) { "fail" } else { "ok" })
-}
         return
     }
     $isMergeMode = $env:VSCODE_SYNC_MODE -eq "merge"
@@ -170,5 +161,11 @@ Save-ResolvedData -ScriptFolder "11-vscode-settings-sync" -Data @{
     timestamp  = (Get-Date -Format "o")
 }
 
-# -- Save log ------------------------------------------------------------------
-Save-LogFile -Status $(if ($isAllSuccessful) { "ok" } else { "fail" })
+} catch {
+    Write-Log "Unhandled error: $_" -Level "error"
+    Write-Log "Stack: $($_.ScriptStackTrace)" -Level "error"
+} finally {
+    # -- Save log (always runs, even on crash) --
+    $hasAnyErrors = $script:_LogErrors.Count -gt 0
+    Save-LogFile -Status $(if ($hasAnyErrors) { "fail" } else { "ok" })
+}
