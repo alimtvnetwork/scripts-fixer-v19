@@ -163,7 +163,7 @@ function Invoke-PathSweep {
     }
 
     if ($DryRun) {
-        $files = $items | Where-Object { -not $_.PSIsContainer }
+        $files = @($items | Where-Object { -not $_.PSIsContainer })
         $bytes = ($files | Measure-Object -Property Length -Sum).Sum
         if ($null -eq $bytes) { $bytes = 0 }
         $Result.WouldCount += $files.Count
@@ -172,8 +172,8 @@ function Invoke-PathSweep {
         return
     }
 
-    $files = $items | Where-Object { -not $_.PSIsContainer }
-    $dirs  = $items | Where-Object {  $_.PSIsContainer } | Sort-Object { $_.FullName.Length } -Descending
+    $files = @($items | Where-Object { -not $_.PSIsContainer })
+    $dirs  = @($items | Where-Object {  $_.PSIsContainer } | Sort-Object { $_.FullName.Length } -Descending)
 
     foreach ($f in $files) {
         try {
