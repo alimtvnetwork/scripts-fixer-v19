@@ -493,15 +493,29 @@ switch ($normalizedAction) {
         # named switch power.ps1 expects, so users don't have to remember `--`.
         # Without this, "never" would bind positionally to [int]$Display and
         # throw "Cannot convert value 'never' to type System.Int32".
+        # power.ps1 uses standard PowerShell param() switches, so flags must
+        # use single-dash PascalCase form (-Never, not --never). Otherwise
+        # the unrecognized "--never" binds positionally to [int]$Display
+        # and throws "Cannot convert '--never' to System.Int32".
         $powerArgs = @()
         foreach ($a in $Rest) {
             $low = "$a".Trim().ToLower()
             switch ($low) {
-                "never"   { $powerArgs += "--never";  break }
-                "ac-only" { $powerArgs += "--ac-only"; break }
-                "dc-only" { $powerArgs += "--dc-only"; break }
-                "dry-run" { $powerArgs += "--dry-run"; break }
-                default   { $powerArgs += $a }
+                "never"     { $powerArgs += "-Never";  break }
+                "--never"   { $powerArgs += "-Never";  break }
+                "ac-only"   { $powerArgs += "-AcOnly"; break }
+                "--ac-only" { $powerArgs += "-AcOnly"; break }
+                "dc-only"   { $powerArgs += "-DcOnly"; break }
+                "--dc-only" { $powerArgs += "-DcOnly"; break }
+                "dry-run"   { $powerArgs += "-DryRun"; break }
+                "--dry-run" { $powerArgs += "-DryRun"; break }
+                "--display"   { $powerArgs += "-Display";   break }
+                "--sleep"     { $powerArgs += "-Sleep";     break }
+                "--disk"      { $powerArgs += "-Disk";      break }
+                "--hibernate" { $powerArgs += "-Hibernate"; break }
+                "--help"    { $powerArgs += "-Help"; break }
+                "-h"        { $powerArgs += "-Help"; break }
+                default     { $powerArgs += $a }
             }
         }
         & (Join-Path $scriptDir "helpers\power.ps1") @powerArgs
