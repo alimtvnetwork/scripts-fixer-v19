@@ -81,7 +81,7 @@ $script:CleanCatalog = @(
     @{ B = "A"; Cat = "dns";                 Desc = "ipconfig /flushdns" },
     @{ B = "A"; Cat = "recycle";             Desc = "Empty Recycle Bin (DESTRUCTIVE -- consent)" },
     @{ B = "A"; Cat = "delivery-opt";        Desc = "WU Delivery Optimization cache" },
-    @{ B = "A"; Cat = "wu-download";         Desc = 'WU download payload cache ($WINDIR\SoftwareDistribution\Download)' },
+    @{ B = "A"; Cat = "wu-download";         Desc = 'WU download payload cache (%WINDIR%\SoftwareDistribution\Download)' },
     @{ B = "A"; Cat = "error-reports";       Desc = "Windows Error Reports (WER)" },
     @{ B = "A"; Cat = "event-logs";          Desc = "All Windows event logs (wevtutil cl)" },
     @{ B = "A"; Cat = "etl";                 Desc = "ETW trace files (*.etl)" },
