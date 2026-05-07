@@ -12,8 +12,14 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $result = New-CleanResult -Category "wu-download" -Label "Windows Update download cache (\$WINDIR\SoftwareDistribution\Download)" -Bucket "A"
 
 # Resolve %WINDIR% from the environment, with a defensive fallback chain.
-$windir = $env:WINDIR
-if ([string]::IsNullOrWhiteSpace($windir)) { $windir = $env:SystemRoot }
+# Use [Environment]::GetEnvironmentVariable rather than $env:WINDIR -- under
+# Set-StrictMode -Version Latest, $env:* drive lookups can throw
+# "The variable 'X' cannot be retrieved because it has not been set" when the
+# named env var is absent (PowerShell treats them as strict variables).
+$windir = [Environment]::GetEnvironmentVariable("WINDIR")
+if ([string]::IsNullOrWhiteSpace($windir)) {
+    $windir = [Environment]::GetEnvironmentVariable("SystemRoot")
+}
 if ([string]::IsNullOrWhiteSpace($windir)) { $windir = "C:\Windows" }
 
 if (-not (Test-Path -LiteralPath $windir)) {
