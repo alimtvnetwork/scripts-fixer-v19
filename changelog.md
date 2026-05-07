@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.213.0] -- 2026-05-07
+
+### Changed: Script 59 (ConEmu context menu) -- destructive-confirm prompt + `--yes`/`-y` contract
+
+`uninstall` and `restore` now route through the shared `Confirm-DestructiveAction` helper (`scripts/shared/confirm-prompt.ps1`):
+
+- Default behaviour: prompt the operator before any registry write.
+- `--yes` / `-y` (also `--assume-yes`, `--force`): auto-approve, log a clear `[ AUTO-YES ]` line, then proceed.
+- `--non-interactive` without `--yes`: refuse the destructive op with a copy-paste retry hint instead of hanging or silently proceeding.
+- `--non-interactive --yes`: headless/CI-friendly path; snapshot + remove (or re-import) without prompting.
+
+Read-only flows (`--dry-run-uninstall`, `--restore --dry-run`, `--list-snapshots`, `install`) are unchanged and never prompt.
+
+**Docs synced:** root `readme.md` Windows OS-subcommand table row for `os conemu-context-menu` and the "ConEmu context menu (install / uninstall / restore)" examples block both call out the new flags and the prompt contract.
+
+**Files touched:**
+- `readme.md` (OS subcommand table row + examples block)
+- `changelog.md` (this entry)
+
 ## [v0.212.0] -- 2026-04-27
 
 ### Added: Script 68 -- PowerShell sibling of `_schema.sh` for cross-OS validation
