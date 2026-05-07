@@ -489,36 +489,33 @@ switch ($normalizedAction) {
         exit $LASTEXITCODE
     }
     { $_ -in @("power", "power-settings", "display-sleep", "no-sleep") } {
-        # Translate bare positional aliases (e.g. `os power never`) into the
-        # named switch power.ps1 expects, so users don't have to remember `--`.
-        # Without this, "never" would bind positionally to [int]$Display and
-        # throw "Cannot convert value 'never' to type System.Int32".
-        # power.ps1 uses standard PowerShell param() switches, so flags must
-        # use single-dash PascalCase form (-Never, not --never). Otherwise
-        # the unrecognized "--never" binds positionally to [int]$Display
-        # and throws "Cannot convert '--never' to System.Int32".
-        $powerArgs = @()
-        foreach ($a in $Rest) {
+        # power.ps1 uses standard PowerShell param() switches + [int] params.
+        # Bare positional aliases like `os power never` would otherwise bind
+        # to [int]$Display and throw "Cannot convert 'never' to Int32".
+        # Use HASHTABLE SPLAT for switches (unambiguous binding) + a passthrough
+        # list for everything else. Array-splat of "-Never" was getting
+        # mis-bound positionally, hence "Cannot convert '-Never' to Int32".
+        $powerSplat = @{}
+        $powerPass  = @()
+        $i = 0
+        while ($i -lt $Rest.Count) {
+            $a = $Rest[$i]
             $low = "$a".Trim().ToLower()
             switch ($low) {
-                "never"     { $powerArgs += "-Never";  break }
-                "--never"   { $powerArgs += "-Never";  break }
-                "ac-only"   { $powerArgs += "-AcOnly"; break }
-                "--ac-only" { $powerArgs += "-AcOnly"; break }
-                "dc-only"   { $powerArgs += "-DcOnly"; break }
-                "--dc-only" { $powerArgs += "-DcOnly"; break }
-                "dry-run"   { $powerArgs += "-DryRun"; break }
-                "--dry-run" { $powerArgs += "-DryRun"; break }
-                "--display"   { $powerArgs += "-Display";   break }
-                "--sleep"     { $powerArgs += "-Sleep";     break }
-                "--disk"      { $powerArgs += "-Disk";      break }
-                "--hibernate" { $powerArgs += "-Hibernate"; break }
-                "--help"    { $powerArgs += "-Help"; break }
-                "-h"        { $powerArgs += "-Help"; break }
-                default     { $powerArgs += $a }
+                { $_ -in @("never","--never","-never") }     { $powerSplat["Never"]  = $true }
+                { $_ -in @("ac-only","--ac-only","-ac-only","aconly","--aconly") } { $powerSplat["AcOnly"] = $true }
+                { $_ -in @("dc-only","--dc-only","-dc-only","dconly","--dconly") } { $powerSplat["DcOnly"] = $true }
+                { $_ -in @("dry-run","--dry-run","-dry-run","dryrun","--dryrun") } { $powerSplat["DryRun"] = $true }
+                { $_ -in @("--help","-help","-h","help","/?","?") } { $powerSplat["Help"] = $true }
+                { $_ -in @("--display","-display") }   { $i++; if ($i -lt $Rest.Count) { $powerSplat["Display"]   = [int]$Rest[$i] } }
+                { $_ -in @("--sleep","-sleep") }       { $i++; if ($i -lt $Rest.Count) { $powerSplat["Sleep"]     = [int]$Rest[$i] } }
+                { $_ -in @("--disk","-disk") }         { $i++; if ($i -lt $Rest.Count) { $powerSplat["Disk"]      = [int]$Rest[$i] } }
+                { $_ -in @("--hibernate","-hibernate") }{ $i++; if ($i -lt $Rest.Count) { $powerSplat["Hibernate"]= [int]$Rest[$i] } }
+                default { $powerPass += $a }
             }
+            $i++
         }
-        & (Join-Path $scriptDir "helpers\power.ps1") @powerArgs
+        & (Join-Path $scriptDir "helpers\power.ps1") @powerSplat @powerPass
         exit $LASTEXITCODE
     }
     { $_ -in @("browser", "default-browser", "set-browser", "web-browser") } {
