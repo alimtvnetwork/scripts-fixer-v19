@@ -20,7 +20,7 @@ if (-not $hasJb) {
 }
 
 try {
-    $products = Get-ChildItem -LiteralPath $jbRoot -Directory -Force -ErrorAction SilentlyContinue
+    $products = @(Get-ChildItem -LiteralPath $jbRoot -Directory -Force -ErrorAction SilentlyContinue)
 } catch {
     Write-Log "jetbrains-cache enumerate failed at ${jbRoot}: $($_.Exception.Message)" -Level "warn"
     Set-CleanResultStatus -Result $result -DryRun:$DryRun
