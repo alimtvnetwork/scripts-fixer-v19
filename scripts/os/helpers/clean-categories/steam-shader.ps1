@@ -31,7 +31,7 @@ foreach ($c in $candidates) {
     }
 }
 
-$libraries = $libraries | Select-Object -Unique
+$libraries = @($libraries | Select-Object -Unique)
 if ($libraries.Count -eq 0) {
     $result.Notes += "Steam not installed"
     Set-CleanResultStatus -Result $result -DryRun:$DryRun
