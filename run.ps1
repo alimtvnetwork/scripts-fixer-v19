@@ -2858,6 +2858,13 @@ if ($hasCommand) {
         # `.\run.ps1 os -h` and `.\run.ps1 os -help` show the OS subcommand list.
         $osArgs = @()
         if ($null -ne $Install) { $osArgs = @($Install) }
+        # Root-level -y / -Y is bound to $Y by PowerShell's parameter binder
+        # (case-insensitive), so it never reaches $Install. Forward it to the
+        # os dispatcher as --yes so `.\run.ps1 os clean -y` actually skips
+        # the confirmation prompt instead of stopping to ask.
+        if ($Y -and -not ($osArgs | Where-Object { "$_".Trim().ToLower() -in @("--yes","-yes","-y","--force","-force") })) {
+            $osArgs += "--yes"
+        }
         $hasOsAction = ($osArgs.Count -gt 0) -and -not ("$($osArgs[0])".StartsWith("-"))
         if (($h -or $Help) -and -not $hasOsAction) {
             & $osScript "--help"
