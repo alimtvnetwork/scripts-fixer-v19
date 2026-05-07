@@ -156,6 +156,7 @@ $catalog = @(
     @{ Cat = "dns";                 Bucket = "A"; Helper = "dns.ps1" },
     @{ Cat = "recycle";             Bucket = "A"; Helper = "recycle.ps1" },
     @{ Cat = "delivery-opt";        Bucket = "A"; Helper = "delivery-opt.ps1" },
+    @{ Cat = "wu-download";         Bucket = "A"; Helper = "wu-download.ps1" },
     @{ Cat = "error-reports";       Bucket = "A"; Helper = "error-reports.ps1" },
     @{ Cat = "event-logs";          Bucket = "A"; Helper = "event-logs.ps1" },
     @{ Cat = "etl";                 Bucket = "A"; Helper = "etl.ps1" },
