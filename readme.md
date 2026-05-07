@@ -964,12 +964,21 @@ the newest snapshot (or pass `--snapshot-file <path>` to pick one).
 Requires elevation for write operations; `--dry-run-uninstall`,
 `--restore --dry-run`, and `--list-snapshots` are read-only.
 
+Destructive actions (`uninstall`, `restore`) prompt for confirmation by
+default. Pass `--yes` (or `-y`) to auto-approve, or `--non-interactive`
+for headless mode (which refuses destructive ops unless `--yes` is also
+supplied). See [Destructive confirmation prompt](spec/shared/) for the
+shared contract.
+
 ```powershell
 .\run.ps1 os conemu-context-menu                          # install registry entries (default)
 .\run.ps1 os conemu-context-menu install                  # same, explicit
-.\run.ps1 os conemu-context-menu --uninstall              # snapshot HKCR keys to .reg, then remove
+.\run.ps1 os conemu-context-menu --uninstall              # snapshot HKCR keys to .reg, then remove (prompts)
+.\run.ps1 os conemu-context-menu --uninstall --yes        # same, skip the confirmation prompt
+.\run.ps1 os conemu-context-menu --uninstall --non-interactive --yes  # CI/headless: snapshot + remove
 .\run.ps1 os conemu-context-menu --dry-run-uninstall      # preview removal, no writes
-.\run.ps1 os conemu-context-menu --restore                # re-import newest snapshot
+.\run.ps1 os conemu-context-menu --restore                # re-import newest snapshot (prompts)
+.\run.ps1 os conemu-context-menu --restore --yes          # re-import newest snapshot, no prompt
 .\run.ps1 os conemu-context-menu --restore --dry-run      # preview restore (read-only)
 .\run.ps1 os conemu-context-menu --restore --snapshot-file C:\path\to\backup.reg
 .\run.ps1 os conemu-context-menu --list-snapshots         # list newest-first .reg backups
