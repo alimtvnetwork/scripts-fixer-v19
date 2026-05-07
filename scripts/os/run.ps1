@@ -544,6 +544,13 @@ switch ($normalizedAction) {
         & (Join-Path $scriptDir "helpers\conemu-context-menu.ps1") @Rest
         exit $LASTEXITCODE
     }
+    { $_ -in @(
+        "context-menu", "ctx-menu", "ctxmenu",
+        "scripts-fixer-menu", "sf-menu",
+        "universal-context-menu"
+    ) } {
+        & (Join-Path $scriptDir "helpers\context-menu.ps1") @Rest
+        exit $LASTEXITCODE
     { $_ -in @("help", "--help", "-help", "-h", "/?", "?", "") } {
         Show-OsHelp
         exit 0

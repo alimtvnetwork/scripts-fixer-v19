@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.214.0] -- 2026-05-07
+
+### Added: Universal context-menu spec + shared action catalog (P1+P2 of spec 55)
+
+- New spec at `spec/55-universal-context-menu/readme.md` describing the cross-OS right-click menu (Windows registry + macOS Finder Quick Actions + Linux `.desktop`/KIO/Thunar).
+- New shared catalog at `scripts/shared/context-menu-actions.json` (+ JSON schema). 14 actions: install models here (A1), open installer (A2), OS update (A3), startup add/remove (A4/A5), set default app (A6), ENV add/remove path (A7/A8), bin add (A9), all-context-menu install/uninstall (B1/B2), ConEmu open-here + install (B3/B4), Windows tweaks open-here (B5).
+- New `os context-menu` dispatcher (read-only stub): `list` and `validate` work today; `install`/`uninstall`/`restore` print a "not yet implemented" notice with exit 64 (lands in P3+P6, separate commit).
+- Memory index now references the new feature at `mem://features/universal-context-menu`.
+- Per-click startup scope prompt (user vs machine) and "all install respects user toggles" policy locked in via the catalog `policy` block.
+
 ## [v0.213.0] -- 2026-05-07
 
 ### Changed: Script 59 (ConEmu context menu) -- destructive-confirm prompt + `--yes`/`-y` contract

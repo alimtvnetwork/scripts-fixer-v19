@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Scripts Fixer Universal Context Menu Action Catalog",
+  "type": "object",
+  "required": ["version", "actions"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "scopes", "os", "command"],
+        "properties": {
+          "id":      { "type": "string", "pattern": "^[A-Z][0-9]+$" },
+          "label":   { "type": "string", "minLength": 1, "maxLength": 80 },
+          "scopes":  {
+            "type": "array",
+            "items": { "enum": ["file", "folder", "background"] },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "os": {
+            "type": "array",
+            "items": { "enum": ["windows", "linux", "macos"] },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "command": {
+            "type": "object",
+            "required": ["verb", "args"],
+            "properties": {
+              "verb": { "enum": ["os", "models", "run", "raw"] },
+              "args": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "scopePrompt": {
+            "type": "object",
+            "properties": {
+              "kind":    { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "enabled": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "allInstallRespectsUserToggles": { "type": "boolean" },
+        "labelLanguage":                 { "type": "string" },
+        "envScope":                      { "enum": ["user", "machine"] },
+        "startupScopePrompt":            { "enum": ["ask-per-click", "user-only", "machine-only"] }
+      }
+    }
+  }
+}

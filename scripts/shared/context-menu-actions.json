@@ -1,0 +1,127 @@
+{
+  "$schema": "./context-menu-actions.schema.json",
+  "_comment": "Canonical action catalog for the cross-OS Scripts Fixer right-click menu. See spec/55-universal-context-menu/readme.md.",
+  "version": 1,
+  "actions": [
+    {
+      "id": "A1",
+      "label": "Install models in this folder",
+      "scopes": ["folder", "background"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "models", "args": ["install", "--target", "{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "A2",
+      "label": "Open installer in this folder",
+      "scopes": ["folder", "background"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["installer", "--cwd", "{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "A3",
+      "label": "OS update",
+      "scopes": ["background"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["update"] },
+      "enabled": true
+    },
+    {
+      "id": "A4",
+      "label": "Add to startup",
+      "scopes": ["file"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["startup", "add", "{path}", "--ask-scope"] },
+      "scopePrompt": { "kind": "startupScope", "options": ["user", "machine"] },
+      "enabled": true
+    },
+    {
+      "id": "A5",
+      "label": "Remove from startup",
+      "scopes": ["file"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["startup", "remove", "{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "A6",
+      "label": "Set as default app for...",
+      "scopes": ["file"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["default", "set", "{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "A7",
+      "label": "ENV - add this folder to PATH",
+      "scopes": ["folder", "background"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["env", "add-path", "{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "A8",
+      "label": "ENV - remove this folder from PATH",
+      "scopes": ["folder", "background"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["env", "remove-path", "{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "A9",
+      "label": "BIN - add this binary to PATH",
+      "scopes": ["file"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["env", "add-bin", "{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "B1",
+      "label": "All context menu - install",
+      "scopes": ["background"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["context-menu", "install", "--all"] },
+      "enabled": true
+    },
+    {
+      "id": "B2",
+      "label": "All context menu - uninstall",
+      "scopes": ["background"],
+      "os": ["windows", "linux", "macos"],
+      "command": { "verb": "os", "args": ["context-menu", "uninstall", "--all"] },
+      "enabled": true
+    },
+    {
+      "id": "B3",
+      "label": "ConEmu - open here",
+      "scopes": ["folder", "background"],
+      "os": ["windows"],
+      "command": { "verb": "raw", "args": ["{conemuExe}", "/cmd", "{cmd}", "-cur_console:d:{path}"] },
+      "enabled": true
+    },
+    {
+      "id": "B4",
+      "label": "ConEmu - context menu install",
+      "scopes": ["background"],
+      "os": ["windows"],
+      "command": { "verb": "os", "args": ["conemu-context-menu", "install"] },
+      "enabled": true
+    },
+    {
+      "id": "B5",
+      "label": "Windows tweaks - open here",
+      "scopes": ["background"],
+      "os": ["windows"],
+      "command": { "verb": "run", "args": ["-I", "15"] },
+      "enabled": true
+    }
+  ],
+  "policy": {
+    "_comment": "B1 'All install' = every action with enabled=true here, MINUS any action toggled off in scripts/53-script-fixer-context-menu/config.json overrides.",
+    "allInstallRespectsUserToggles": true,
+    "labelLanguage": "en",
+    "envScope": "user",
+    "startupScopePrompt": "ask-per-click"
+  }
+}
