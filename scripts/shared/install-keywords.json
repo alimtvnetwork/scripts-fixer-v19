@@ -341,6 +341,45 @@
     "fix-menus": [
       57
     ],
+    "context-menu-all": [
+      53
+    ],
+    "all-context-menu": [
+      53
+    ],
+    "os-context-menu": [
+      53
+    ],
+    "os-install-context-menu": [
+      53
+    ],
+    "install-context-menu": [
+      53
+    ],
+    "install-context-menu-all": [
+      53
+    ],
+    "scripts-fixer-context-menu": [
+      53
+    ],
+    "script-fixer-context-menu": [
+      53
+    ],
+    "scripts-fixer-menu": [
+      53
+    ],
+    "sf-context-menu": [
+      53
+    ],
+    "sf-menu": [
+      53
+    ],
+    "fixer-menu": [
+      53
+    ],
+    "universal-context-menu": [
+      53
+    ],
     "dbeaver": [
       32
     ],
