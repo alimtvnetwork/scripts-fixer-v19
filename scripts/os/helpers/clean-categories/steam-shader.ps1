@@ -71,6 +71,10 @@ if ($libraries.Count -eq 0) {
 }
 
 # ---------- Step 3: sweep each shadercache --------------------------------
+# In --dry-run mode we pre-compute file count, dir count and total bytes for
+# EACH library's shadercache and surface them to the user BEFORE handing off
+# to Invoke-PathSweep. This makes the preview self-explanatory:
+#   [dry-run] G:\Steam\steamapps\shadercache files=1842 dirs=37 bytes=432681234 (412.62 MB)
 $sweptCount = 0
 foreach ($lib in $libraries) {
     $sc = Join-Path $lib "steamapps\shadercache"
@@ -78,6 +82,24 @@ foreach ($lib in $libraries) {
         $result.Notes += "shadercache-absent: $sc"
         continue
     }
+
+    if ($DryRun) {
+        try {
+            $allItems = @(Get-ChildItem -LiteralPath $sc -Recurse -Force -ErrorAction SilentlyContinue)
+            $files    = @($allItems | Where-Object { -not $_.PSIsContainer })
+            $dirs     = @($allItems | Where-Object {  $_.PSIsContainer })
+            $bytes    = ($files | Measure-Object -Property Length -Sum).Sum
+            if ($null -eq $bytes) { $bytes = 0 }
+            $mb = [Math]::Round($bytes / 1MB, 2)
+            $line = "[dry-run] $sc files=$($files.Count) dirs=$($dirs.Count) bytes=$bytes ($mb MB)"
+            $result.Notes += $line
+            Write-Log "steam-shader $line" -Level "info"
+        } catch {
+            Add-StepFailure -Step "dry-run-scan" -Path $sc -Reason $_.Exception.Message
+            continue
+        }
+    }
+
     try {
         Invoke-PathSweep -Path $sc -Result $result -DryRun:$DryRun -LogPrefix "steam-shader"
         $sweptCount++
