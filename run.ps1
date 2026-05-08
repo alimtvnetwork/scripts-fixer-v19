@@ -3169,9 +3169,13 @@ if ($hasCommand) {
         # Map keyword -> { ScriptDir, Name } (Chocolatey-backed installer scripts).
         # Chrome is the first wired entry; add more rows here as needed.
         $uninstallTargets = @{
-            "chrome"        = @{ Folder = "58-install-chrome"; Display = "Google Chrome" }
-            "google-chrome" = @{ Folder = "58-install-chrome"; Display = "Google Chrome" }
-            "googlechrome"  = @{ Folder = "58-install-chrome"; Display = "Google Chrome" }
+            "chrome"        = @{ Folder = "58-install-chrome";    Display = "Google Chrome" }
+            "google-chrome" = @{ Folder = "58-install-chrome";    Display = "Google Chrome" }
+            "googlechrome"  = @{ Folder = "58-install-chrome";    Display = "Google Chrome" }
+            "protonvpn"     = @{ Folder = "60-install-protonvpn"; Display = "Proton VPN" }
+            "proton-vpn"    = @{ Folder = "60-install-protonvpn"; Display = "Proton VPN" }
+            "proton"        = @{ Folder = "60-install-protonvpn"; Display = "Proton VPN" }
+            "vpn"           = @{ Folder = "60-install-protonvpn"; Display = "Proton VPN" }
         }
 
         if (-not $uninstallTargets.ContainsKey($targetRaw)) {

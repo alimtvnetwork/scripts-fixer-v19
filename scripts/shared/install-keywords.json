@@ -734,6 +734,21 @@
     "install-chrome": [
       58
     ],
+    "protonvpn": [
+      60
+    ],
+    "proton-vpn": [
+      60
+    ],
+    "proton": [
+      60
+    ],
+    "vpn": [
+      60
+    ],
+    "install-protonvpn": [
+      60
+    ],
     "mobile-dev": [
       38
     ],
