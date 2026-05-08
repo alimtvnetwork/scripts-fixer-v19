@@ -501,6 +501,14 @@ function Show-RootHelp {
     Write-Host "    $("install java".PadRight($kc))" -NoNewline; Write-Host "Install OpenJDK (latest LTS)" -ForegroundColor DarkGray
     Write-Host "    $("install settingssync".PadRight($kc))" -NoNewline; Write-Host "Sync VSCode settings + extensions (auto-installs VS Code)" -ForegroundColor DarkGray
     Write-Host "    $("install contextmenu".PadRight($kc))" -NoNewline; Write-Host "Fix VSCode right-click menu (auto-installs VS Code + settings)" -ForegroundColor DarkGray
+    Write-Host "    $("install chrome".PadRight($kc))" -NoNewline; Write-Host "Install Google Chrome (choco googlechrome + official installer fallback) [58]" -ForegroundColor DarkGray
+    Write-Host "    $("install chrome with-ext".PadRight($kc))" -NoNewline; Write-Host "Chrome + every configured Web Store extension in one shot [58]" -ForegroundColor DarkGray
+    Write-Host "    $("install chrome ext".PadRight($kc))" -NoNewline; Write-Host "Show extension catalog; 'ext vpn,tabcopy' installs by name [58]" -ForegroundColor DarkGray
+    Write-Host "    $("install chrome ext-all".PadRight($kc))" -NoNewline; Write-Host "Install ALL configured extensions (vpn, tabcopy, tabextend, adblocker, ...) [58]" -ForegroundColor DarkGray
+    Write-Host "    $("install chrome ext-url <urls|file>".PadRight($kc))" -NoNewline; Write-Host "Install ad-hoc extensions from raw Web Store URLs / IDs / .csv / .txt [58]" -ForegroundColor DarkGray
+    Write-Host "    $("uninstall chrome".PadRight($kc))" -NoNewline; Write-Host "Uninstall Chrome + clean shortcuts/registry/AppData (warns on HKLM if not elevated) [58]" -ForegroundColor DarkGray
+    Write-Host "    $("install protonvpn".PadRight($kc))" -NoNewline; Write-Host "Install Proton VPN (aliases: proton, proton-vpn, vpn) [60]" -ForegroundColor DarkGray
+    Write-Host "    $("uninstall protonvpn".PadRight($kc))" -NoNewline; Write-Host "Uninstall Proton VPN + clean .installed/protonvpn.json record [60]" -ForegroundColor DarkGray
     Write-Host ""
 
     Write-Host "    Settings & Context Menus:" -ForegroundColor Magenta
