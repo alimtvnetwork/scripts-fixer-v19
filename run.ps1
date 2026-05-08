@@ -511,6 +511,31 @@ function Show-RootHelp {
     Write-Host "    $("uninstall protonvpn".PadRight($kc))" -NoNewline; Write-Host "Uninstall Proton VPN + clean .installed/protonvpn.json record [60]" -ForegroundColor DarkGray
     Write-Host ""
 
+    # ----- Dedicated Chrome & extensions cheatsheet ---------------------------
+    # Surfaces every extension install mode (single, comma-list, all, raw URL,
+    # file-of-URLs) with copy-paste examples so users do not have to grep the
+    # script's source to discover what's possible.
+    Write-Host "    Chrome & Extensions (script 58) -- detailed examples:" -ForegroundColor Magenta
+    Write-Host "      Browser:" -ForegroundColor DarkYellow
+    Write-Host "        .\run.ps1 install chrome".PadRight(60) -NoNewline; Write-Host "# Chrome only (choco -> official installer fallback)" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome with-ext".PadRight(60) -NoNewline; Write-Host "# Chrome + all configured Web Store extensions" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 uninstall chrome".PadRight(60) -NoNewline; Write-Host "# Remove Chrome + clean shortcuts / registry / AppData" -ForegroundColor DarkGray
+    Write-Host "      Extensions from the bundled catalog:" -ForegroundColor DarkYellow
+    Write-Host "        .\run.ps1 install chrome ext".PadRight(60) -NoNewline; Write-Host "# List the catalog (name -> Web Store ID)" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext vpn".PadRight(60) -NoNewline; Write-Host "# Install ONE extension by name" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext vpn,tabcopy,adblocker".PadRight(60) -NoNewline; Write-Host "# Install MANY by comma-separated names (no spaces)" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext vpn tabcopy adblocker".PadRight(60) -NoNewline; Write-Host "# Same thing, space-separated also works" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-all".PadRight(60) -NoNewline; Write-Host "# Install every extension in config.json (alias: extall, all-ext)" -ForegroundColor DarkGray
+    Write-Host "      Ad-hoc extensions from raw Web Store URLs / IDs:" -ForegroundColor DarkYellow
+    Write-Host "        .\run.ps1 install chrome ext-url https://chromewebstore.google.com/detail/<slug>/<id>" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-url <id1> <id2> <id3>".PadRight(70) -NoNewline; Write-Host "# Multiple raw 32-char IDs / URLs" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-url url1,url2,url3".PadRight(70)        -NoNewline; Write-Host "# Comma-separated list (quoted URLs with commas are handled)" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-url .\my-extensions.csv".PadRight(70)   -NoNewline; Write-Host "# .csv file -- one URL/ID per row, quoted fields OK" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-url list.txt https://...".PadRight(70)  -NoNewline; Write-Host "# Mix file(s) and inline URLs in one call" -ForegroundColor DarkGray
+    Write-Host "      Tip: extensions land under the Chrome ExtensionInstallForcelist policy registry key" -ForegroundColor DarkGray
+    Write-Host "           (HKLM\\SOFTWARE\\Policies\\Google\\Chrome\\ExtensionInstallForcelist) and apply on next launch." -ForegroundColor DarkGray
+    Write-Host ""
+
     Write-Host "    Settings & Context Menus:" -ForegroundColor Magenta
     Write-Host "      Each keyword auto-installs its prerequisite app first, then applies settings," -ForegroundColor DarkGray
     Write-Host "      and finally registers the right-click menu (where applicable)." -ForegroundColor DarkGray
