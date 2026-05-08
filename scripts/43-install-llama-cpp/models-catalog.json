@@ -2924,7 +2924,7 @@
       "quantization": "Q4_K_M",
       "fileSizeGB": 8.4,
       "fileName": "qwen3.7-coder-14b-instruct-q4_k_m.gguf",
-      "ramRequiredGB": 12,
+      "ramRequiredGB": 14,
       "ramRecommendedGB": 20,
       "isCoding": true,
       "isReasoning": true,
