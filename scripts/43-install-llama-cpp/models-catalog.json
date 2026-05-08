@@ -365,7 +365,7 @@
       "quantization": "Q4_K_M",
       "fileSizeGB": 9.1,
       "fileName": "phi-4-Q4_K_M.gguf",
-      "ramRequiredGB": 12,
+      "ramRequiredGB": 14,
       "ramRecommendedGB": 16,
       "isCoding": true,
       "isReasoning": true,
