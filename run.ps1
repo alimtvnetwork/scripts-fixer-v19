@@ -281,7 +281,7 @@ function Get-VersionMap {
 }
 
 # ── Help function ────────────────────────────────────────────────────
-function Show-RootHelp {
+function Show-RootHelpRaw {
     Show-VersionHeader
     Write-Host ""
     Write-Host "  Dev Tools Setup Scripts" -ForegroundColor Cyan
@@ -847,7 +847,89 @@ function Show-RootHelp {
     Write-Host "    .\run.ps1 -I <id> -Path D:\dev-tool  One-shot override for this run" -ForegroundColor DarkGray
     Write-Host ""
 
+    Write-Host "  Filter / search the help text:" -ForegroundColor Yellow
+    Write-Host "    .\run.ps1 help <keyword>            Show only help lines that match <keyword> (case-insensitive)" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help chrome               e.g. show every Chrome / extension command" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help ext-url              e.g. show ad-hoc Chrome extension URL examples" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help conemu               e.g. show ConEmu install + context-menu commands" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 -h <keyword>              Same as above (any of: help, --help, -h, /?, ?)" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help                      No keyword -> full help (this screen)" -ForegroundColor DarkGray
+    Write-Host ""
+
     Show-VersionFooter
+}
+
+# ── Help wrapper with optional keyword filter ────────────────────────
+# Usage:
+#   Show-RootHelp                    -> full help
+#   Show-RootHelp -Filter "chrome"   -> only lines containing "chrome" (case-insensitive)
+function Show-RootHelp {
+    param([string]$Filter)
+
+    $hasFilter = -not [string]::IsNullOrWhiteSpace($Filter)
+    if (-not $hasFilter) {
+        Show-RootHelpRaw
+        return
+    }
+
+    $needle = $Filter.Trim().ToLower()
+
+    # Capture Write-Host output (Information stream, ID 6) as records so we
+    # can preserve the original colors when re-emitting matched lines.
+    $records = & { Show-RootHelpRaw } 6>&1
+
+    Write-Host ""
+    Write-Host "  Filtered help -- keyword: '$Filter'" -ForegroundColor Cyan
+    Write-Host "  ===================================" -ForegroundColor DarkGray
+    Write-Host ""
+
+    $pending = New-Object System.Collections.Generic.List[object]
+    $matched = 0
+
+    foreach ($rec in $records) {
+        $msg = ""; $fg = $null; $nl = $false
+        if ($rec -is [System.Management.Automation.InformationRecord]) {
+            $data = $rec.MessageData
+            if ($data -is [System.Management.Automation.HostInformationMessage]) {
+                $msg = [string]$data.Message
+                $fg  = $data.ForegroundColor
+                $nl  = [bool]$data.NoNewLine
+            } else {
+                $msg = [string]$data
+            }
+        } else {
+            $msg = [string]$rec
+        }
+
+        $pending.Add([pscustomobject]@{ Message = $msg; ForegroundColor = $fg; NoNewLine = $nl })
+
+        if (-not $nl) {
+            # Logical line complete -- decide whether to emit
+            $combined = -join ($pending | ForEach-Object { $_.Message })
+            if ($combined.ToLower().Contains($needle)) {
+                foreach ($p in $pending) {
+                    $hp = @{ Object = $p.Message; NoNewline = $true }
+                    if ($null -ne $p.ForegroundColor -and [int]$p.ForegroundColor -ge 0) {
+                        $hp.ForegroundColor = $p.ForegroundColor
+                    }
+                    Write-Host @hp
+                }
+                Write-Host ""
+                $matched++
+            }
+            $pending.Clear()
+        }
+    }
+
+    Write-Host ""
+    if ($matched -eq 0) {
+        Write-Host "  No help lines match '$Filter'." -ForegroundColor Yellow
+        Write-Host "  Tip: try a broader keyword, e.g. 'chrome', 'ext', 'menu', 'os', 'update'." -ForegroundColor DarkGray
+    } else {
+        Write-Host "  $matched line(s) matched '$Filter'." -ForegroundColor Green
+        Write-Host "  Run '.\run.ps1 help' (no keyword) to see the full help screen." -ForegroundColor DarkGray
+    }
+    Write-Host ""
 }
 
 # ── Keyword table (compact view) ────────────────────────────────────
@@ -2863,7 +2945,19 @@ if ($hasCommand) {
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
+    $isBareHelpCommand    = $normalizedCommand -in @("help", "--help", "-help", "/?", "?")
     $isBareScriptId = $normalizedCommand -match '^\d+$'
+
+    # ── Bare 'help [keyword]' -- short-circuit before the unknown-command
+    # fallback prepends "help" to $Install (which would corrupt the filter).
+    if ($isBareHelpCommand) {
+        $helpFilterEarly = $null
+        if ($Install -and $Install.Count -gt 0) {
+            $helpFilterEarly = (@($Install | Where-Object { $_ }) -join ' ').Trim()
+        }
+        Show-RootHelp -Filter $helpFilterEarly
+        exit 0
+    }
 
     # ── Pull-before-subcommand-dispatch ──────────────────────────────────
     # CODE RED fix for stale config.json on long-running clones: any "bare"
@@ -3397,8 +3491,25 @@ if ($List) {
 }
 
 # ── Help ─────────────────────────────────────────────────────────────
-if ($Help) {
-    Show-RootHelp
+# Supports an optional keyword filter:
+#   .\run.ps1 help                       -> full help
+#   .\run.ps1 help chrome                -> only lines matching "chrome"
+#   .\run.ps1 -h chrome                  -> same (PowerShell binds "chrome" into $Command)
+#   .\run.ps1 --help ext-url             -> same
+$normalizedCommandLower = if ($Command) { $Command.Trim().ToLower() } else { "" }
+$isHelpCommand = $normalizedCommandLower -in @("help", "--help", "-help", "/?", "?")
+
+if ($Help -or $isHelpCommand) {
+    $helpFilter = $null
+    if ($isHelpCommand) {
+        # `.\run.ps1 help <keyword>` -- keyword(s) land in $Install
+        if ($Install -and $Install.Count -gt 0) { $helpFilter = ($Install -join ' ').Trim() }
+    } elseif ($Help) {
+        # `-h <keyword>` -- PowerShell binds the positional value into $Command
+        if ($Command -and -not $isHelpCommand) { $helpFilter = $Command.Trim() }
+        elseif ($Install -and $Install.Count -gt 0) { $helpFilter = ($Install -join ' ').Trim() }
+    }
+    Show-RootHelp -Filter $helpFilter
     exit 0
 }
 
