@@ -2914,7 +2914,46 @@ if ($hasCommand) {
         exit $LASTEXITCODE
     }
 
-    if ($isBareProfileCommand) {
+    if ($isBareVscodeContextMenuCommand) {
+        Show-VersionHeader
+        $vscodeCtxScript = Join-Path $RootDir "scripts\52-vscode-folder-repair\run.ps1"
+        $isVscodeCtxScriptPresent = Test-Path $vscodeCtxScript
+        if (-not $isVscodeCtxScriptPresent) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "VS Code context-menu dispatcher missing at: $vscodeCtxScript"
+            exit 1
+        }
+
+        # Map friendly install/uninstall verbs to script 52 subcommands.
+        # Pass-through anything else (verify, dry-run, restore, help, ...).
+        $ctxArgs = @()
+        if ($null -ne $Install -and $Install.Count -gt 0) { $ctxArgs = @($Install) }
+
+        $hasFirstArg = $ctxArgs.Count -gt 0
+        if ($hasFirstArg) {
+            $firstArg = "$($ctxArgs[0])".Trim().ToLower()
+            $isInstallVerb   = $firstArg -in @("install", "add", "enable", "fix", "repair-menu")
+            $isUninstallVerb = $firstArg -in @("uninstall", "remove", "disable", "rollback-menu")
+            if ($isInstallVerb) {
+                $ctxArgs[0] = "repair"
+            } elseif ($isUninstallVerb) {
+                $ctxArgs[0] = "rollback"
+            }
+        } else {
+            # Bare 'vscode-context-menu' with no subcommand -> show help so the
+            # user discovers install/uninstall/verify without reading docs.
+            $ctxArgs = @("help")
+        }
+
+        if (($h -or $Help) -and -not $hasFirstArg) {
+            & $vscodeCtxScript "help"
+            exit $LASTEXITCODE
+        }
+
+        & $vscodeCtxScript @ctxArgs
+        exit $LASTEXITCODE
+    }
+
         Show-VersionHeader
         $profileScript = Join-Path $RootDir "scripts\profile\run.ps1"
         $isProfileScriptPresent = Test-Path $profileScript
