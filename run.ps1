@@ -847,7 +847,87 @@ function Show-RootHelpRaw {
     Write-Host "    .\run.ps1 -I <id> -Path D:\dev-tool  One-shot override for this run" -ForegroundColor DarkGray
     Write-Host ""
 
+    Write-Host "  Filter / search the help text:" -ForegroundColor Yellow
+    Write-Host "    .\run.ps1 help <keyword>            Show only help lines that match <keyword> (case-insensitive)" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help chrome               e.g. show every Chrome / extension command" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help ext-url              e.g. show ad-hoc Chrome extension URL examples" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help conemu               e.g. show ConEmu install + context-menu commands" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 -h <keyword>              Same as above (any of: help, --help, -h, /?, ?)" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 help                      No keyword -> full help (this screen)" -ForegroundColor DarkGray
+    Write-Host ""
+
     Show-VersionFooter
+}
+
+# ── Help wrapper with optional keyword filter ────────────────────────
+# Usage:
+#   Show-RootHelp                    -> full help
+#   Show-RootHelp -Filter "chrome"   -> only lines containing "chrome" (case-insensitive)
+function Show-RootHelp {
+    param([string]$Filter)
+
+    $hasFilter = -not [string]::IsNullOrWhiteSpace($Filter)
+    if (-not $hasFilter) {
+        Show-RootHelpRaw
+        return
+    }
+
+    $needle = $Filter.Trim().ToLower()
+
+    # Capture Write-Host output (Information stream, ID 6) as records so we
+    # can preserve the original colors when re-emitting matched lines.
+    $records = & { Show-RootHelpRaw } 6>&1
+
+    Write-Host ""
+    Write-Host "  Filtered help -- keyword: '$Filter'" -ForegroundColor Cyan
+    Write-Host "  ===================================" -ForegroundColor DarkGray
+    Write-Host ""
+
+    $pending = New-Object System.Collections.Generic.List[object]
+    $matched = 0
+
+    foreach ($rec in $records) {
+        $msg = ""; $fg = $null; $nl = $false
+        if ($rec -is [System.Management.Automation.InformationRecord]) {
+            $data = $rec.MessageData
+            if ($data -is [System.Management.Automation.HostInformationMessage]) {
+                $msg = [string]$data.Message
+                $fg  = $data.ForegroundColor
+                $nl  = [bool]$data.NoNewLine
+            } else {
+                $msg = [string]$data
+            }
+        } else {
+            $msg = [string]$rec
+        }
+
+        $pending.Add([pscustomobject]@{ Message = $msg; ForegroundColor = $fg; NoNewLine = $nl })
+
+        if (-not $nl) {
+            # Logical line complete -- decide whether to emit
+            $combined = -join ($pending | ForEach-Object { $_.Message })
+            if ($combined.ToLower().Contains($needle)) {
+                foreach ($p in $pending) {
+                    $hp = @{ Object = $p.Message; NoNewline = $true }
+                    if ($null -ne $p.ForegroundColor) { $hp.ForegroundColor = $p.ForegroundColor }
+                    Write-Host @hp
+                }
+                Write-Host ""
+                $matched++
+            }
+            $pending.Clear()
+        }
+    }
+
+    Write-Host ""
+    if ($matched -eq 0) {
+        Write-Host "  No help lines match '$Filter'." -ForegroundColor Yellow
+        Write-Host "  Tip: try a broader keyword, e.g. 'chrome', 'ext', 'menu', 'os', 'update'." -ForegroundColor DarkGray
+    } else {
+        Write-Host "  $matched line(s) matched '$Filter'." -ForegroundColor Green
+        Write-Host "  Run '.\run.ps1 help' (no keyword) to see the full help screen." -ForegroundColor DarkGray
+    }
+    Write-Host ""
 }
 
 # ── Keyword table (compact view) ────────────────────────────────────
