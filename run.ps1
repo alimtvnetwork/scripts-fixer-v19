@@ -868,14 +868,20 @@ function Show-RootHelpRaw {
     Show-VersionFooter
 }
 
-# ── Help wrapper with optional keyword filter ────────────────────────
+# ── Help wrapper with optional keyword filter + export ───────────────
 # Usage:
-#   Show-RootHelp                           -> full help
-#   Show-RootHelp -Filter "chrome"          -> lines containing "chrome"
-#   Show-RootHelp -Filter "chrome startup"  -> lines matching ALL terms (AND)
-#   Show-RootHelp -Filter "chrome,ext"      -> commas/spaces both split terms
+#   Show-RootHelp                                       -> full help
+#   Show-RootHelp -Filter "chrome"                      -> lines containing "chrome"
+#   Show-RootHelp -Filter "chrome startup"              -> AND match
+#   Show-RootHelp -Filter "chrome" -OutFile out.txt     -> also save plain text
+#   Show-RootHelp -Filter "chrome" -OutFile out.json -Format json
 function Show-RootHelp {
-    param([string]$Filter)
+    param(
+        [string]$Filter,
+        [string]$OutFile,
+        [ValidateSet("text", "json")]
+        [string]$Format = "text"
+    )
 
     $hasFilter = -not [string]::IsNullOrWhiteSpace($Filter)
     if (-not $hasFilter) {
@@ -898,6 +904,13 @@ function Show-RootHelp {
 
     $displayFilter = $needles -join ' AND '
 
+    # Auto-pick format from extension if -OutFile given without explicit -Format.
+    $hasOutFile = -not [string]::IsNullOrWhiteSpace($OutFile)
+    if ($hasOutFile -and -not $PSBoundParameters.ContainsKey('Format')) {
+        $ext = [System.IO.Path]::GetExtension($OutFile).ToLower()
+        if ($ext -eq ".json") { $Format = "json" } else { $Format = "text" }
+    }
+
     # Capture Write-Host output (Information stream, ID 6) as records so we
     # can preserve the original colors when re-emitting matched lines.
     $records = & { Show-RootHelpRaw } 6>&1
@@ -909,6 +922,9 @@ function Show-RootHelp {
 
     $pending = New-Object System.Collections.Generic.List[object]
     $matched = 0
+    # Plain-text and structured copies of matched logical lines for export.
+    $matchedPlain = New-Object System.Collections.Generic.List[string]
+    $matchedRich  = New-Object System.Collections.Generic.List[object]
 
     foreach ($rec in $records) {
         $msg = ""; $fg = $null; $nl = $false
@@ -929,7 +945,8 @@ function Show-RootHelp {
 
         if (-not $nl) {
             # Logical line complete -- emit only if EVERY needle matches.
-            $combinedLower = (-join ($pending | ForEach-Object { $_.Message })).ToLower()
+            $combined = -join ($pending | ForEach-Object { $_.Message })
+            $combinedLower = $combined.ToLower()
             $isMatch = $true
             foreach ($n in $needles) {
                 if (-not $combinedLower.Contains($n)) { $isMatch = $false; break }
@@ -944,6 +961,17 @@ function Show-RootHelp {
                 }
                 Write-Host ""
                 $matched++
+
+                $matchedPlain.Add($combined.TrimEnd())
+                $segments = @()
+                foreach ($p in $pending) {
+                    $colorName = if ($null -ne $p.ForegroundColor) { "$($p.ForegroundColor)" } else { $null }
+                    $segments += [pscustomobject]@{ text = $p.Message; color = $colorName }
+                }
+                $matchedRich.Add([pscustomobject]@{
+                    line     = $combined.TrimEnd()
+                    segments = $segments
+                })
             }
             $pending.Clear()
         }
@@ -957,6 +985,50 @@ function Show-RootHelp {
         $termWord = if ($needles.Count -eq 1) { "term" } else { "terms (AND)" }
         Write-Host "  $matched line(s) matched $($needles.Count) $termWord -- $displayFilter" -ForegroundColor Green
         Write-Host "  Run '.\run.ps1 help' (no keyword) to see the full help screen." -ForegroundColor DarkGray
+    }
+
+    # ── Export ────────────────────────────────────────────────────────
+    if ($hasOutFile) {
+        try {
+            $outFull = $OutFile
+            if (-not [System.IO.Path]::IsPathRooted($outFull)) {
+                $outFull = Join-Path (Get-Location).Path $OutFile
+            }
+            $parent = Split-Path -Parent $outFull
+            if ($parent -and -not (Test-Path $parent)) {
+                New-Item -ItemType Directory -Path $parent -Force | Out-Null
+            }
+
+            if ($Format -eq "json") {
+                $payload = [pscustomobject]@{
+                    generatedAt = (Get-Date).ToString("o")
+                    filter      = $displayFilter
+                    keywords    = $needles
+                    matchCount  = $matched
+                    lines       = $matchedRich
+                }
+                $payload | ConvertTo-Json -Depth 6 | Set-Content -Path $outFull -Encoding UTF8
+            } else {
+                $header = @(
+                    "# Filtered help -- keyword(s): $displayFilter",
+                    "# Generated: $((Get-Date).ToString('o'))",
+                    "# Matches  : $matched",
+                    ""
+                )
+                ($header + $matchedPlain) | Set-Content -Path $outFull -Encoding UTF8
+            }
+
+            Write-Host ""
+            Write-Host "  [  OK  ] " -ForegroundColor Green -NoNewline
+            Write-Host "Saved $matched line(s) to: " -NoNewline
+            Write-Host "$outFull" -ForegroundColor Cyan
+            Write-Host "          Format: $Format" -ForegroundColor DarkGray
+        } catch {
+            Write-Host ""
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "Could not write export file: $OutFile"
+            Write-Host "          Reason: $($_.Exception.Message)" -ForegroundColor DarkGray
+        }
     }
     Write-Host ""
 }
