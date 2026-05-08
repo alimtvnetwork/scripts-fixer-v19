@@ -262,16 +262,64 @@ function Test-ChromeIsElevated {
     } catch { return $false }
 }
 
-function Invoke-ChromeRegDeleteFallback {
+function Reset-ChromeRegistryAcl {
     <#
     .SYNOPSIS
-        Last-ditch registry delete: tries `reg.exe delete /f` against both
-        the 64-bit and 32-bit views. Returns $true on success.
-        reg.exe handles a few ACL edge cases that Remove-Item refuses.
+        Grants the current user FullControl on a registry key (and recurses into
+        every subkey). Used to neutralise restrictive DACLs Chrome occasionally
+        leaves behind on its own HKCU\Software\Google\Chrome subtree (e.g.
+        per-profile crash-reporter keys), which break Remove-Item with
+        "Attempted to perform an unauthorized operation".
+        Best-effort: swallows individual subkey failures so we still attempt
+        deletion afterwards.
     #>
     param([Parameter(Mandatory)] [string]$Key)
 
-    # Convert PS-drive form (HKCU:\Software\X) to reg.exe form (HKCU\Software\X)
+    try {
+        $sid     = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+        $rule    = New-Object System.Security.AccessControl.RegistryAccessRule(
+                       $sid, "FullControl", "ContainerInherit", "None", "Allow")
+
+        $stack = New-Object System.Collections.Stack
+        $stack.Push($Key)
+        while ($stack.Count -gt 0) {
+            $cur = $stack.Pop()
+            $hasCur = Test-Path -LiteralPath $cur -ErrorAction SilentlyContinue
+            if (-not $hasCur) { continue }
+            try {
+                $acl = Get-Acl -LiteralPath $cur -ErrorAction Stop
+                $acl.SetAccessRule($rule)
+                Set-Acl -LiteralPath $cur -AclObject $acl -ErrorAction Stop
+            } catch { }
+            try {
+                $children = Get-ChildItem -LiteralPath $cur -Force -ErrorAction Stop
+                foreach ($c in $children) { $stack.Push($c.PSPath) }
+            } catch { }
+        }
+    } catch { }
+}
+
+function Invoke-ChromeRegDeleteFallback {
+    <#
+    .SYNOPSIS
+        Last-ditch registry delete: resets DACL to grant the current user
+        FullControl recursively, then tries Remove-Item again, and finally
+        falls back to `reg.exe delete /f` against the 64-bit and 32-bit views.
+        Returns $true on success.
+    #>
+    param([Parameter(Mandatory)] [string]$Key)
+
+    # Step 1: try to neutralise restrictive DACLs in the subtree.
+    Reset-ChromeRegistryAcl -Key $Key
+
+    # Step 2: retry the native PS provider now that we own the keys.
+    try {
+        Remove-Item -LiteralPath $Key -Recurse -Force -ErrorAction Stop
+        $isGone = -not (Test-Path -LiteralPath $Key -ErrorAction SilentlyContinue)
+        if ($isGone) { return $true }
+    } catch { }
+
+    # Step 3: fall through to reg.exe (handles a few cases the provider refuses).
     $regForm = $Key -replace '^HKCU:\\?', 'HKCU\' `
                     -replace '^HKLM:\\?', 'HKLM\' `
                     -replace '^HKCR:\\?', 'HKCR\' `
