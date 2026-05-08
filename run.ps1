@@ -3889,7 +3889,48 @@ if ($hasCommand) {
             & $profileScript @Install
             exit $LASTEXITCODE
         }
-    } elseif ($isBareExportCommand) {
+
+        # ── Chrome subcommand fast-path ──────────────────────────────────
+        # `install chrome with-ext` (and `ext`, `ext-all`, `ext-url`, ...)
+        # are documented in the help screen but are NOT plain keyword tokens
+        # in install-keywords.json -- they're subcommands understood by
+        # scripts\58-install-chrome\run.ps1 directly. Without this branch the
+        # generic keyword loop sees `with-ext` and prints "Unknown keyword".
+        # We dispatch to the chrome script with the remaining tokens passed
+        # through verbatim so its native argument parser does the work.
+        $chromeAliases = @('chrome','google-chrome','googlechrome')
+        $chromeSubcommands = @(
+            'with-ext','withext','plus-ext','chrome+ext','chrome-with-ext',
+            'ext','extension','extensions',
+            'ext-all','extall','ext_all','all-ext','extensions-all',
+            'ext-url','exturl','ext-urls','exturls','ext-from-url',
+            'ext-url-all','exturlall','ext-urls-all','ext-from-urls-all','all-ext-url'
+        )
+        $hasChromeSub = ($Install.Count -ge 2) -and `
+                        ($firstToken -in $chromeAliases) -and `
+                        ("$($Install[1])".Trim().ToLower() -in $chromeSubcommands)
+        if ($hasChromeSub) {
+            Show-VersionHeader
+            $chromeScript = Join-Path $RootDir "scripts\58-install-chrome\run.ps1"
+            if (-not (Test-Path $chromeScript)) {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "Chrome dispatcher missing at: $chromeScript"
+                Write-Host "          Reason: expected scripts\58-install-chrome\run.ps1 to exist relative to repo root: $RootDir" -ForegroundColor DarkGray
+                exit 1
+            }
+            $chromeSub  = "$($Install[1])".Trim()
+            $chromeRest = @()
+            if ($Install.Count -gt 2) { $chromeRest = @($Install[2..($Install.Count-1)]) }
+            # Forward root-level -Y / -Yes (PowerShell binds it before $Install).
+            if ($Y -and -not ($chromeRest | Where-Object { "$_".Trim().ToLower() -in @('-y','--yes','-yes') })) {
+                $chromeRest += '-Yes'
+            }
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Routing 'install chrome $chromeSub' to: " -NoNewline
+            Write-Host $chromeScript -ForegroundColor White
+            & $chromeScript $chromeSub @chromeRest
+            exit $LASTEXITCODE
+        }
         Show-VersionHeader
         Invoke-ExportCommand -Args $Install
         exit 0
