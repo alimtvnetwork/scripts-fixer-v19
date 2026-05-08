@@ -82,7 +82,39 @@ try {
             $all += Get-BackendCatalog -Backend "ollama" -Config $config -ScriptsRoot $scriptsRoot
         }
         $label = if ($filter) { $filter } else { "all backends" }
-        Show-ModelList -Models $all -BackendLabel $label
+        Show-ModelList -Models $all -BackendLabel $label -DownloadPaths $downloadPaths
+        return
+    }
+
+    # ── Download by index ─────────────────────────────────────────────────
+    # Usage: .\run.ps1 models download 5,6,10   (numbers from `models list`)
+    if ($isDownloadMode) {
+        $csv = if ($secondArg) { $secondArg } elseif ($hasInstallParam) { $Install } else { "" }
+        if ([string]::IsNullOrWhiteSpace($csv)) {
+            Write-Log "  Usage: .\run.ps1 models download <numbers-or-ids>  e.g. download 5,6,10  or  download qwen2.5-coder-3b" -Level "warn"
+            return
+        }
+
+        # Build the same combined catalog that `list` shows so numbers line up
+        $all = @()
+        $all += Get-BackendCatalog -Backend "llama-cpp" -Config $config -ScriptsRoot $scriptsRoot
+        $all += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
+
+        $isNumeric = $csv -match '^[\d,\s\-]+$'
+        $matched = if ($isNumeric) {
+            Resolve-NumericPicks -Csv $csv -AllModels $all
+        } else {
+            Resolve-CsvIds -Csv $csv -AllModels $all -LogMessages $logMessages
+        }
+
+        if ($matched.Count -eq 0) {
+            Write-Log $logMessages.messages.csvNoneFound -Level "error"
+            return
+        }
+        Show-ModelDownloadPaths -Paths $downloadPaths
+        Invoke-BackendInstall -Models $matched -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
+        Show-ModelDownloadPaths -Paths $downloadPaths
+        Write-Log $logMessages.messages.complete -Level "success"
         return
     }
 
