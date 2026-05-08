@@ -3114,6 +3114,12 @@ if ($_isEarlyHelp) {
                 function script:_ResetCompletion { $script:_compMatches=@(); $script:_compIndex=-1; $script:_compPrefix=$null }
                 _ResetCompletion
 
+                # Pre-seed buffer with last-used keyword so ENTER reuses it.
+                if ($_lastKw) {
+                    [void]$_buf.Append($_lastKw)
+                    Write-Host $_lastKw -ForegroundColor DarkCyan -NoNewline
+                }
+
                 while ($true) {
                     $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                     $vk = $key.VirtualKeyCode
