@@ -3218,6 +3218,22 @@ if ($_isEarlyHelp) {
         }
     }
 
+    # Persist last-used keyword(s) so the next interactive `help` pre-fills it.
+    if (-not [string]::IsNullOrWhiteSpace($_earlyHelpFilter)) {
+        try {
+            $_lastKwFileSave = Join-Path $RootDir ".resolved\help-last-keyword.json"
+            $_lastKwDir = Split-Path -Parent $_lastKwFileSave
+            if (-not (Test-Path $_lastKwDir)) { New-Item -ItemType Directory -Path $_lastKwDir -Force | Out-Null }
+            $_lastKwPayload = [pscustomobject]@{
+                keyword = $_earlyHelpFilter.Trim()
+                savedAt = (Get-Date).ToString("o")
+            }
+            $_lastKwPayload | ConvertTo-Json -Compress | Set-Content -Path $_lastKwFileSave -Encoding UTF8
+        } catch {
+            Write-Host "  Note: could not write last keyword file: $_lastKwFileSave -- $($_.Exception.Message)" -ForegroundColor DarkYellow
+        }
+    }
+
     $_showArgs = @{ Filter = $_earlyHelpFilter }
     if ($_helpOutFile) {
         $_showArgs.OutFile = $_helpOutFile
