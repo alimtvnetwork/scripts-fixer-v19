@@ -674,3 +674,104 @@ function Write-RegistryAuditReport {
         Write-Log ("Full JSONL trail: " + $Summary.auditPath) -Level "info"
     }
 }
+
+function Test-FolderContextMenuAbsent {
+    <#
+    .SYNOPSIS
+        Focused post-uninstall sanity check: confirms the VS Code FOLDER
+        right-click entry (HK..\Directory\shell\<verb> + \command) is no
+        longer present after the surgical uninstall / cleanup step.
+
+    .DESCRIPTION
+        Invoke-PostOpVerification already verifies all three targets
+        (file / directory / background). This helper zooms in on the one
+        users actually notice -- the "right-click on a folder" entry --
+        and prints a single, unambiguous PASS/FAIL line per edition with
+        an actionable retry hint when the key (or its \command sub-key,
+        or its \DefaultIcon value) leaks past cleanup.
+
+        Pure registry probe -- no writes, safe to call from any context.
+
+    .OUTPUTS
+        PSCustomObject @{
+            pass    = <int>   # editions whose folder verb is fully gone
+            fail    = <int>   # editions where parent or \command remain
+            details = @(@{ edition; regPath; parentExists; commandExists; ok; reason }, ...)
+        }
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $Config,
+        [Parameter(Mandatory)] [string] $ResolvedScope,
+        [Parameter(Mandatory)] [hashtable] $ScopedEditions
+    )
+
+    Write-Log "" -Level "info"
+    Write-Log "------------------------------------------------------------" -Level "info"
+    Write-Log (" FOLDER CONTEXT-MENU EXISTENCE CHECK (post-uninstall, scope=" + $ResolvedScope + ")") -Level "info"
+    Write-Log "------------------------------------------------------------" -Level "info"
+
+    $details   = @()
+    $passCount = 0
+    $failCount = 0
+
+    foreach ($editionName in $ScopedEditions.Keys) {
+        $ed = $ScopedEditions[$editionName]
+
+        $hasPaths = $ed.PSObject.Properties.Name -contains 'registryPaths'
+        $hasDir   = $hasPaths -and ($ed.registryPaths.PSObject.Properties.Name -contains 'directory')
+        if (-not $hasDir) {
+            Write-Log ("  [skip] edition '" + $editionName + "' has no registryPaths.directory entry -- nothing to verify.") -Level "warn"
+            continue
+        }
+
+        $regPath       = $ed.registryPaths.directory
+        $cmdPath       = $regPath + '\command'
+        $parentExists  = Test-RegistryKeyExists -RegistryPath $regPath
+        $commandExists = Test-RegistryKeyExists -RegistryPath $cmdPath
+
+        $isOk = (-not $parentExists) -and (-not $commandExists)
+        $reason = $null
+        if (-not $isOk) {
+            $leaked = @()
+            if ($parentExists)  { $leaked += '(parent key)' }
+            if ($commandExists) { $leaked += '\command' }
+            $reason = "folder verb still present at $regPath -- leaked: " + ($leaked -join ', ')
+        }
+
+        $tag   = if ($isOk) { 'OK  ' } else { 'FAIL' }
+        $level = if ($isOk) { 'success' } else { 'error' }
+        $line  = "  [{0}] {1,-10} folder entry expected=absent  parent={2,-7}  command={3,-7}  {4}" -f `
+            $tag, $editionName, `
+            $(if ($parentExists)  { 'PRESENT' } else { 'absent' }), `
+            $(if ($commandExists) { 'PRESENT' } else { 'absent' }), `
+            $regPath
+        Write-Log $line -Level $level
+
+        if (-not $isOk) {
+            Write-Log ("        failure path: " + $regPath + " (reason: " + $reason + ")") -Level "error"
+            Write-Log ("        retry: .\run.ps1 -I 54 uninstall -Edition " + $editionName + "  (relaunch elevated if scope=AllUsers)") -Level "warn"
+        }
+
+        $details += [pscustomobject]@{
+            edition       = $editionName
+            regPath       = $regPath
+            parentExists  = $parentExists
+            commandExists = $commandExists
+            ok            = $isOk
+            reason        = $reason
+        }
+        if ($isOk) { $passCount++ } else { $failCount++ }
+    }
+
+    $sumLevel = if ($failCount -eq 0) { 'success' } else { 'error' }
+    Write-Log ("Folder-entry check totals (scope=" + $ResolvedScope +
+               "): PASS=" + $passCount + ", FAIL=" + $failCount) -Level $sumLevel
+
+    return [pscustomobject]@{
+        pass    = $passCount
+        fail    = $failCount
+        details = $details
+    }
+}
+
