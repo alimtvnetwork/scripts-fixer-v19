@@ -1021,6 +1021,36 @@ function Show-RootHelp {
         Write-Host "  Run '.\run.ps1 help' (no keyword) to see the full help screen." -ForegroundColor DarkGray
     }
 
+    # ── Per-term match summary ───────────────────────────────────────
+    # Always show, even when AND result is 0 -- helps diagnose which
+    # term killed the intersection (e.g. one term has 0 hits on its own).
+    Write-Host ""
+    Write-Host "  Per-term hit counts (independent, not AND):" -ForegroundColor Cyan
+    $kwCol = [Math]::Max(8, ($needles | Measure-Object -Property Length -Maximum).Maximum + 2)
+    $hitCol = 7
+    Write-Host ("    {0}{1}{2}" -f "Keyword".PadRight($kwCol), "Lines".PadRight($hitCol), "Share") -ForegroundColor DarkGray
+    Write-Host ("    {0}{1}{2}" -f ("".PadRight($kwCol,'-')), ("".PadRight($hitCol,'-')), "-----") -ForegroundColor DarkGray
+    foreach ($n in $needles) {
+        $hits = [int]$perTermCounts[$n]
+        $color = if ($hits -eq 0) { "Red" }
+                 elseif ($hits -eq $matched -and $matched -gt 0) { "Green" }
+                 elseif ($hits -ge 5) { "Cyan" }
+                 else { "DarkYellow" }
+        $share = if ($hits -gt 0) {
+            $pct = [Math]::Round(($matched / [double]$hits) * 100, 0)
+            "$matched/$hits AND-kept (${pct}%)"
+        } else {
+            "0 lines contain this term -> blocks AND match"
+        }
+        Write-Host ("    {0}" -f $n.PadRight($kwCol)) -ForegroundColor White -NoNewline
+        Write-Host ("{0}" -f "$hits".PadRight($hitCol)) -ForegroundColor $color -NoNewline
+        Write-Host $share -ForegroundColor DarkGray
+    }
+    if ($needles.Count -gt 1) {
+        Write-Host "    (AND intersection: $matched line(s))" -ForegroundColor DarkGray
+    }
+
+
     # ── Export ────────────────────────────────────────────────────────
     if ($hasOutFile) {
         try {
