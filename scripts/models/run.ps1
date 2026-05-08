@@ -79,10 +79,11 @@ try {
     $reservedFirstArgs = @("list", "search", "uninstall", "remove", "rm", "download", "dl", "install", "path", "paths", "dir", "help", "--help", "-h", "/?")
     $hasCsvFirstArg  = $firstArg -and ($reservedFirstArgs -notcontains $firstArg.ToLower()) -and $firstArg -match '[a-z0-9]'
 
-    # ── Path mode: show / set / reset model-dir overrides ────────────────
+    # ── Path mode: show / set / add / remove model-dir overrides ────────
     if ($isPathMode) {
         $sub  = if ($secondArg) { $secondArg.ToLower() } else { "" }
-        $val  = if ($Args.Count -gt 2) { $Args[2].Trim() } else { "" }
+        $arg2 = if ($Args.Count -gt 2) { "$($Args[2])".Trim() } else { "" }
+        $arg3 = if ($Args.Count -gt 3) { "$($Args[3])".Trim() } else { "" }
 
         # `models path`  -- show current resolution
         if (-not $sub) {
@@ -92,7 +93,7 @@ try {
 
         # `models path --reset [scope]`
         if ($sub -in @("--reset", "-reset", "reset", "clear")) {
-            $resetScope = if ($val) { $val.ToLower() } else { "all" }
+            $resetScope = if ($arg2) { $arg2.ToLower() } else { "all" }
             if ($resetScope -notin @("all","shared","llama","ollama")) {
                 Write-Log "Invalid reset scope '$resetScope'. Use: all | shared | llama | ollama" -Level "error"
                 return
@@ -102,18 +103,61 @@ try {
             return
         }
 
-        # `models path llama <dir>`  / `models path ollama <dir>`  / `models path <dir>` (shared)
-        if ($sub -in @("llama","llama-cpp","ollama")) {
+        # `models path <action> ...`  where the first word is shared-action
+        # ( add / rm / remove / set )  -- treats target as SHARED
+        $sharedActions = @("add","rm","remove","del","delete","set")
+        if ($sub -in $sharedActions) {
+            $action = $sub
+            $val    = $arg2
             if (-not $val) {
-                Write-Log "Usage: .\run.ps1 models path $sub <directory>" -Level "warn"
+                Write-Log "Usage: .\run.ps1 models path $action <directory>" -Level "warn"
                 return
             }
-            $scope = if ($sub -eq "ollama") { "ollama" } else { "llama" }
-            Save-ModelsPathOverride -ScriptsRoot $scriptsRoot -Scope $scope -Path $val
-        } else {
-            # treat $sub as a directory path -> shared scope
-            Save-ModelsPathOverride -ScriptsRoot $scriptsRoot -Scope "shared" -Path $secondArg
+            switch ($action) {
+                "add"    { Add-ModelsPathOverride    -ScriptsRoot $scriptsRoot -Scope "shared" -Path $val }
+                "set"    { Save-ModelsPathOverride   -ScriptsRoot $scriptsRoot -Scope "shared" -Path $val }
+                default  { Remove-ModelsPathOverride -ScriptsRoot $scriptsRoot -Scope "shared" -Path $val }
+            }
+            Show-ModelDownloadPaths -Paths (Get-ModelDownloadPaths -Config $config -ScriptsRoot $scriptsRoot)
+            return
         }
+
+        # `models path llama|ollama ...`
+        if ($sub -in @("llama","llama-cpp","ollama")) {
+            $scope = if ($sub -eq "ollama") { "ollama" } else { "llama" }
+
+            # `models path <backend>`  -- list current dirs for that backend
+            if (-not $arg2) {
+                $cur = Read-ModelsPathOverrides -ScriptsRoot $scriptsRoot
+                $list = @($cur.$scope)
+                Write-Log "Configured override dirs for '$scope': $($list.Count)" -Level "info"
+                $i = 0
+                foreach ($p in $list) { $i++; Write-Host ("    [{0}] {1}" -f $i, $p) -ForegroundColor White }
+                Show-ModelDownloadPaths -Paths (Get-ModelDownloadPaths -Config $config -ScriptsRoot $scriptsRoot)
+                return
+            }
+
+            # action keyword?  add / rm / set
+            if ($arg2.ToLower() -in @("add","rm","remove","del","delete","set")) {
+                if (-not $arg3) {
+                    Write-Log "Usage: .\run.ps1 models path $sub $($arg2.ToLower()) <directory>" -Level "warn"
+                    return
+                }
+                switch ($arg2.ToLower()) {
+                    "add"   { Add-ModelsPathOverride    -ScriptsRoot $scriptsRoot -Scope $scope -Path $arg3 }
+                    "set"   { Save-ModelsPathOverride   -ScriptsRoot $scriptsRoot -Scope $scope -Path $arg3 }
+                    default { Remove-ModelsPathOverride -ScriptsRoot $scriptsRoot -Scope $scope -Path $arg3 }
+                }
+            } else {
+                # `models path llama D:\gguf` -- replace (legacy single-set)
+                Save-ModelsPathOverride -ScriptsRoot $scriptsRoot -Scope $scope -Path $arg2
+            }
+            Show-ModelDownloadPaths -Paths (Get-ModelDownloadPaths -Config $config -ScriptsRoot $scriptsRoot)
+            return
+        }
+
+        # Fallback: `models path <dir>`  -- shared SET (back-compat)
+        Save-ModelsPathOverride -ScriptsRoot $scriptsRoot -Scope "shared" -Path $secondArg
         Show-ModelDownloadPaths -Paths (Get-ModelDownloadPaths -Config $config -ScriptsRoot $scriptsRoot)
         return
     }

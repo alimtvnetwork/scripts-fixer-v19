@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.220.0] -- 2026-05-08
+
+### Added
+- **Multiple model directories per backend**: `models path` now stores an array of dirs per scope (`shared` / `llama` / `ollama`). New verbs:
+  - `models path llama add <dir>` / `models path ollama add <dir>` -- append a second (or third) model directory independently per backend.
+  - `models path llama rm <dir>` / `models path ollama rm <dir>` -- remove a single dir without nuking the rest.
+  - `models path llama` / `models path ollama` -- list current dirs for one backend.
+  - `models path add <dir>` / `models path rm <dir>` -- same shortcuts for the shared scope.
+  - Existing `models path llama <dir>` still works as a single-set replace; `--reset shared|llama|ollama|all` clears all dirs in a scope.
+- `Get-ModelDownloadPaths` now exposes `LlamaAll` / `OllamaAll` arrays (primary = first entry); `Show-ModelDownloadPaths` prints every configured directory and the new override syntax.
+
 ## [v0.219.0] -- 2026-05-08
 
 ### Changed
