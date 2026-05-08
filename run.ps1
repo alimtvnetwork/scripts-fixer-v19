@@ -3046,17 +3046,143 @@ if ($_isEarlyHelp) {
         } catch { $_isInteractive = $false }
 
         if ($_isInteractive) {
+            # Curated completion candidates for Tab cycling at the keyword(s)> prompt.
+            # Mirrors the curated list in `help --list`. Kept inline here so prompt
+            # works even if user never invokes --list. Sorted + unique.
+            $_completionPool = @(
+                'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
+                'menu','context-menu','profile','install','uninstall','update',
+                'self-update','settings','export','os','doctor','logs','report',
+                'path','models','git','git-tools','gsa','mysql','postgresql',
+                'mariadb','mongodb','redis','sqlite','node','python','docker',
+                'kubernetes','java','dotnet','rust','go','php','obs','npp','wt',
+                'dbeaver','ollama','user','ssh',
+                '--out','--json','--text','--list','--self-test'
+            ) | Sort-Object -Unique
+
             Write-Host ""
             Write-Host "  Interactive help filter" -ForegroundColor Cyan
             Write-Host "  =======================" -ForegroundColor DarkGray
             Write-Host "  Enter one or more keywords (space/comma separated) to filter the help." -ForegroundColor DarkGray
             Write-Host "  Examples: chrome | chrome ext | vscode uninstall | conemu menu" -ForegroundColor DarkGray
             Write-Host "  Append --out <path> / --json <path> to also save the matches." -ForegroundColor DarkGray
+            Write-Host "  Press TAB to cycle completions (Shift+TAB reverse). ? lists matches." -ForegroundColor DarkGray
             Write-Host "  Press ENTER with no input to show the full help screen." -ForegroundColor DarkGray
             Write-Host ""
-            Write-Host "  keyword(s)> " -ForegroundColor Yellow -NoNewline
+
+            # Custom line editor with Tab completion. Falls back to Read-Host if
+            # the host doesn't support RawUI key reads (e.g. ISE, redirected).
             $_typed = $null
-            try { $_typed = Read-Host } catch { $_typed = $null }
+            $_useRaw = $true
+            try { $null = $Host.UI.RawUI.KeyAvailable } catch { $_useRaw = $false }
+
+            if (-not $_useRaw) {
+                Write-Host "  keyword(s)> " -ForegroundColor Yellow -NoNewline
+                try { $_typed = Read-Host } catch { $_typed = $null }
+            } else {
+                $_promptText = "  keyword(s)> "
+                Write-Host $_promptText -ForegroundColor Yellow -NoNewline
+
+                $_buf      = New-Object System.Text.StringBuilder
+                $_compMatches = @()
+                $_compIndex   = -1
+                $_compPrefix  = $null
+                $_compTokenStart = 0   # index in $_buf where current token starts
+
+                function script:_ResetCompletion { $script:_compMatches=@(); $script:_compIndex=-1; $script:_compPrefix=$null }
+                _ResetCompletion
+
+                while ($true) {
+                    $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+                    $vk = $key.VirtualKeyCode
+                    $ch = $key.Character
+                    $ctrl  = ($key.ControlKeyState -band 0x000C) -ne 0  # Left/Right Ctrl
+                    $shift = ($key.ControlKeyState -band 0x0010) -ne 0
+
+                    if ($vk -eq 13) { Write-Host ""; break }                          # Enter
+                    if ($vk -eq 27) { $_buf.Clear() | Out-Null; _ResetCompletion      # Esc -> clear line
+                        # repaint
+                        [Console]::Write("`r" + (' ' * ([Console]::WindowWidth - 1)) + "`r")
+                        Write-Host $_promptText -ForegroundColor Yellow -NoNewline
+                        continue
+                    }
+                    if ($ctrl -and ($vk -eq 67)) { Write-Host ""; $_buf.Clear() | Out-Null; break }  # Ctrl+C
+
+                    if ($vk -eq 8) {                                                  # Backspace
+                        if ($_buf.Length -gt 0) {
+                            $_buf.Length = $_buf.Length - 1
+                            [Console]::Write("`b `b")
+                        }
+                        _ResetCompletion
+                        continue
+                    }
+
+                    if ($vk -eq 9) {                                                  # Tab
+                        $cur = $_buf.ToString()
+                        if ($_compMatches.Count -eq 0 -or $_compPrefix -eq $null) {
+                            # establish current token (split by space or comma)
+                            $splitIdx = [Math]::Max($cur.LastIndexOf(' '), $cur.LastIndexOf(','))
+                            $script:_compTokenStart = $splitIdx + 1
+                            $script:_compPrefix = $cur.Substring($script:_compTokenStart)
+                            $pfxLow = $script:_compPrefix.ToLower()
+                            $script:_compMatches = @($_completionPool | Where-Object { $_.ToLower().StartsWith($pfxLow) })
+                            $script:_compIndex = -1
+                        }
+                        if ($_compMatches.Count -eq 0) { continue }
+                        if ($shift) {
+                            $script:_compIndex--
+                            if ($script:_compIndex -lt 0) { $script:_compIndex = $_compMatches.Count - 1 }
+                        } else {
+                            $script:_compIndex++
+                            if ($script:_compIndex -ge $_compMatches.Count) { $script:_compIndex = 0 }
+                        }
+                        $pick = $_compMatches[$script:_compIndex]
+                        # rebuild buffer: keep prefix-of-buffer up to token start, append pick
+                        $head = $_buf.ToString().Substring(0, $script:_compTokenStart)
+                        $_buf.Clear() | Out-Null
+                        [void]$_buf.Append($head + $pick)
+                        # repaint line
+                        $line = $_promptText + $_buf.ToString()
+                        [Console]::Write("`r" + (' ' * ([Math]::Max([Console]::WindowWidth - 1, $line.Length + 1))) + "`r")
+                        Write-Host $_promptText -ForegroundColor Yellow -NoNewline
+                        Write-Host $_buf.ToString() -NoNewline
+                        if ($_compMatches.Count -gt 1) {
+                            Write-Host "   [$($script:_compIndex + 1)/$($_compMatches.Count)]" -ForegroundColor DarkGray -NoNewline
+                            # erase the hint on next keypress by tracking length
+                            $_hintLen = "   [$($script:_compIndex + 1)/$($_compMatches.Count)]".Length
+                            [Console]::Write(("`b" * $_hintLen))
+                        }
+                        continue
+                    }
+
+                    if ($ch -eq '?' -and $_buf.Length -gt 0 -and $_buf.ToString().Substring($_buf.Length - 1) -ne ' ') {
+                        # '?' after a partial token -> list matches without inserting
+                        $cur = $_buf.ToString()
+                        $splitIdx = [Math]::Max($cur.LastIndexOf(' '), $cur.LastIndexOf(','))
+                        $tokStart = $splitIdx + 1
+                        $pfx = $cur.Substring($tokStart).ToLower()
+                        $matches = @($_completionPool | Where-Object { $_.ToLower().StartsWith($pfx) })
+                        Write-Host ""
+                        if ($matches.Count -eq 0) {
+                            Write-Host "    (no completions for '$pfx')" -ForegroundColor DarkGray
+                        } else {
+                            Write-Host ("    " + ($matches -join '  ')) -ForegroundColor DarkCyan
+                        }
+                        Write-Host $_promptText -ForegroundColor Yellow -NoNewline
+                        Write-Host $_buf.ToString() -NoNewline
+                        continue
+                    }
+
+                    if ($ch -and [int][char]$ch -ge 32) {                              # printable
+                        [void]$_buf.Append($ch)
+                        [Console]::Write($ch)
+                        _ResetCompletion
+                        continue
+                    }
+                }
+                $_typed = $_buf.ToString()
+            }
+
             if ($_typed) {
                 $_typed = $_typed.Trim()
                 if ($_typed.Length -gt 0) { $_earlyHelpFilter = $_typed }
