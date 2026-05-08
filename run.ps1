@@ -849,11 +849,18 @@ function Show-RootHelpRaw {
 
     Write-Host "  Filter / search the help text:" -ForegroundColor Yellow
     Write-Host "    .\run.ps1 help <keyword>            Show only help lines that match <keyword> (case-insensitive)" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 help chrome               e.g. show every Chrome / extension command" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 help ext-url              e.g. show ad-hoc Chrome extension URL examples" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 help conemu               e.g. show ConEmu install + context-menu commands" -ForegroundColor DarkGray
     Write-Host "    .\run.ps1 -h <keyword>              Same as above (any of: help, --help, -h, /?, ?)" -ForegroundColor DarkGray
     Write-Host "    .\run.ps1 help                      No keyword -> full help (this screen)" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "    Examples:" -ForegroundColor Cyan
+    Write-Host "      .\run.ps1 help chrome             Chrome browser + extension commands" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help ext-url            Ad-hoc Chrome extension URL / ID examples" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help conemu             ConEmu install + right-click context menu" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help vscode             VS Code install, settings sync, folder repair" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help profile            Profile recipes (small-dev, alldev, ...)" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help mysql              MySQL installer + related database keywords" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help uninstall          Every uninstall / remove command" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help export             Settings export commands across tools" -ForegroundColor DarkGray
     Write-Host ""
 
     Show-VersionFooter
