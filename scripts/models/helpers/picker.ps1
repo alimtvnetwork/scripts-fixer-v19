@@ -443,7 +443,7 @@ function Show-ModelList {
     Write-Host ""
     $headerLabel = if ($FilterLabel) { "{0} | filter: {1}" -f $BackendLabel, $FilterLabel } else { $BackendLabel }
     Write-Host ("  Available models ({0}): {1}" -f $headerLabel, $Models.Count) -ForegroundColor Yellow
-    Write-Host "  Caps legend: [C]oding [R]easoning [W]riting [V]oice [M]ultilingual    Ratings 1-10 (Code / Reason / Speed)" -ForegroundColor DarkGray
+    Write-Host "  Caps legend: [C]oding [R]easoning [W]riting [V]oice [M]ultilingual    Line 1: size | RAM | code/reason/speed/overall   Line 2: Best for   9-10 = yellow" -ForegroundColor DarkGray
     Write-Host "  * = recommended for coding" -ForegroundColor DarkGray
     Write-Host ""
 
@@ -492,7 +492,6 @@ function Show-ModelList {
         $bodyColor  = "White"
         $dimColor   = "DarkGray"
 
-        # One-field-per-line layout so long text never breaks the table
         Write-Host ""
         Write-Host ("  {0,3} {1} {2}" -f $idx, $marker, $m.id) -ForegroundColor $headColor
         $detailParts = @()
@@ -501,23 +500,36 @@ function Show-ModelList {
         if ($quant)   { $detailParts += $quant }
         $detailParts += ("backend: {0}" -f $m.backend)
         Write-Host ("        {0}" -f ($detailParts -join " | ")) -ForegroundColor $dimColor
-        Write-Host ("        Size       : {0}" -f $sizeStr) -ForegroundColor $bodyColor
-        Write-Host ("        RAM needed : {0}" -f $ramStr)  -ForegroundColor $bodyColor
-        Write-Host ("        Caps       : {0}" -f $caps)    -ForegroundColor $bodyColor
-        Write-Host ("        Coding     : {0}/10" -f $rCode)   -ForegroundColor $bodyColor
-        Write-Host ("        Reasoning  : {0}/10" -f $rReason) -ForegroundColor $bodyColor
-        Write-Host ("        Speed      : {0}/10" -f $rSpeed)  -ForegroundColor $bodyColor
-        Write-Host ("        Overall    : {0}/10" -f $rOver)   -ForegroundColor $bodyColor
+
+        # Line 1: size | RAM | caps | code/reason/speed/overall (numbers colored)
+        Write-Host ("        {0} | RAM {1} | {2} | " -f $sizeStr, $ramStr, $caps) -ForegroundColor $bodyColor -NoNewline
+        $ratings = @($rCode, $rReason, $rSpeed, $rOver)
+        for ($i = 0; $i -lt $ratings.Count; $i++) {
+            $val = $ratings[$i]
+            $num = 0
+            $color = $dimColor
+            if ([int]::TryParse([string]$val, [ref]$num)) {
+                if ($num -ge 9)     { $color = "Yellow" }
+                elseif ($num -ge 7) { $color = "Green" }
+                elseif ($num -ge 5) { $color = "White" }
+                else                { $color = "DarkGray" }
+            }
+            Write-Host ("{0}" -f $val) -ForegroundColor $color -NoNewline
+            if ($i -lt $ratings.Count - 1) {
+                Write-Host "/" -ForegroundColor $dimColor -NoNewline
+            }
+        }
+        Write-Host ""
+
+        # Line 2: Best for
         if ($purpose) {
-            Write-Host  "        Best for   :" -ForegroundColor $bodyColor
-            Write-Host ("          {0}" -f $purpose) -ForegroundColor $bodyColor
+            Write-Host ("        Best for: {0}" -f $purpose) -ForegroundColor $bodyColor
         }
         if ($notes) {
-            Write-Host  "        Notes      :" -ForegroundColor $dimColor
-            Write-Host ("          {0}" -f $notes) -ForegroundColor $dimColor
+            Write-Host ("        Notes:    {0}" -f $notes) -ForegroundColor $dimColor
         }
         if ($license) {
-            Write-Host ("        License    : {0}" -f $license) -ForegroundColor $dimColor
+            Write-Host ("        License:  {0}" -f $license) -ForegroundColor $dimColor
         }
     }
     Write-Host ""
