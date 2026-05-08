@@ -3153,6 +3153,58 @@ if ($hasCommand) {
         Write-Host "  [  OK  ] " -ForegroundColor Green -NoNewline
         Write-Host "Self-update complete." -ForegroundColor Green
         exit 0
+    } elseif ($isBareUninstallCommand -or $isBareReinstallCommand) {
+        Show-VersionHeader
+
+        $hasArgs = $null -ne $Install -and $Install.Count -gt 0
+        if (-not $hasArgs) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "No target provided. Usage: .\run.ps1 $normalizedCommand <chrome|...>"
+            exit 1
+        }
+        $targetRaw = "$($Install[0])".Trim().ToLower()
+        $passthrough = @()
+        if ($Install.Count -gt 1) { $passthrough = @($Install[1..($Install.Count-1)]) }
+
+        # Map keyword -> { ScriptDir, Name } (Chocolatey-backed installer scripts).
+        # Chrome is the first wired entry; add more rows here as needed.
+        $uninstallTargets = @{
+            "chrome"        = @{ Folder = "58-install-chrome"; Display = "Google Chrome" }
+            "google-chrome" = @{ Folder = "58-install-chrome"; Display = "Google Chrome" }
+            "googlechrome"  = @{ Folder = "58-install-chrome"; Display = "Google Chrome" }
+        }
+
+        if (-not $uninstallTargets.ContainsKey($targetRaw)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "Unknown $normalizedCommand target '$targetRaw'. Supported: $($uninstallTargets.Keys -join ', ')"
+            Write-Host "  Tip: for other tools, use  .\run.ps1 -I <NN> uninstall" -ForegroundColor DarkGray
+            exit 1
+        }
+
+        $entry      = $uninstallTargets[$targetRaw]
+        $targetRun  = Join-Path $RootDir ("scripts\" + $entry.Folder + "\run.ps1")
+        if (-not (Test-Path $targetRun)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "Dispatcher missing for $($entry.Display) at: $targetRun"
+            exit 1
+        }
+
+        # ── Uninstall step ────────────────────────────────────────────────
+        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+        Write-Host "Uninstalling $($entry.Display) via Chocolatey ($($entry.Folder))..." -ForegroundColor DarkGray
+        & $targetRun "uninstall" @passthrough
+        $uninstallExit = $LASTEXITCODE
+
+        if ($isBareUninstallCommand) {
+            exit $uninstallExit
+        }
+
+        # ── Reinstall: install step ───────────────────────────────────────
+        Write-Host ""
+        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+        Write-Host "Reinstalling $($entry.Display) via Chocolatey..." -ForegroundColor DarkGray
+        & $targetRun "install" @passthrough
+        exit $LASTEXITCODE
     } elseif ($isBareUpdateCommand) {
         Show-VersionHeader
 
