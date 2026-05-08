@@ -791,6 +791,20 @@ function Uninstall-ChocoPackage {
         $result = Invoke-ChocoProcess -ArgumentList @("uninstall", $PackageName, "-y", "--remove-dependencies") -Label "choco uninstall $PackageName"
         $output = $result.Output
         $hasUninstallFailed = -not $result.Success
+
+        # Treat "package is not installed" as a successful (idempotent) uninstall.
+        # Choco exits 1 in this case but it is not a real failure -- the desired
+        # end state (package absent) is already true.
+        $isAlreadyAbsent = $false
+        if ($null -ne $output -and ($output -match "is not installed\.\s*Cannot uninstall a non-existent package" -or $output -match "non-existent package")) {
+            $isAlreadyAbsent = $true
+        }
+
+        if ($hasUninstallFailed -and $isAlreadyAbsent) {
+            Write-Log "Chocolatey package '$PackageName' is already not installed -- treating as success (idempotent)." -Level "info"
+            return $true
+        }
+
         if ($hasUninstallFailed) {
             Write-Log "Chocolatey uninstall failed for $PackageName : $output" -Level "error"
             return $false
