@@ -864,6 +864,12 @@ function Show-RootHelpRaw {
     Write-Host "      .\run.ps1 help chrome ext         Multiple terms -> AND match (lines with BOTH words)" -ForegroundColor DarkGray
     Write-Host "      .\run.ps1 help vscode uninstall   AND match: VS Code uninstall commands only" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "    Save filtered help to a file:" -ForegroundColor Cyan
+    Write-Host "      .\run.ps1 help chrome --out chrome-help.txt    Plain text (extension auto-detected)" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help chrome --out chrome-help.json   JSON (auto from .json extension)" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help vscode --json vscode.json       Force JSON regardless of extension" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help conemu --text conemu.log        Force plain text" -ForegroundColor DarkGray
+    Write-Host ""
 
     Show-VersionFooter
 }
