@@ -982,7 +982,8 @@ function Show-RootHelp {
             $combinedLower = $combined.ToLower()
             $isMatch = $true
             foreach ($n in $needles) {
-                if (-not $combinedLower.Contains($n)) { $isMatch = $false; break }
+                if ($combinedLower.Contains($n)) { $perTermCounts[$n]++ }
+                else { $isMatch = $false }
             }
             if ($isMatch) {
                 foreach ($p in $pending) {
