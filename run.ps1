@@ -2770,6 +2770,121 @@ if ($_cmdLow -in $_helpAliases) {
 }
 
 if ($_isEarlyHelp) {
+    # ── List recommended help-filter keywords ────────────────────────
+    # Trigger:  .\run.ps1 help --list      .\run.ps1 help list
+    #           .\run.ps1 help --filters   .\run.ps1 help filters
+    #           .\run.ps1 help keywords
+    # Each entry is verified against the live help text -- entries with
+    # zero matches are hidden automatically so the list never goes stale.
+    $_isFilterList = $false
+    if ($_earlyHelpFilter) {
+        $_ftlist = $_earlyHelpFilter.Trim().ToLower()
+        if ($_ftlist -in @("--list","-list","list","--filters","-filters","filters","--keywords","-keywords","keywords","--filter-list","filter-list")) {
+            $_isFilterList = $true
+        }
+    }
+    if ($_isFilterList) {
+        $_records = & { Show-RootHelpRaw } 6>&1
+        $_lines = New-Object System.Collections.Generic.List[string]
+        $_buf = New-Object System.Text.StringBuilder
+        foreach ($rec in $_records) {
+            $msg = ""; $nl = $false
+            if ($rec -is [System.Management.Automation.InformationRecord]) {
+                $data = $rec.MessageData
+                if ($data -is [System.Management.Automation.HostInformationMessage]) {
+                    $msg = [string]$data.Message; $nl = [bool]$data.NoNewLine
+                } else { $msg = [string]$data }
+            } else { $msg = [string]$rec }
+            [void]$_buf.Append($msg)
+            if (-not $nl) { [void]$_lines.Add($_buf.ToString()); [void]$_buf.Clear() }
+        }
+        $_filters = @(
+            @{ K = "chrome";        D = "Google Chrome browser + extension commands" },
+            @{ K = "ext";           D = "Every Chrome extension keyword (catalog + ad-hoc)" },
+            @{ K = "ext-url";       D = "Ad-hoc Chrome extension URL / ID / file install" },
+            @{ K = "ext-all";       D = "Install every extension in config.json" },
+            @{ K = "vscode";        D = "VS Code install, settings sync, folder repair" },
+            @{ K = "conemu";        D = "ConEmu install + right-click context menu" },
+            @{ K = "menu";          D = "All right-click / Explorer context-menu commands" },
+            @{ K = "context-menu";  D = "Same as 'menu', longer/more specific filter" },
+            @{ K = "profile";       D = "Profile recipes (small-dev, base, alldev, ...)" },
+            @{ K = "install";       D = "Every install <keyword> entry" },
+            @{ K = "uninstall";     D = "Every uninstall / remove command" },
+            @{ K = "update";        D = "Choco update / package upgrade commands" },
+            @{ K = "self-update";   D = "Pull / refresh scripts-fixer itself" },
+            @{ K = "settings";      D = "Settings sync + export commands across tools" },
+            @{ K = "export";        D = "Export current settings (NPP, OBS, WT, DBeaver, ConEmu)" },
+            @{ K = "os";            D = "OS-level subcommands (clean-*, browser, fixes)" },
+            @{ K = "doctor";        D = "Doctor / diagnostics commands" },
+            @{ K = "logs";          D = "Log inspection (--tail, --grep, --since, --errors)" },
+            @{ K = "report";        D = "Install report generation" },
+            @{ K = "path";          D = "Default dev directory commands" },
+            @{ K = "models";        D = "Ollama / local model management" },
+            @{ K = "git-tools";     D = "git-tools dispatcher subcommands" },
+            @{ K = "gsa";           D = "git-safe-all alias" },
+            @{ K = "vscode-folder"; D = "VS Code folder right-click repair" },
+            @{ K = "mysql";         D = "MySQL installer" },
+            @{ K = "postgresql";    D = "PostgreSQL installer" },
+            @{ K = "mariadb";       D = "MariaDB installer" },
+            @{ K = "mongodb";       D = "MongoDB installer" },
+            @{ K = "redis";         D = "Redis installer" },
+            @{ K = "sqlite";        D = "SQLite installer" },
+            @{ K = "node";          D = "Node.js + Yarn + Bun" },
+            @{ K = "python";        D = "Python + libraries" },
+            @{ K = "docker";        D = "Docker Desktop installer" },
+            @{ K = "kubernetes";    D = "Kubernetes / kubeadm installer" },
+            @{ K = "java";          D = "Java JDK installer" },
+            @{ K = "dotnet";        D = "Microsoft .NET SDK installer" },
+            @{ K = "rust";          D = "Rust toolchain installer" },
+            @{ K = "go";            D = "Go installer" },
+            @{ K = "php";           D = "PHP installer" },
+            @{ K = "git";           D = "Git installer + safe.directory tools" },
+            @{ K = "obs";           D = "OBS Studio install + settings sync" },
+            @{ K = "npp";           D = "Notepad++ install + settings sync" },
+            @{ K = "wt";            D = "Windows Terminal install + settings sync" },
+            @{ K = "dbeaver";       D = "DBeaver install + settings sync" },
+            @{ K = "ollama";        D = "Ollama install + model management" },
+            @{ K = "user";          D = "User-management commands (script 68)" },
+            @{ K = "ssh";           D = "SSH key + orchestration commands" }
+        )
+
+        Write-Host ""
+        Write-Host "  Recommended help-filter keywords" -ForegroundColor Cyan
+        Write-Host "  ================================" -ForegroundColor DarkGray
+        Write-Host "  Use any of these with: " -NoNewline
+        Write-Host ".\run.ps1 help <keyword>" -ForegroundColor Yellow
+        Write-Host "  (combine 2+ for AND match, e.g. " -ForegroundColor DarkGray -NoNewline
+        Write-Host "help chrome ext" -ForegroundColor Yellow -NoNewline
+        Write-Host ")" -ForegroundColor DarkGray
+        Write-Host ""
+
+        $_kCol = 18; $_hCol = 7
+        Write-Host ("    {0}{1}{2}" -f "Keyword".PadRight($_kCol), "Lines".PadRight($_hCol), "Description") -ForegroundColor DarkGray
+        Write-Host ("    {0}{1}{2}" -f ("".PadRight($_kCol,'-')), ("".PadRight($_hCol,'-')), "-----------") -ForegroundColor DarkGray
+
+        $_shown = 0; $_hidden = 0
+        foreach ($f in $_filters) {
+            $low = $f.K.ToLower(); $hits = 0
+            foreach ($ln in $_lines) { if ($ln.ToLower().Contains($low)) { $hits++ } }
+            if ($hits -eq 0) { $_hidden++; continue }
+            $hitsStr = "$hits"
+            $color = if ($hits -ge 5) { "Green" } elseif ($hits -ge 2) { "Cyan" } else { "DarkYellow" }
+            Write-Host ("    {0}" -f $f.K.PadRight($_kCol)) -ForegroundColor White -NoNewline
+            Write-Host ("{0}" -f $hitsStr.PadRight($_hCol)) -ForegroundColor $color -NoNewline
+            Write-Host $f.D -ForegroundColor DarkGray
+            $_shown++
+        }
+
+        Write-Host ""
+        Write-Host "  $_shown filter(s) shown" -ForegroundColor Green -NoNewline
+        if ($_hidden -gt 0) {
+            Write-Host " ($_hidden hidden -- 0 matches against current help)" -ForegroundColor DarkGray
+        } else { Write-Host "" }
+        Write-Host "  Tip: every keyword that appears in '.\run.ps1 -List' is also a valid filter." -ForegroundColor DarkGray
+        Write-Host ""
+        exit 0
+    }
+
     # ── Self-test: prove case-insensitive matching ───────────────────
     # Trigger:  .\run.ps1 help --self-test
     #           .\run.ps1 help --test
