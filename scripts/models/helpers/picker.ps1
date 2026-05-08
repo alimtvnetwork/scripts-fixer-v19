@@ -287,14 +287,10 @@ function Show-ModelList {
     )
 
     Write-Host ""
-    Write-Host ("  Available models ({0}): {1}" -f $BackendLabel, $Models.Count) -ForegroundColor Cyan
-    Write-Host "  Legend:  [C]oding  [R]easoning  [W]riting  [V]oice  [M]ultilingual    Ratings 1-10 (Code/Reason/Speed)" -ForegroundColor DarkGray
+    Write-Host ("  Available models ({0}): {1}" -f $BackendLabel, $Models.Count) -ForegroundColor Yellow
+    Write-Host "  Caps legend: [C]oding [R]easoning [W]riting [V]oice [M]ultilingual    Ratings 1-10 (Code / Reason / Speed)" -ForegroundColor DarkGray
+    Write-Host "  * = recommended for coding" -ForegroundColor DarkGray
     Write-Host ""
-
-    $hdr = "  {0,-4} {1,-9} {2,-34} {3,-8} {4,-7} {5,-6} {6,-12} {7}" -f `
-        "#", "Backend", "Model (id)", "Size", "RAM", "Caps", "C / R / S", "Best for"
-    Write-Host $hdr -ForegroundColor Yellow
-    Write-Host ("  " + ("-" * 140)) -ForegroundColor DarkGray
 
     $idx = 0
     foreach ($m in $Models) {
@@ -324,31 +320,28 @@ function Show-ModelList {
         $rCode   = _GetRawProp $rating 'coding'    '-'
         $rReason = _GetRawProp $rating 'reasoning' '-'
         $rSpeed  = _GetRawProp $rating 'speed'     '-'
-        $ratingStr = "{0,2}/{1,2}/{2,2}" -f $rCode, $rReason, $rSpeed
+        $ratingStr = "{0}/{1}/{2}" -f $rCode, $rReason, $rSpeed
 
         $purposeRaw = _GetRawProp $raw 'bestFor'
         if (-not $purposeRaw) { $purposeRaw = _GetRawProp $raw 'purpose' '' }
         $purpose = "$purposeRaw"
-        if ($purpose.Length -gt 60) { $purpose = $purpose.Substring(0, 57) + "..." }
 
-        $idLabel = "$($m.id)"
-        if ($idLabel.Length -gt 33) { $idLabel = $idLabel.Substring(0, 30) + "..." }
+        $marker     = if ($isCoding) { "*" } else { " " }
+        $headColor  = if ($isCoding) { "Yellow" } else { "White" }
+        $bodyColor  = "White"
+        $dimColor   = "DarkGray"
 
-        # Highlight coding models in green, reasoning in magenta
-        $rowColor =
-            if ($isCoding) { "Green" }
-            elseif ($isReason) { "Magenta" }
-            elseif ($m.backend -eq "ollama") { "Cyan" }
-            else { "White" }
-
-        $line = "  {0,-4} {1,-9} {2,-34} {3,-8} {4,-7} {5,-6} {6,-12} {7}" -f `
-            $idx, $m.backend, $idLabel, $sizeStr, $ramStr, $caps, $ratingStr, $purpose
-
-        Write-Host $line -ForegroundColor $rowColor
+        # Header line: "  12 * model-id-here"
+        Write-Host ""
+        Write-Host ("  {0,3} {1} {2}" -f $idx, $marker, $m.id) -ForegroundColor $headColor
+        Write-Host ("        Size  : {0}     RAM : {1}     Caps: {2}     Score (C/R/S): {3}" -f $sizeStr, $ramStr, $caps, $ratingStr) -ForegroundColor $bodyColor
+        if ($purpose) {
+            Write-Host ("        Best  : {0}" -f $purpose) -ForegroundColor $bodyColor
+        }
     }
     Write-Host ""
-    Write-Host "  Install by number: .\run.ps1 models download 5,6,10" -ForegroundColor DarkGray
-    Write-Host "  Install by id    : .\run.ps1 models qwen2.5-coder-3b,llama3.2" -ForegroundColor DarkGray
+    Write-Host "  Install by number : .\run.ps1 models download 5,6,10" -ForegroundColor DarkGray
+    Write-Host "  Install by id     : .\run.ps1 models download qwen2.5-coder-3b,llama3.2" -ForegroundColor DarkGray
 
     if ($DownloadPaths) { Show-ModelDownloadPaths -Paths $DownloadPaths }
 }
