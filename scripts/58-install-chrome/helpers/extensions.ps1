@@ -52,6 +52,74 @@ function Resolve-ChromeExtensions {
     return $matched
 }
 
+function Split-ChromeExtensionCsvLine {
+    <#
+    .SYNOPSIS
+        RFC 4180-ish single-line splitter. Honours double-quoted fields so
+        commas / semicolons / tabs inside "..." are kept literal. Doubled
+        quotes ("") inside a quoted field decode to a single literal ".
+
+        Delimiter is auto-detected per line: comma, semicolon, or tab
+        (whichever appears most often outside quotes; defaults to comma).
+
+        Returns: string[] of trimmed cells (empty cells preserved as "").
+    #>
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Line)
+
+    if ([string]::IsNullOrEmpty($Line)) { return @() }
+
+    # Pass 1: count delimiter candidates outside quotes to pick the best one.
+    $candidates = @{ ',' = 0; ';' = 0; "`t" = 0 }
+    $inQuotes = $false
+    for ($i = 0; $i -lt $Line.Length; $i++) {
+        $ch = $Line[$i]
+        if ($ch -eq '"') {
+            $isEscapedQuote = $inQuotes -and ($i + 1 -lt $Line.Length) -and ($Line[$i + 1] -eq '"')
+            if ($isEscapedQuote) { $i++; continue }
+            $inQuotes = -not $inQuotes
+            continue
+        }
+        $key = [string]$ch
+        if (-not $inQuotes -and $candidates.ContainsKey($key)) {
+            $candidates[$key]++
+        }
+    }
+    $delimiter = ','
+    $best = 0
+    foreach ($k in $candidates.Keys) {
+        if ($candidates[$k] -gt $best) { $best = $candidates[$k]; $delimiter = $k }
+    }
+
+    # Pass 2: split honouring quotes.
+    $cells   = New-Object System.Collections.Generic.List[string]
+    $current = New-Object System.Text.StringBuilder
+    $inQuotes = $false
+    for ($i = 0; $i -lt $Line.Length; $i++) {
+        $ch = $Line[$i]
+        if ($ch -eq '"') {
+            $isEscapedQuote = $inQuotes -and ($i + 1 -lt $Line.Length) -and ($Line[$i + 1] -eq '"')
+            if ($isEscapedQuote) {
+                [void]$current.Append('"')
+                $i++
+            } else {
+                $inQuotes = -not $inQuotes
+            }
+            continue
+        }
+        if (-not $inQuotes -and $ch -eq $delimiter) {
+            [void]$cells.Add($current.ToString())
+            [void]$current.Clear()
+            continue
+        }
+        [void]$current.Append($ch)
+    }
+    [void]$cells.Add($current.ToString())
+
+    $out = @()
+    foreach ($c in $cells) { $out += $c.Trim() }
+    return $out
+}
+
 function Expand-ChromeExtensionUrlInputs {
     <#
     .SYNOPSIS
@@ -111,11 +179,15 @@ function Expand-ChromeExtensionUrlInputs {
                 if (-not $stripped) { continue }
                 if ($stripped.StartsWith('#') -or $stripped.StartsWith('//')) { continue }
 
-                $cells = $stripped -split '[,;\t]'
+                # Quote-aware splitter: commas inside "..." stay literal, so
+                # URLs with embedded query commas don't get torn apart.
+                $cells = Split-ChromeExtensionCsvLine -Line $stripped
                 $rowHasId = $false
                 $rowAdds  = @()
                 foreach ($cell in $cells) {
-                    $c = $cell.Trim().Trim('"').Trim("'")
+                    # Splitter already strips surrounding whitespace and removes
+                    # the wrapping double-quotes; only strip stray single quotes.
+                    $c = $cell.Trim("'")
                     if (-not $c) { continue }
                     if ($c -match $idRx) { $rowHasId = $true }
                     $rowAdds += $c
