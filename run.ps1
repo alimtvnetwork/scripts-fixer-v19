@@ -870,6 +870,10 @@ function Show-RootHelpRaw {
     Write-Host "      .\run.ps1 help vscode --json vscode.json       Force JSON regardless of extension" -ForegroundColor DarkGray
     Write-Host "      .\run.ps1 help conemu --text conemu.log        Force plain text" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "    Verify the filter is case-insensitive:" -ForegroundColor Cyan
+    Write-Host "      .\run.ps1 help --self-test                     Run canned PASS/FAIL casing tests" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help --test                          Same (short alias)" -ForegroundColor DarkGray
+    Write-Host ""
 
     Show-VersionFooter
 }
@@ -897,6 +901,8 @@ function Show-RootHelp {
 
     # Split on whitespace and commas; lower-case; drop empties.
     # Each term must appear in a logical line for it to match (AND semantics).
+    # Matching is case-INSENSITIVE: needles are lower-cased here, and each
+    # captured help line is compared via .ToLower().Contains(...) below.
     $needles = @(
         $Filter.ToLower() -split '[\s,]+' |
             ForEach-Object { $_.Trim() } |
@@ -2752,6 +2758,107 @@ if ($_cmdLow -in $_helpAliases) {
 }
 
 if ($_isEarlyHelp) {
+    # ── Self-test: prove case-insensitive matching ───────────────────
+    # Trigger:  .\run.ps1 help --self-test
+    #           .\run.ps1 help --test
+    #           .\run.ps1 help selftest
+    # Captures the raw help once, then runs the same matching logic the
+    # filter uses against several casing variants and prints PASS/FAIL.
+    $_isSelfTest = $false
+    if ($_earlyHelpFilter) {
+        $_ftl = $_earlyHelpFilter.Trim().ToLower()
+        if ($_ftl -in @("--self-test", "-self-test", "--selftest", "-selftest", "selftest", "self-test", "--test", "-test", "test")) {
+            $_isSelfTest = $true
+        }
+    }
+    if ($_isSelfTest) {
+        Write-Host ""
+        Write-Host "  Help filter -- case-insensitivity self-test" -ForegroundColor Cyan
+        Write-Host "  ===========================================" -ForegroundColor DarkGray
+
+        # Capture the full help screen once (Information stream, ID 6).
+        $_records = & { Show-RootHelpRaw } 6>&1
+
+        # Reconstruct logical lines (one string per line) the same way
+        # Show-RootHelp does, so the test matches real runtime behavior.
+        function _Get-HelpLines {
+            param($Records)
+            $buf = New-Object System.Collections.Generic.List[string]
+            $cur = New-Object System.Text.StringBuilder
+            foreach ($rec in $Records) {
+                $msg = ""; $nl = $false
+                if ($rec -is [System.Management.Automation.InformationRecord]) {
+                    $data = $rec.MessageData
+                    if ($data -is [System.Management.Automation.HostInformationMessage]) {
+                        $msg = [string]$data.Message
+                        $nl  = [bool]$data.NoNewLine
+                    } else { $msg = [string]$data }
+                } else { $msg = [string]$rec }
+                [void]$cur.Append($msg)
+                if (-not $nl) { [void]$buf.Add($cur.ToString()); [void]$cur.Clear() }
+            }
+            if ($cur.Length -gt 0) { [void]$buf.Add($cur.ToString()) }
+            return ,$buf.ToArray()
+        }
+        function _Count-Matches {
+            param([string[]]$Lines, [string[]]$Needles)
+            $low = $Needles | ForEach-Object { $_.ToLower() }
+            $n = 0
+            foreach ($ln in $Lines) {
+                $ll = $ln.ToLower(); $ok = $true
+                foreach ($t in $low) { if (-not $ll.Contains($t)) { $ok = $false; break } }
+                if ($ok) { $n++ }
+            }
+            return $n
+        }
+
+        $_lines = _Get-HelpLines -Records $_records
+
+        # Each row: { Label, Variants[], MinExpected }
+        $_cases = @(
+            @{ Label = "single keyword"; Variants = @("chrome","CHROME","Chrome","ChRoMe");        Min = 1 },
+            @{ Label = "multi-word AND"; Variants = @("vscode uninstall","VSCODE UNINSTALL","VsCode UnInstall"); Min = 1 },
+            @{ Label = "comma-split";    Variants = @("chrome,ext","CHROME,EXT","Chrome, Ext");     Min = 1 },
+            @{ Label = "another keyword";Variants = @("conemu","CONEMU","ConEmu");                  Min = 1 }
+        )
+
+        $_pass = 0; $_fail = 0
+        foreach ($c in $_cases) {
+            $counts = @()
+            foreach ($v in $c.Variants) {
+                $needles = @($v.ToLower() -split '[\s,]+' | Where-Object { $_ })
+                $counts += (_Count-Matches -Lines $_lines -Needles $needles)
+            }
+            $allEqual = (($counts | Select-Object -Unique).Count -eq 1)
+            $minOk    = ($counts[0] -ge $c.Min)
+            $ok       = $allEqual -and $minOk
+
+            if ($ok) {
+                $_pass++
+                Write-Host ("  [ PASS ] {0,-18} -> {1} match(es) across {2} casing(s): {3}" -f `
+                    $c.Label, $counts[0], $c.Variants.Count, ($c.Variants -join ' | ')) -ForegroundColor Green
+            } else {
+                $_fail++
+                Write-Host ("  [ FAIL ] {0,-18} -> counts: [{1}] (variants: {2})" -f `
+                    $c.Label, ($counts -join ', '), ($c.Variants -join ' | ')) -ForegroundColor Red
+                if (-not $allEqual) { Write-Host "          Reason: case variants produced different match counts" -ForegroundColor DarkGray }
+                if (-not $minOk)    { Write-Host "          Reason: expected >= $($c.Min) match(es), got $($counts[0])" -ForegroundColor DarkGray }
+            }
+        }
+
+        Write-Host ""
+        if ($_fail -eq 0) {
+            Write-Host "  [  OK  ] " -ForegroundColor Green -NoNewline
+            Write-Host "All $_pass case(s) passed -- filter IS case-insensitive."
+        } else {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "$_fail of $($_pass + $_fail) case(s) failed."
+            exit 1
+        }
+        Write-Host ""
+        exit 0
+    }
+
     # ── Strip export flags from the filter terms ─────────────────────
     # Recognized:
     #   --out <path> | --out=<path>     (auto-detect format from extension)
