@@ -953,6 +953,11 @@ function Show-RootHelp {
     # Plain-text and structured copies of matched logical lines for export.
     $matchedPlain = New-Object System.Collections.Generic.List[string]
     $matchedRich  = New-Object System.Collections.Generic.List[object]
+    # Per-term hit counts (independent OR-style tallies, NOT AND).
+    # Each needle counts how many logical lines contain it individually,
+    # so users can see which term is the most/least restrictive.
+    $perTermCounts = [ordered]@{}
+    foreach ($n in $needles) { $perTermCounts[$n] = 0 }
 
     foreach ($rec in $records) {
         $msg = ""; $fg = $null; $nl = $false
