@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.223.0] -- 2026-05-08
+
+### Added
+- **Pre-flight URL validation for `ext-url` / `ext-url-all`** (script 58). Before any registry write or Web Store tab is opened, `Test-ChromeExtensionUrls` inspects the supplied URLs and `Show-ChromeExtensionUrlReport` prints a colored summary of issues:
+  - `invalid-url` (error) -- no 32-char extension id found
+  - `not-webstore` (error) -- host is not `chromewebstore.google.com` / `chrome.google.com`
+  - `duplicate-url` (warn) -- exact same URL pasted twice
+  - `duplicate-id` (warn) -- different URLs/slugs pointing at the same extension id (the classic "I copy-pasted the wrong slug" case)
+  - `slug-mismatch` (warn) -- slug contains unexpected characters
+  - `query-or-fragment` (warn) -- URL had `?utm_...` / `#section` that we stripped
+- Errors abort install. Warnings prompt for `[y/N]` confirmation; pass `-Yes` (or run non-interactively + `-Yes`) to skip the prompt.
+
 ## [v0.222.0] -- 2026-05-08
 
 ### Added

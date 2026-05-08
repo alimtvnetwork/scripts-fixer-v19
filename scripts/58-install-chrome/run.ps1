@@ -11,6 +11,7 @@ param(
 
     [string]$Method = "auto",
     [switch]$WithExt,
+    [switch]$Yes,
     [switch]$Help
 )
 
@@ -102,6 +103,28 @@ try {
         if ($urls.Count -eq 0) {
             Write-Log "No URLs provided. Usage: .\run.ps1 -I 58 ext-url <url> [<url> ...]" -Level "error"
             return
+        }
+
+        # ── Pre-flight validation: catch duplicates & copy-paste mistakes ──
+        $report = Test-ChromeExtensionUrls -Urls $urls
+        Show-ChromeExtensionUrlReport -Report $report
+
+        if ($report.HasErrors) {
+            Write-Log "URL validation failed -- fix the errors above and retry. Aborting install." -Level "error"
+            return
+        }
+        if ($report.HasWarnings -and -not $Yes) {
+            $isInteractive = [Environment]::UserInteractive -and $Host.UI.RawUI -ne $null
+            if ($isInteractive) {
+                $ans = Read-Host "  Warnings found. Continue installing $($report.ParsedCount) extension(s)? [y/N]"
+                if ($ans.Trim().ToLower() -notin @("y","yes")) {
+                    Write-Log "User declined after warnings -- aborting install." -Level "warn"
+                    return
+                }
+            } else {
+                Write-Log "Warnings found and running non-interactively. Re-run with -Yes to confirm. Aborting install." -Level "warn"
+                return
+            }
         }
 
         $picked = Resolve-ChromeExtensionsFromUrls -Urls $urls

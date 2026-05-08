@@ -113,6 +113,142 @@ function Resolve-ChromeExtensionsFromUrls {
     return $result
 }
 
+function Test-ChromeExtensionUrls {
+    <#
+    .SYNOPSIS
+        Pre-flight check on user-supplied extension URLs. Catches duplicates
+        and copy-paste mistakes BEFORE anything is installed.
+
+        Returns a PSCustomObject:
+          {
+            Issues       = @( @{ Severity='warn'|'error'; Code='...'; Message='...'; Url='...' } )
+            HasErrors    = $true/$false   # at least one URL cannot be installed
+            HasWarnings  = $true/$false   # something looks fishy but installable
+            ParsedCount  = <int>          # unique installable extensions
+            InputCount   = <int>          # raw URLs received
+          }
+
+        Detected problems:
+          E1  invalid-url          - URL/string did not contain a 32-char id
+          E2  not-webstore         - URL host is not chrome(webstore).google.com
+          W1  duplicate-url        - same raw URL string appears more than once
+          W2  duplicate-id         - same extension id appears under different
+                                     URLs (catches "I copy-pasted the wrong slug")
+          W3  slug-mismatch        - slug in URL does not match the canonical
+                                     id-only Web Store path (possible typo)
+          W4  query-or-fragment    - URL had ?utm_... / #section that we stripped
+    #>
+    param([Parameter(Mandatory)] [string[]]$Urls)
+
+    $idPattern = '([a-p]{32})'
+    $issues    = New-Object System.Collections.Generic.List[object]
+    $byUrl     = @{}
+    $byId      = @{}
+    $unique    = @{}
+
+    foreach ($raw in $Urls) {
+        if ([string]::IsNullOrWhiteSpace($raw)) { continue }
+        $u = $raw.Trim().Trim('"').Trim("'")
+
+        # W1 -- exact duplicate URL string
+        $keyUrl = $u.ToLower()
+        if ($byUrl.ContainsKey($keyUrl)) {
+            $issues.Add([pscustomobject]@{ Severity='warn'; Code='duplicate-url'; Url=$u; Message="Duplicate URL (already in list)" })
+            continue
+        }
+        $byUrl[$keyUrl] = $true
+
+        # W4 -- query/fragment present (often a paste from sidebar)
+        if ($u -match '[?#]') {
+            $issues.Add([pscustomobject]@{ Severity='warn'; Code='query-or-fragment'; Url=$u; Message="URL had ?query or #fragment (stripped before install)" })
+        }
+
+        $clean = ($u -split '[?#]')[0].TrimEnd('/')
+
+        # E2 -- host check (skip for bare ids)
+        $isBareId = $clean -match "^$idPattern$"
+        if (-not $isBareId -and $clean -match '^https?://([^/]+)') {
+            $urlHost = $Matches[1].ToLower()
+            $isWebStore = $urlHost -in @("chromewebstore.google.com","chrome.google.com")
+            if (-not $isWebStore) {
+                $issues.Add([pscustomobject]@{ Severity='error'; Code='not-webstore'; Url=$u; Message="Host '$urlHost' is not a Chrome Web Store domain" })
+                continue
+            }
+        }
+
+        $id = $null; $slug = $null
+        if ($clean -match "/detail/([^/]+)/$idPattern$") {
+            $slug = $Matches[1]; $id = $Matches[2]
+        } elseif ($clean -match "/detail/$idPattern$") {
+            $id = $Matches[1]
+        } elseif ($isBareId) {
+            $id = $Matches[1]
+        }
+
+        # E1 -- could not extract a valid id
+        if (-not $id) {
+            $issues.Add([pscustomobject]@{ Severity='error'; Code='invalid-url'; Url=$u; Message="No 32-char extension id found" })
+            continue
+        }
+
+        # W2 -- same id, different URL (very common copy-paste mistake)
+        if ($byId.ContainsKey($id)) {
+            $prev = $byId[$id]
+            $issues.Add([pscustomobject]@{
+                Severity='warn'; Code='duplicate-id'; Url=$u;
+                Message="Same extension id as earlier URL  (id=$id, also at: $prev)"
+            })
+            continue
+        }
+        $byId[$id] = $u
+
+        # W3 -- slug looks wrong (contains "vpn" but id maps to a different ext, etc.)
+        # Heuristic: slug should be lowercase letters/digits/dashes only.
+        if ($slug -and $slug -notmatch '^[a-z0-9][a-z0-9\-]*$') {
+            $issues.Add([pscustomobject]@{
+                Severity='warn'; Code='slug-mismatch'; Url=$u;
+                Message="Slug '$slug' has unexpected characters -- check for typos"
+            })
+        }
+
+        $unique[$id] = $true
+    }
+
+    $hasErrors   = @($issues | Where-Object { $_.Severity -eq 'error' }).Count -gt 0
+    $hasWarnings = @($issues | Where-Object { $_.Severity -eq 'warn'  }).Count -gt 0
+
+    return [pscustomobject]@{
+        Issues       = $issues
+        HasErrors    = $hasErrors
+        HasWarnings  = $hasWarnings
+        ParsedCount  = $unique.Count
+        InputCount   = @($Urls | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+    }
+}
+
+function Show-ChromeExtensionUrlReport {
+    param([Parameter(Mandatory)] [PSObject]$Report)
+
+    Write-Host ""
+    Write-Host "  Chrome extension URL pre-flight check" -ForegroundColor Yellow
+    Write-Host ("    Input URLs   : {0}" -f $Report.InputCount)   -ForegroundColor White
+    Write-Host ("    Will install : {0}" -f $Report.ParsedCount)  -ForegroundColor White
+    Write-Host ("    Warnings     : {0}" -f @($Report.Issues | Where-Object { $_.Severity -eq 'warn'  }).Count) -ForegroundColor Yellow
+    Write-Host ("    Errors       : {0}" -f @($Report.Issues | Where-Object { $_.Severity -eq 'error' }).Count) -ForegroundColor Red
+
+    if ($Report.Issues.Count -gt 0) {
+        Write-Host ""
+        foreach ($i in $Report.Issues) {
+            $tag    = if ($i.Severity -eq 'error') { "[XX]" } else { "[!!]" }
+            $color  = if ($i.Severity -eq 'error') { "Red" } else { "Yellow" }
+            Write-Host ("    {0} {1,-18} {2}" -f $tag, $i.Code, $i.Message) -ForegroundColor $color
+            Write-Host ("         url: {0}" -f $i.Url) -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Host "    [OK] No issues detected." -ForegroundColor Green
+    }
+    Write-Host ""
+}
 function Show-ChromeExtensionCatalog {
     param([Parameter(Mandatory)] [PSObject]$ExtConfig)
     Write-Host ""
