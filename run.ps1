@@ -509,6 +509,8 @@ function Show-RootHelpRaw {
     Write-Host "    $("uninstall chrome".PadRight($kc))" -NoNewline; Write-Host "Uninstall Chrome + clean shortcuts/registry/AppData (warns on HKLM if not elevated) [58]" -ForegroundColor DarkGray
     Write-Host "    $("install protonvpn".PadRight($kc))" -NoNewline; Write-Host "Install Proton VPN (aliases: proton, proton-vpn, vpn) [60]" -ForegroundColor DarkGray
     Write-Host "    $("uninstall protonvpn".PadRight($kc))" -NoNewline; Write-Host "Uninstall Proton VPN + clean .installed/protonvpn.json record [60]" -ForegroundColor DarkGray
+    Write-Host "    $("install jumpjump-vpn".PadRight($kc))" -NoNewline; Write-Host "Install JumpJump VPN via direct download (aliases: jumpjump, jumpjumpvpn, jjvpn) [61]" -ForegroundColor DarkGray
+    Write-Host "    $("uninstall jumpjump-vpn".PadRight($kc))" -NoNewline; Write-Host "Uninstall JumpJump VPN + clean .installed/jumpjump-vpn.json record [61]" -ForegroundColor DarkGray
     Write-Host ""
 
     # ----- Dedicated Chrome & extensions cheatsheet ---------------------------
@@ -4118,6 +4120,10 @@ if ($hasCommand) {
             "proton-vpn"    = @{ Folder = "60-install-protonvpn"; Display = "Proton VPN" }
             "proton"        = @{ Folder = "60-install-protonvpn"; Display = "Proton VPN" }
             "vpn"           = @{ Folder = "60-install-protonvpn"; Display = "Proton VPN" }
+            "jumpjump-vpn"  = @{ Folder = "61-install-jumpjump-vpn"; Display = "JumpJump VPN" }
+            "jumpjumpvpn"   = @{ Folder = "61-install-jumpjump-vpn"; Display = "JumpJump VPN" }
+            "jumpjump"      = @{ Folder = "61-install-jumpjump-vpn"; Display = "JumpJump VPN" }
+            "jjvpn"         = @{ Folder = "61-install-jumpjump-vpn"; Display = "JumpJump VPN" }
         }
 
         if (-not $uninstallTargets.ContainsKey($targetRaw)) {

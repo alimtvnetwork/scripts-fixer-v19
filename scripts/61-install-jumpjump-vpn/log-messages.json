@@ -1,0 +1,54 @@
+{
+  "scriptName": "install-jumpjump-vpn",
+  "scriptTitle": "Install JumpJump VPN",
+  "scriptDesc": "Install the JumpJump VPN Windows client via the official direct-download installer (with optional Chocolatey attempt if a package name is configured)",
+  "messages": {
+    "checking": "Checking for existing JumpJump VPN install...",
+    "alreadyInstalled": "JumpJump VPN already installed at: {path}",
+    "notFound": "JumpJump VPN not found -- will install via direct download",
+    "chocoAttempt": "Trying Chocolatey package '{pkg}' first...",
+    "chocoSkipped": "No chocoPackage configured -- skipping Chocolatey attempt and going straight to direct download",
+    "chocoFailedFallback": "Chocolatey install failed -- falling back to direct download installer",
+    "directDownloading": "Downloading JumpJump VPN installer from: {url}",
+    "directRunning": "Running silent installer: {path} {args}",
+    "directDownloadFailed": "Direct-download installer failed: {error}",
+    "directDisabled": "Direct download disabled in config and Chocolatey did not install -- nothing else to try",
+    "installSuccess": "JumpJump VPN installed at: {path}",
+    "installFailed": "JumpJump VPN installation failed: {error}",
+    "verifyFailed": "Install completed but JumpJumpVPN.exe was not found in any expected location -- vendor may have renamed the launcher; update executableNames / installDirs in config.json",
+    "setupComplete": "JumpJump VPN setup complete",
+    "uninstalling": "Uninstalling {name}...",
+    "uninstallSuccess": "{name} uninstalled successfully.",
+    "uninstallFailed": "{name} uninstall failed -- package may need manual removal.",
+    "cleanupSkipped": "Post-uninstall cleanup disabled in config -- skipping registry + shortcut sweep",
+    "cleanupStart": "Sweeping leftover JumpJump VPN registry keys + shortcuts...",
+    "cleanupRegKeyRemoved": "Removed registry key: {path}",
+    "cleanupRegKeyMissing": "Registry key not present (clean): {path}",
+    "cleanupRegKeyFailed": "Could not remove registry key {path}: {error}",
+    "cleanupShortcutRemoved": "Removed shortcut/folder: {path}",
+    "cleanupShortcutMissing": "Shortcut not present (clean): {path}",
+    "cleanupShortcutFailed": "Could not remove shortcut {path}: {error}",
+    "cleanupAppDataKept": "AppData kept (purgeAppData=false): {path}",
+    "cleanupAppDataPurged": "Purged AppData folder: {path}",
+    "cleanupSummary": "Cleanup summary -- registry: {regRemoved} removed / {regMissing} clean / {regFailed} failed; shortcuts: {scRemoved} removed / {scMissing} clean / {scFailed} failed",
+    "uninstallComplete": "Uninstall complete. Tracking purged."
+  },
+  "help": {
+    "commands": {
+      "install": "Install JumpJump VPN via direct download (or Chocolatey if chocoPackage is set)",
+      "uninstall": "Uninstall JumpJump VPN, sweep registry + shortcuts, remove tracking",
+      "reinstall": "Uninstall then install (use bare dispatcher: .\\run.ps1 reinstall jumpjump-vpn)"
+    },
+    "parameters": {},
+    "examples": [
+      ".\\run.ps1 install jumpjump-vpn",
+      ".\\run.ps1 install jumpjumpvpn",
+      ".\\run.ps1 install jjvpn",
+      ".\\run.ps1 -I 61",
+      ".\\run.ps1 -I 61 -- -Help",
+      ".\\run.ps1 -I 61 uninstall",
+      ".\\run.ps1 uninstall jumpjump-vpn",
+      ".\\run.ps1 reinstall jumpjump-vpn"
+    ]
+  }
+}

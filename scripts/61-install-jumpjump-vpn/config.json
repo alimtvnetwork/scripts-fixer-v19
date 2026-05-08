@@ -1,0 +1,64 @@
+{
+  "devDir": {
+    "mode": "smart",
+    "default": "auto",
+    "override": ""
+  },
+  "jumpjumpVpn": {
+    "enabled": true,
+    "name": "JumpJump VPN",
+    "desc": "JumpJump VPN desktop client (no Chocolatey package -- installs from the official direct-download installer; choco install attempted first if a package name is set)",
+    "skipDevDirPrompt": true,
+    "_comment_choco": "JumpJump VPN is NOT currently published on the Chocolatey community feed. Leave chocoPackage empty to skip the choco attempt entirely. If a third-party package appears later (e.g. 'jumpjump-vpn'), set the name here and the script will try choco first, then fall back to the direct installer.",
+    "chocoPackage": "",
+    "directInstall": {
+      "enabled": true,
+      "_comment": "JumpJump rotates installer filenames per release. Override 'url' with the latest setup .exe link from https://jumpjumpvpn.com (download page) when needed. silentArgs is the NSIS / Inno-style silent flag -- '/S' works for both.",
+      "url": "https://jumpjumpvpn.com/download/jumpjump-vpn-setup.exe",
+      "fileName": "jumpjump-vpn-setup.exe",
+      "downloadDir": "",
+      "silentArgs": "/S",
+      "timeoutSeconds": 900
+    },
+    "executableNames": [
+      "JumpJumpVPN.exe",
+      "JumpJump VPN.exe",
+      "jumpjump-vpn.exe",
+      "JumpJump.exe"
+    ],
+    "installDirs": [
+      "%ProgramFiles%\\JumpJump VPN",
+      "%ProgramFiles(x86)%\\JumpJump VPN",
+      "%ProgramFiles%\\JumpJumpVPN",
+      "%ProgramFiles(x86)%\\JumpJumpVPN",
+      "%LOCALAPPDATA%\\Programs\\JumpJump VPN",
+      "%LOCALAPPDATA%\\Programs\\JumpJumpVPN"
+    ],
+    "uninstallCleanup": {
+      "enabled": true,
+      "removeRegistryKeys": true,
+      "removeShortcuts": true,
+      "registryKeys": [
+        "HKCU:\\Software\\JumpJump VPN",
+        "HKCU:\\Software\\JumpJumpVPN",
+        "HKLM:\\SOFTWARE\\JumpJump VPN",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\JumpJump VPN",
+        "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\JumpJump VPN",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\JumpJump VPN"
+      ],
+      "shortcutPaths": [
+        "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\JumpJump VPN.lnk",
+        "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\JumpJump VPN",
+        "%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\JumpJump VPN.lnk",
+        "%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\JumpJump VPN",
+        "%USERPROFILE%\\Desktop\\JumpJump VPN.lnk",
+        "%PUBLIC%\\Desktop\\JumpJump VPN.lnk"
+      ],
+      "appDataPaths": [
+        "%LOCALAPPDATA%\\JumpJump VPN",
+        "%APPDATA%\\JumpJump VPN"
+      ],
+      "purgeAppData": false
+    }
+  }
+}
