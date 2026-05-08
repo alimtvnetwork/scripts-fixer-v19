@@ -40,14 +40,26 @@
   "help": {
     "commands": {
       "install": "Install Google Chrome via Chocolatey (default)",
-      "uninstall": "Uninstall Google Chrome, remove tracking"
+      "uninstall": "Uninstall Google Chrome, remove tracking",
+      "with-ext": "Install Chrome AND all configured extensions in one shot",
+      "ext": "Show the extension catalog (no args) or install specific ones: ext vpn,tabcopy",
+      "ext <name>": "Install one or more extensions by name (vpn, tabcopy, tabextend, adblocker)",
+      "ext-all": "Install ALL configured extensions"
+    },
+    "parameters": {
+      "-Method": "Extension install method: auto (default) | registry (silent, needs admin) | webstore (open Web Store pages)",
+      "-WithExt": "When installing Chrome, also install all extensions afterwards"
     },
     "examples": [
       ".\\run.ps1 install chrome",
       ".\\run.ps1 install google-chrome",
       ".\\run.ps1 -I 58",
       ".\\run.ps1 -I 58 -- -Help",
-      ".\\run.ps1 -I 58 uninstall"
+      ".\\run.ps1 -I 58 uninstall",
+      ".\\run.ps1 install chrome with-ext              # Chrome + all 4 extensions",
+      ".\\run.ps1 install chrome ext                   # show catalog",
+      ".\\run.ps1 install chrome ext vpn,adblocker     # install two extensions",
+      ".\\run.ps1 install chrome ext-all -Method registry   # silent (admin) force-install"
     ]
   }
 }
