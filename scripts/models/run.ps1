@@ -62,6 +62,13 @@ try {
     $firstArg = if ($Args -and $Args.Count -gt 0) { $Args[0].Trim() } else { "" }
     $secondArg = if ($Args -and $Args.Count -gt 1) { $Args[1].Trim() } else { "" }
 
+    $isHelpMode      = $firstArg.ToLower() -in @("help", "--help", "-h", "/?")
+    if ($isHelpMode) {
+        Show-ScriptHelp -LogMessages $logMessages
+        Show-ModelDownloadPaths -Paths $downloadPaths
+        return
+    }
+
     $isListMode      = $List -or $firstArg.ToLower() -eq "list"
     $isDownloadMode  = $firstArg.ToLower() -eq "download" -or $firstArg.ToLower() -eq "dl" -or $firstArg.ToLower() -eq "install"
     $isSearchMode    = $firstArg.ToLower() -eq "search"
