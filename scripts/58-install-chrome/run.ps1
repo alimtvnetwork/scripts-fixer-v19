@@ -57,6 +57,8 @@ try {
     # ── Extension subcommands ────────────────────────────────────────────
     $isExtMode    = $cmd -in @("ext","extension","extensions")
     $isExtAllMode = $cmd -in @("ext-all","extall","ext_all","all-ext","extensions-all")
+    $isExtUrlMode = $cmd -in @("ext-url","exturl","ext-urls","exturls","ext-from-url")
+    $isExtUrlAllMode = $cmd -in @("ext-url-all","exturlall","ext-urls-all","ext-from-urls-all","all-ext-url")
     $isWithExt    = $cmd -in @("with-ext","withext","plus-ext","chrome+ext","chrome-with-ext") -or $WithExt
 
     if ($isExtMode) {
@@ -81,6 +83,44 @@ try {
 
     if ($isExtAllMode) {
         Install-ChromeExtensions -ExtConfig $config.extensions -Names @("all") -Method $Method | Out-Null
+        Write-Log $logMessages.messages.setupComplete -Level "success"
+        return
+    }
+
+    # ── Install one or many extensions from raw Chrome Web Store URLs ───
+    # Usage:
+    #   .\run.ps1 -I 58 ext-url     <url> [<url> ...]   # install N URLs
+    #   .\run.ps1 -I 58 ext-url-all <url1,url2,url3>     # explicit batch alias
+    if ($isExtUrlMode -or $isExtUrlAllMode) {
+        $urls = @()
+        foreach ($r in $Rest) {
+            foreach ($t in ($r -split '[,\s]+')) {
+                $tt = $t.Trim()
+                if ($tt) { $urls += $tt }
+            }
+        }
+        if ($urls.Count -eq 0) {
+            Write-Log "No URLs provided. Usage: .\run.ps1 -I 58 ext-url <url> [<url> ...]" -Level "error"
+            return
+        }
+
+        $picked = Resolve-ChromeExtensionsFromUrls -Urls $urls
+        if (-not $picked -or $picked.Count -eq 0) {
+            Write-Log "No valid Chrome Web Store URLs to install." -Level "warn"
+            return
+        }
+
+        # Build a thin ExtConfig that re-uses the global registryRoot/updateUrl
+        # but swaps in the URL-derived list -- so the existing registry/webstore
+        # paths can install them unchanged.
+        $synthetic = [PSCustomObject]@{
+            defaultMethod = $config.extensions.defaultMethod
+            registryRoot  = $config.extensions.registryRoot
+            updateUrl     = $config.extensions.updateUrl
+            list          = $picked
+        }
+        Write-Log ("Installing {0} extension(s) from URL(s)..." -f $picked.Count) -Level "info"
+        Install-ChromeExtensions -ExtConfig $synthetic -Names @("all") -Method $Method | Out-Null
         Write-Log $logMessages.messages.setupComplete -Level "success"
         return
     }
