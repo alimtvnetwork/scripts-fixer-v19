@@ -1810,7 +1810,8 @@ function Invoke-StatusCommand {
     }
 
     Write-Host ""
-    Write-Host "  Tip: Use '.\run.ps1 status --no-choco' to skip the outdated check." -ForegroundColor DarkGray
+    Write-Host "  Tip: '.\run.ps1 status --tools' / '--models' to filter; '--no-choco' to skip outdated check." -ForegroundColor DarkGray
+    Write-Host "  Aliases: status, list-installed, installed" -ForegroundColor DarkGray
     Write-Host ""
 }
 
