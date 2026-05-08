@@ -22,6 +22,98 @@ $_resolvedPath = Join-Path $_sharedDir "resolved.ps1"
 if ((Test-Path $_resolvedPath) -and -not (Get-Command Remove-ResolvedData -ErrorAction SilentlyContinue)) {
     . $_resolvedPath
 }
+$_confirmPath = Join-Path $_sharedDir "confirm-prompt.ps1"
+if ((Test-Path $_confirmPath) -and -not (Get-Command Confirm-DestructiveAction -ErrorAction SilentlyContinue)) {
+    . $_confirmPath
+}
+
+function Test-IsWindowsServer {
+    <#
+    .SYNOPSIS
+        Returns $true when the current OS is a Windows Server SKU.
+        Proton VPN's MSI/choco package refuses to install on Server SKUs
+        (the installer hard-fails with "not supported on this OS").
+        Detection priority: CIM ProductType (3 = DC, 2 = Server) -> registry
+        InstallationType ("Server" / "Server Core") -> caption fallback.
+    #>
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        if ($os.ProductType -eq 2 -or $os.ProductType -eq 3) { return $true }
+        if ($os.Caption -and ($os.Caption -match 'Server')) { return $true }
+    } catch { }
+    try {
+        $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        $instType = (Get-ItemProperty -Path $key -Name InstallationType -ErrorAction Stop).InstallationType
+        if ($instType -and ($instType -match 'Server')) { return $true }
+    } catch { }
+    return $false
+}
+
+function Get-WindowsServerCaption {
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        if ($os.Caption) { return [string]$os.Caption }
+    } catch { }
+    return "Windows Server (caption unavailable)"
+}
+
+function Invoke-JumpJumpVpnFallback {
+    <#
+    .SYNOPSIS
+        When Proton refuses to install on Windows Server, offer to install
+        JumpJump VPN (script 61) instead. Honors -y / --non-interactive via
+        env vars: PROTON_AUTOFALLBACK_JUMPJUMP=1, LOVABLE_ASSUME_YES=1.
+    #>
+    param([Parameter(Mandatory)] $LogMessages)
+
+    $jjScriptDir = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "61-install-jumpjump-vpn"
+    $jjHelper    = Join-Path $jjScriptDir "helpers\jumpjump-vpn.ps1"
+    $jjConfigP   = Join-Path $jjScriptDir "config.json"
+    $jjLogP      = Join-Path $jjScriptDir "log-messages.json"
+
+    if (-not (Test-Path $jjHelper) -or -not (Test-Path $jjConfigP)) {
+        Write-FileError -FilePath $jjHelper -Operation "fallback dispatch" -Reason "JumpJump VPN script (61) not found at expected path -- cannot offer Windows Server fallback" -Module "Install-ProtonVpn"
+        return $false
+    }
+
+    $isAutoYes = ($env:PROTON_AUTOFALLBACK_JUMPJUMP -eq '1') -or `
+                 ($env:LOVABLE_ASSUME_YES -eq '1') -or `
+                 ($env:CI_ASSUME_YES -eq '1')
+
+    $confirmed = $false
+    if (Get-Command Confirm-DestructiveAction -ErrorAction SilentlyContinue) {
+        $confirmed = Confirm-DestructiveAction `
+            -Title  "Install JumpJump VPN instead? (Proton VPN does not support Windows Server)" `
+            -Detail "JumpJump VPN ships a Server-friendly installer. Type YES to install it now, anything else to skip." `
+            -AssumeYes:$isAutoYes `
+            -ConfirmWord 'YES'
+    } else {
+        if ($isAutoYes) {
+            Write-Log "[ AUTO-YES ] PROTON_AUTOFALLBACK_JUMPJUMP=1 -- installing JumpJump VPN" -Level "info"
+            $confirmed = $true
+        } else {
+            Write-Host ""
+            Write-Host "  [ PROMPT ] " -ForegroundColor Yellow -NoNewline
+            Write-Host "Install JumpJump VPN instead? Type YES: " -NoNewline
+            try {
+                $ans = [string](Read-Host)
+                $confirmed = [string]::Equals($ans.Trim(), 'YES', [System.StringComparison]::OrdinalIgnoreCase)
+            } catch { $confirmed = $false }
+        }
+    }
+
+    if (-not $confirmed) {
+        Write-Log "User declined JumpJump VPN fallback -- exiting Proton VPN installer without changes." -Level "warn"
+        return $false
+    }
+
+    . $jjHelper
+    $jjConfig = Import-JsonConfig $jjConfigP
+    $jjLog    = Import-JsonConfig $jjLogP
+    Write-Log "Delegating to JumpJump VPN installer (script 61)..." -Level "info"
+    return [bool](Install-JumpJumpVpn -JjConfig $jjConfig.jumpjumpVpn -LogMessages $jjLog)
+}
+
 
 function Get-ProtonVpnPath {
     <#
