@@ -1,0 +1,48 @@
+{
+  "scriptName": "install-protonvpn",
+  "scriptTitle": "Install Proton VPN",
+  "scriptDesc": "Install the Proton VPN Windows client via Chocolatey, with optional official-installer fallback and full registry/shortcut cleanup on uninstall",
+  "messages": {
+    "checking": "Checking for existing Proton VPN install...",
+    "alreadyInstalled": "Proton VPN already installed at: {path}",
+    "notFound": "Proton VPN not found -- will install via Chocolatey",
+    "installing": "Installing protonvpn via Chocolatey...",
+    "installSuccess": "Proton VPN installed at: {path}",
+    "installFailed": "Proton VPN installation failed: {error}",
+    "verifyFailed": "Install completed but ProtonVPN.exe was not found in any expected location -- choco package layout may have changed",
+    "fallbackDisabled": "Fallback disabled in config -- aborting after Chocolatey failure (set protonvpn.fallback.enabled=true and a current url to enable)",
+    "setupComplete": "Proton VPN setup complete",
+    "uninstalling": "Uninstalling {name}...",
+    "uninstallSuccess": "{name} uninstalled successfully.",
+    "uninstallFailed": "{name} uninstall failed -- package may need manual removal.",
+    "cleanupSkipped": "Post-uninstall cleanup disabled in config -- skipping registry + shortcut sweep",
+    "cleanupStart": "Sweeping leftover Proton VPN registry keys + shortcuts...",
+    "cleanupRegKeyRemoved": "Removed registry key: {path}",
+    "cleanupRegKeyMissing": "Registry key not present (clean): {path}",
+    "cleanupRegKeyFailed": "Could not remove registry key {path}: {error}",
+    "cleanupShortcutRemoved": "Removed shortcut/folder: {path}",
+    "cleanupShortcutMissing": "Shortcut not present (clean): {path}",
+    "cleanupShortcutFailed": "Could not remove shortcut {path}: {error}",
+    "cleanupAppDataKept": "AppData kept (purgeAppData=false): {path}",
+    "cleanupAppDataPurged": "Purged AppData folder: {path}",
+    "cleanupSummary": "Cleanup summary -- registry: {regRemoved} removed / {regMissing} clean / {regFailed} failed; shortcuts: {scRemoved} removed / {scMissing} clean / {scFailed} failed",
+    "uninstallComplete": "Uninstall complete. Package removed, tracking purged."
+  },
+  "help": {
+    "commands": {
+      "install": "Install Proton VPN via Chocolatey (default)",
+      "uninstall": "Uninstall Proton VPN, sweep registry + shortcuts, remove tracking",
+      "reinstall": "Uninstall then install (use bare dispatcher: .\\run.ps1 reinstall protonvpn)"
+    },
+    "parameters": {},
+    "examples": [
+      ".\\run.ps1 install protonvpn",
+      ".\\run.ps1 install proton-vpn",
+      ".\\run.ps1 -I 60",
+      ".\\run.ps1 -I 60 -- -Help",
+      ".\\run.ps1 -I 60 uninstall",
+      ".\\run.ps1 uninstall protonvpn",
+      ".\\run.ps1 reinstall protonvpn"
+    ]
+  }
+}

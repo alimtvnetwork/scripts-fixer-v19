@@ -1,0 +1,49 @@
+{
+  "devDir": {
+    "mode": "smart",
+    "default": "auto",
+    "override": ""
+  },
+  "protonvpn": {
+    "enabled": true,
+    "chocoPackage": "protonvpn",
+    "name": "Proton VPN",
+    "desc": "Proton VPN desktop client (installed via Chocolatey, falls back to official Proton installer when configured)",
+    "skipDevDirPrompt": true,
+    "fallback": {
+      "enabled": false,
+      "_comment": "Proton rotates installer filenames per release. Enable + set url + fileName to point at the latest ProtonVPN_win_v<ver>.exe from https://protonvpn.com/download-windows when needed.",
+      "url": "",
+      "fileName": "ProtonVPN_setup.exe",
+      "downloadDir": "",
+      "silentArgs": "/S",
+      "timeoutSeconds": 900
+    },
+    "uninstallCleanup": {
+      "enabled": true,
+      "removeRegistryKeys": true,
+      "removeShortcuts": true,
+      "registryKeys": [
+        "HKCU:\\Software\\Proton AG\\Proton VPN",
+        "HKCU:\\Software\\ProtonVPN",
+        "HKLM:\\SOFTWARE\\Proton AG\\Proton VPN",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Proton AG\\Proton VPN",
+        "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Proton VPN",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Proton VPN"
+      ],
+      "shortcutPaths": [
+        "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Proton VPN.lnk",
+        "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Proton VPN",
+        "%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Proton VPN.lnk",
+        "%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Proton VPN",
+        "%USERPROFILE%\\Desktop\\Proton VPN.lnk",
+        "%PUBLIC%\\Desktop\\Proton VPN.lnk"
+      ],
+      "appDataPaths": [
+        "%LOCALAPPDATA%\\Proton\\Proton VPN",
+        "%APPDATA%\\Proton\\Proton VPN"
+      ],
+      "purgeAppData": false
+    }
+  }
+}
