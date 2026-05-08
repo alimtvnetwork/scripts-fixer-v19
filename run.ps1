@@ -2674,6 +2674,36 @@ if ($_cmdLow -in $_helpAliases) {
 }
 
 if ($_isEarlyHelp) {
+    # Interactive prompt: if user ran bare `help` / `--help` / `-h` with NO
+    # keyword AND we have a real interactive console (not redirected / piped),
+    # ask for one. Empty input -> full help. Non-TTY -> full help (old behavior).
+    $_hasFilter = -not [string]::IsNullOrWhiteSpace($_earlyHelpFilter)
+    if (-not $_hasFilter) {
+        $_isInteractive = $false
+        try {
+            $_isInteractive = ($Host.Name -ne 'Default Host') -and `
+                              (-not [Console]::IsInputRedirected) -and `
+                              (-not [Console]::IsOutputRedirected)
+        } catch { $_isInteractive = $false }
+
+        if ($_isInteractive) {
+            Write-Host ""
+            Write-Host "  Interactive help filter" -ForegroundColor Cyan
+            Write-Host "  =======================" -ForegroundColor DarkGray
+            Write-Host "  Enter one or more keywords (space/comma separated) to filter the help." -ForegroundColor DarkGray
+            Write-Host "  Examples: chrome | chrome ext | vscode uninstall | conemu menu" -ForegroundColor DarkGray
+            Write-Host "  Press ENTER with no input to show the full help screen." -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "  keyword(s)> " -ForegroundColor Yellow -NoNewline
+            $_typed = $null
+            try { $_typed = Read-Host } catch { $_typed = $null }
+            if ($_typed) {
+                $_typed = $_typed.Trim()
+                if ($_typed.Length -gt 0) { $_earlyHelpFilter = $_typed }
+            }
+        }
+    }
+
     Show-RootHelp -Filter $_earlyHelpFilter
     exit 0
 }
