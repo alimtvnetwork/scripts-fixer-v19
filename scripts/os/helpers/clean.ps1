@@ -378,7 +378,7 @@ if ($allLocked.Count -gt 0) {
 Write-Host ""
 
 $finalStatus = "ok"
-$failCount = ($results | Where-Object { $_.Status -eq "fail" }).Count
+$failCount = @($results | Where-Object { $_.Status -eq "fail" }).Count
 if ($failCount -gt 0) { $finalStatus = "partial" }
 elseif ($totalLocked -gt 0) { $finalStatus = "partial" }
 elseif ($dryRun) { $finalStatus = "ok" }
