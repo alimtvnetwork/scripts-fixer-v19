@@ -174,7 +174,21 @@ function Install-ProtonVpn {
 
     $installedPath = Get-ProtonVpnPath
     if (-not $installedPath) {
-        Write-FileError -FilePath "ProtonVPN.exe" -Operation "verify" -Reason "ProtonVPN.exe not found after choco install -- checked common Proton install dirs under Program Files and LocalAppData" -Module "Install-ProtonVpn"
+        # Choco reported success but exe not located. Confirm package is registered;
+        # if so, treat as soft-success (Proton sometimes renames its launcher per release).
+        $chocoSeesIt = $false
+        try {
+            $chocoOut = & choco list --exact $ProtonConfig.chocoPackage --limit-output 2>$null
+            if ($LASTEXITCODE -eq 0 -and $chocoOut -and ($chocoOut -match $ProtonConfig.chocoPackage)) {
+                $chocoSeesIt = $true
+            }
+        } catch { }
+        if ($chocoSeesIt) {
+            Write-Log "Choco reports protonvpn installed but ProtonVPN.exe was not located on disk -- launcher may have been renamed by Proton. Treating as success." -Level "warn"
+            Save-InstalledRecord -Name "protonvpn" -Version "unknown" -Method "chocolatey"
+            return $true
+        }
+        Write-FileError -FilePath "ProtonVPN.exe" -Operation "verify" -Reason "ProtonVPN.exe not found after choco install -- checked Program Files, LocalAppData, registry uninstall keys, and recursive Proton folders" -Module "Install-ProtonVpn"
         Write-Log $msgs.verifyFailed -Level "warn"
         Save-InstalledError -Name "protonvpn" -ErrorMessage "Verify failed: ProtonVPN.exe not in expected locations after install"
         return $false
