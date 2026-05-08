@@ -148,10 +148,28 @@ function Show-ModelCatalog {
         Write-Host ("{0,-$colName}" -f $truncName)            -NoNewline -ForegroundColor $nameClr
         Write-Host (" {0,5} GB | {1,3} GB RAM   " -f $model.fileSizeGB, $model.ramRequiredGB) -NoNewline -ForegroundColor White
 
-        Write-RatingPart -Label "code"    -Value $model.rating.coding
-        Write-RatingPart -Label "reason"  -Value $model.rating.reasoning
-        Write-RatingPart -Label "speed"   -Value $model.rating.speed
-        Write-RatingPart -Label "overall" -Value $model.rating.overall -NoTrailingSep
+        # Compact ratings: code/reason/speed/overall  (no per-row labels)
+        $rCode    = 0; [int]::TryParse([string]$model.rating.coding,    [ref]$rCode)    | Out-Null
+        $rReason  = 0; [int]::TryParse([string]$model.rating.reasoning, [ref]$rReason)  | Out-Null
+        $rSpeed   = 0; [int]::TryParse([string]$model.rating.speed,     [ref]$rSpeed)   | Out-Null
+        $rOverall = 0; [int]::TryParse([string]$model.rating.overall,   [ref]$rOverall) | Out-Null
+        $ratings  = @(
+            @{ n = $rCode    },
+            @{ n = $rReason  },
+            @{ n = $rSpeed   },
+            @{ n = $rOverall }
+        )
+        for ($i = 0; $i -lt $ratings.Count; $i++) {
+            $n = [int]$ratings[$i].n
+            $clr = if     ($n -ge 9) { "Yellow" }
+                   elseif ($n -ge 7) { "Green"  }
+                   elseif ($n -ge 5) { "White"  }
+                   else              { "DarkGray" }
+            Write-Host ("{0,2}" -f $n) -NoNewline -ForegroundColor $clr
+            if ($i -lt ($ratings.Count - 1)) {
+                Write-Host "/" -NoNewline -ForegroundColor DarkGray
+            }
+        }
         Write-Host ""
 
         # ----- Line 2: Best for ------------------------------------------
