@@ -111,6 +111,7 @@ function Resolve-ChromeExtensionsFromUrls {
         }
     }
     return $result
+}
 
 function Show-ChromeExtensionCatalog {
     param([Parameter(Mandatory)] [PSObject]$ExtConfig)
