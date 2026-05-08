@@ -239,25 +239,36 @@ function Get-ModelDownloadPaths {
 
     function _ResolveOne {
         param([string]$BackendKey, [string]$EnvName, [string]$Sub)
+
         $envVal = [Environment]::GetEnvironmentVariable($EnvName)
         if (-not [string]::IsNullOrWhiteSpace($envVal)) {
-            return @{ Path = $envVal; Source = "env:$EnvName" }
+            $extras = @($overrides.$BackendKey)
+            $all = @($envVal) + @($extras | Where-Object { $_ -and $_.ToLower() -ne $envVal.ToLower() })
+            return @{ Path = $envVal; All = $all; Source = "env:$EnvName" }
         }
-        $savedBackend = $overrides.$BackendKey
-        if (-not [string]::IsNullOrWhiteSpace($savedBackend)) {
-            return @{ Path = $savedBackend; Source = "saved:$BackendKey" }
+
+        $savedBackend = @($overrides.$BackendKey)
+        if ($savedBackend.Count -gt 0) {
+            return @{ Path = $savedBackend[0]; All = $savedBackend; Source = "saved:$BackendKey ($($savedBackend.Count) dir$(if ($savedBackend.Count -ne 1) {'s'}))" }
         }
+
         $envShared = $env:MODELS_DIR
         if (-not [string]::IsNullOrWhiteSpace($envShared)) {
-            return @{ Path = (Join-Path $envShared $Sub); Source = "env:MODELS_DIR/$Sub" }
+            $p = (Join-Path $envShared $Sub)
+            return @{ Path = $p; All = @($p); Source = "env:MODELS_DIR/$Sub" }
         }
-        if (-not [string]::IsNullOrWhiteSpace($overrides.shared)) {
-            return @{ Path = (Join-Path $overrides.shared $Sub); Source = "saved:shared/$Sub" }
+
+        $sharedSaved = @($overrides.shared)
+        if ($sharedSaved.Count -gt 0) {
+            $all = @($sharedSaved | ForEach-Object { Join-Path $_ $Sub })
+            return @{ Path = $all[0]; All = $all; Source = "saved:shared/$Sub ($($sharedSaved.Count) dir$(if ($sharedSaved.Count -ne 1) {'s'}))" }
         }
+
         if ($hasDevDir) {
-            return @{ Path = (Join-Path $devDir $Sub); Source = "DEV_DIR/$Sub" }
+            $p = (Join-Path $devDir $Sub)
+            return @{ Path = $p; All = @($p); Source = "DEV_DIR/$Sub" }
         }
-        return @{ Path = "<DEV_DIR not set>\$Sub"; Source = "unresolved" }
+        return @{ Path = "<DEV_DIR not set>\$Sub"; All = @(); Source = "unresolved" }
     }
 
     $llama  = _ResolveOne -BackendKey 'llama'  -EnvName 'LLAMA_MODELS_DIR' -Sub $llamaSub
@@ -267,12 +278,14 @@ function Get-ModelDownloadPaths {
         DevDir       = if ($hasDevDir) { $devDir } else { "(not set)" }
         DevDirSource = $devDirSource
         Llama        = $llama.Path
+        LlamaAll     = @($llama.All)
         LlamaSource  = $llama.Source
         Ollama       = $ollama.Path
+        OllamaAll    = @($ollama.All)
         OllamaSource = $ollama.Source
         SharedEnv    = $env:MODELS_DIR
-        SharedSaved  = $overrides.shared
-        IsResolved   = $hasDevDir -or (-not [string]::IsNullOrWhiteSpace($env:MODELS_DIR)) -or (-not [string]::IsNullOrWhiteSpace($overrides.shared))
+        SharedSaved  = @($overrides.shared)
+        IsResolved   = $hasDevDir -or (-not [string]::IsNullOrWhiteSpace($env:MODELS_DIR)) -or (@($overrides.shared).Count -gt 0)
     }
 }
 
@@ -283,16 +296,41 @@ function Show-ModelDownloadPaths {
     Write-Host ""
     Write-Host "  Model download locations" -ForegroundColor Yellow
     Write-Host ("    DEV_DIR             : {0}  [{1}]" -f $Paths.DevDir, $Paths.DevDirSource) -ForegroundColor Gray
-    Write-Host ("    llama.cpp (GGUF)    : {0}" -f $Paths.Llama)  -ForegroundColor White
+
+    Write-Host ("    llama.cpp (GGUF)    : {0}" -f $Paths.Llama) -ForegroundColor White
     Write-Host ("                          source: {0}" -f $Paths.LlamaSource) -ForegroundColor DarkGray
-    Write-Host ("    Ollama daemon store : {0}" -f $Paths.Ollama) -ForegroundColor Cyan
+    if (@($Paths.LlamaAll).Count -gt 1) {
+        for ($i = 1; $i -lt @($Paths.LlamaAll).Count; $i++) {
+            Write-Host ("                          + extra [{0}]: {1}" -f ($i+1), $Paths.LlamaAll[$i]) -ForegroundColor White
+        }
+    }
+
+    Write-Host ("    Ollama daemon store : {0}" -f $Paths.Ollama) -ForegroundColor White
     Write-Host ("                          source: {0}" -f $Paths.OllamaSource) -ForegroundColor DarkGray
+    if (@($Paths.OllamaAll).Count -gt 1) {
+        for ($i = 1; $i -lt @($Paths.OllamaAll).Count; $i++) {
+            Write-Host ("                          + extra [{0}]: {1}" -f ($i+1), $Paths.OllamaAll[$i]) -ForegroundColor White
+        }
+    }
+
+    if (@($Paths.SharedSaved).Count -gt 0) {
+        Write-Host ""
+        Write-Host "    Shared roots (apply to both backends):" -ForegroundColor Yellow
+        $i = 0
+        foreach ($s in @($Paths.SharedSaved)) {
+            $i++
+            Write-Host ("      [{0}] {1}" -f $i, $s) -ForegroundColor White
+        }
+    }
+
     Write-Host ""
     Write-Host "  Override syntax" -ForegroundColor Yellow
-    Write-Host "    Shared (both)      : `$env:MODELS_DIR='X:\ai'         OR  .\run.ps1 models path X:\ai" -ForegroundColor DarkGray
-    Write-Host "    llama.cpp only     : `$env:LLAMA_MODELS_DIR='X:\gguf'  OR  .\run.ps1 models path llama X:\gguf" -ForegroundColor DarkGray
-    Write-Host "    Ollama only        : `$env:OLLAMA_MODELS='X:\ollama'   OR  .\run.ps1 models path ollama X:\ollama" -ForegroundColor DarkGray
-    Write-Host "    Show / reset       : .\run.ps1 models path            |   .\run.ps1 models path --reset [llama|ollama|all]" -ForegroundColor DarkGray
+    Write-Host "    Set (replace)      : .\run.ps1 models path llama   D:\gguf      |   .\run.ps1 models path ollama D:\ollama" -ForegroundColor DarkGray
+    Write-Host "    Add another dir    : .\run.ps1 models path llama   add D:\gguf2 |   .\run.ps1 models path ollama add E:\models" -ForegroundColor DarkGray
+    Write-Host "    Remove a dir       : .\run.ps1 models path llama   rm  D:\gguf2 |   .\run.ps1 models path ollama rm  E:\models" -ForegroundColor DarkGray
+    Write-Host "    Shared (both)      : .\run.ps1 models path D:\ai   |   add D:\ai2  |   rm D:\ai2" -ForegroundColor DarkGray
+    Write-Host "    Env vars           : `$env:LLAMA_MODELS_DIR  |  `$env:OLLAMA_MODELS  |  `$env:MODELS_DIR" -ForegroundColor DarkGray
+    Write-Host "    Show / reset       : .\run.ps1 models path  |  .\run.ps1 models path --reset [llama|ollama|shared|all]" -ForegroundColor DarkGray
     if (-not $Paths.IsResolved) {
         Write-Host "    Tip: set DEV_DIR via  `$env:DEV_DIR='D:\dev'   or   .\run.ps1 path D:\dev" -ForegroundColor DarkGray
     }
