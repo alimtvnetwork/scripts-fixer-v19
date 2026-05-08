@@ -17,53 +17,168 @@ function Get-ModelsPathsStore {
     return (Join-Path $resolvedDir "models-paths.json")
 }
 
+function _NormalizeDirList {
+    param($Value)
+    if ($null -eq $Value) { return @() }
+    if ($Value -is [string]) {
+        if ([string]::IsNullOrWhiteSpace($Value)) { return @() }
+        return @($Value)
+    }
+    $out = @()
+    foreach ($v in @($Value)) {
+        if ($null -ne $v -and -not [string]::IsNullOrWhiteSpace([string]$v)) {
+            $out += [string]$v
+        }
+    }
+    return ,$out
+}
+
 function Read-ModelsPathOverrides {
+    <#
+    .SYNOPSIS
+        Returns persisted overrides, with each scope normalized to an array
+        of directories (empty array = no override). Backward-compatible with
+        the old single-string format.
+    #>
     param([Parameter(Mandatory)] [string]$ScriptsRoot)
     $store = Get-ModelsPathsStore -ScriptsRoot $ScriptsRoot
     if (-not (Test-Path $store)) {
-        return [PSCustomObject]@{ shared = $null; llama = $null; ollama = $null }
+        return [PSCustomObject]@{ shared = @(); llama = @(); ollama = @() }
     }
     try {
         $raw = Get-Content $store -Raw | ConvertFrom-Json
         return [PSCustomObject]@{
-            shared = if ($raw.PSObject.Properties['shared']) { $raw.shared } else { $null }
-            llama  = if ($raw.PSObject.Properties['llama'])  { $raw.llama }  else { $null }
-            ollama = if ($raw.PSObject.Properties['ollama']) { $raw.ollama } else { $null }
+            shared = _NormalizeDirList (if ($raw.PSObject.Properties['shared']) { $raw.shared } else { $null })
+            llama  = _NormalizeDirList (if ($raw.PSObject.Properties['llama'])  { $raw.llama }  else { $null })
+            ollama = _NormalizeDirList (if ($raw.PSObject.Properties['ollama']) { $raw.ollama } else { $null })
         }
     } catch {
         Write-Log ("Failed to read models-paths store '$store' -- $_") -Level "warn"
-        return [PSCustomObject]@{ shared = $null; llama = $null; ollama = $null }
+        return [PSCustomObject]@{ shared = @(); llama = @(); ollama = @() }
+    }
+}
+
+function _WriteOverridesStore {
+    param(
+        [Parameter(Mandatory)] [string]$ScriptsRoot,
+        [Parameter(Mandatory)] $SharedList,
+        [Parameter(Mandatory)] $LlamaList,
+        [Parameter(Mandatory)] $OllamaList
+    )
+    $store = Get-ModelsPathsStore -ScriptsRoot $ScriptsRoot
+    $obj = @{
+        shared = @(_NormalizeDirList $SharedList)
+        llama  = @(_NormalizeDirList $LlamaList)
+        ollama = @(_NormalizeDirList $OllamaList)
+    }
+    try {
+        ($obj | ConvertTo-Json -Depth 5) | Set-Content -Path $store -Encoding UTF8
+        return $store
+    } catch {
+        Write-Log "Failed to write models-path store '$store' -- $_" -Level "error"
+        return $null
     }
 }
 
 function Save-ModelsPathOverride {
     <#
     .SYNOPSIS
-        Persist a model-dir override. -Scope: 'shared' | 'llama' | 'ollama'.
-        -Path '' / $null clears the entry.
+        REPLACE the override list for a scope. -Path '' / $null clears it.
+        -Scope: 'shared' | 'llama' | 'ollama' | 'all' (clears every scope).
     #>
     param(
         [Parameter(Mandatory)] [string]$ScriptsRoot,
         [Parameter(Mandatory)] [ValidateSet('shared','llama','ollama','all')] [string]$Scope,
         [string]$Path
     )
-    $store = Get-ModelsPathsStore -ScriptsRoot $ScriptsRoot
-    $cur   = Read-ModelsPathOverrides -ScriptsRoot $ScriptsRoot
-    $obj = @{
-        shared = $cur.shared
-        llama  = $cur.llama
-        ollama = $cur.ollama
-    }
+    $cur = Read-ModelsPathOverrides -ScriptsRoot $ScriptsRoot
+    $shared = @($cur.shared); $llama = @($cur.llama); $ollama = @($cur.ollama)
     if ($Scope -eq 'all') {
-        $obj.shared = $null; $obj.llama = $null; $obj.ollama = $null
+        $shared = @(); $llama = @(); $ollama = @()
     } else {
-        $obj[$Scope] = if ([string]::IsNullOrWhiteSpace($Path)) { $null } else { $Path }
+        $newList = if ([string]::IsNullOrWhiteSpace($Path)) { @() } else { @($Path) }
+        switch ($Scope) {
+            'shared' { $shared = $newList }
+            'llama'  { $llama  = $newList }
+            'ollama' { $ollama = $newList }
+        }
     }
-    try {
-        ($obj | ConvertTo-Json -Depth 5) | Set-Content -Path $store -Encoding UTF8
-        Write-Log "Saved models-path override ($Scope) -> '$($obj[$Scope])' [$store]" -Level "success"
-    } catch {
-        Write-Log "Failed to write models-path store '$store' -- $_" -Level "error"
+    $store = _WriteOverridesStore -ScriptsRoot $ScriptsRoot -SharedList $shared -LlamaList $llama -OllamaList $ollama
+    if ($store) {
+        Write-Log "Saved models-path override ($Scope) [$store]" -Level "success"
+    }
+}
+
+function Add-ModelsPathOverride {
+    <#
+    .SYNOPSIS
+        APPEND a directory to the override list for a scope (no duplicates,
+        case-insensitive). Use this to register a *second* model directory.
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$ScriptsRoot,
+        [Parameter(Mandatory)] [ValidateSet('shared','llama','ollama')] [string]$Scope,
+        [Parameter(Mandatory)] [string]$Path
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        Write-Log "Add-ModelsPathOverride: empty path supplied for scope '$Scope'" -Level "error"
+        return
+    }
+    $cur = Read-ModelsPathOverrides -ScriptsRoot $ScriptsRoot
+    $shared = @($cur.shared); $llama = @($cur.llama); $ollama = @($cur.ollama)
+    $list = switch ($Scope) {
+        'shared' { ,$shared }
+        'llama'  { ,$llama }
+        'ollama' { ,$ollama }
+    }
+    if ($list -and ($list | Where-Object { $_ -and $_.ToLower() -eq $Path.ToLower() })) {
+        Write-Log "Path already present for '$Scope': $Path" -Level "info"
+        return
+    }
+    $list += $Path
+    switch ($Scope) {
+        'shared' { $shared = $list }
+        'llama'  { $llama  = $list }
+        'ollama' { $ollama = $list }
+    }
+    $store = _WriteOverridesStore -ScriptsRoot $ScriptsRoot -SharedList $shared -LlamaList $llama -OllamaList $ollama
+    if ($store) {
+        Write-Log "Added '$Scope' model dir: $Path  (total: $($list.Count)) [$store]" -Level "success"
+    }
+}
+
+function Remove-ModelsPathOverride {
+    <#
+    .SYNOPSIS
+        Remove a single directory from the override list for a scope
+        (case-insensitive match).
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$ScriptsRoot,
+        [Parameter(Mandatory)] [ValidateSet('shared','llama','ollama')] [string]$Scope,
+        [Parameter(Mandatory)] [string]$Path
+    )
+    $cur = Read-ModelsPathOverrides -ScriptsRoot $ScriptsRoot
+    $shared = @($cur.shared); $llama = @($cur.llama); $ollama = @($cur.ollama)
+    $list = switch ($Scope) {
+        'shared' { ,$shared }
+        'llama'  { ,$llama }
+        'ollama' { ,$ollama }
+    }
+    $before = @($list).Count
+    $list = @($list | Where-Object { $_ -and $_.ToLower() -ne $Path.ToLower() })
+    if ($list.Count -eq $before) {
+        Write-Log "No matching path to remove for '$Scope': $Path" -Level "warn"
+        return
+    }
+    switch ($Scope) {
+        'shared' { $shared = $list }
+        'llama'  { $llama  = $list }
+        'ollama' { $ollama = $list }
+    }
+    $store = _WriteOverridesStore -ScriptsRoot $ScriptsRoot -SharedList $shared -LlamaList $llama -OllamaList $ollama
+    if ($store) {
+        Write-Log "Removed '$Scope' model dir: $Path  (remaining: $($list.Count)) [$store]" -Level "success"
     }
 }
 
