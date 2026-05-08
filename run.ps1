@@ -281,7 +281,7 @@ function Get-VersionMap {
 }
 
 # ── Help function ────────────────────────────────────────────────────
-function Show-RootHelp {
+function Show-RootHelpRaw {
     Show-VersionHeader
     Write-Host ""
     Write-Host "  Dev Tools Setup Scripts" -ForegroundColor Cyan
