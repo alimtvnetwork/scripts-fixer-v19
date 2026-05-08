@@ -3045,6 +3045,20 @@ if ($_isEarlyHelp) {
                               (-not [Console]::IsOutputRedirected)
         } catch { $_isInteractive = $false }
 
+        # Last-used keyword persistence: read prior value (if any) so we can
+        # pre-seed the prompt buffer. File lives under .resolved/ alongside
+        # other runtime state.
+        $_lastKwFile = Join-Path $RootDir ".resolved\help-last-keyword.json"
+        $_lastKw = $null
+        if (Test-Path $_lastKwFile) {
+            try {
+                $_lkRaw = Get-Content $_lastKwFile -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+                if ($_lkRaw -and $_lkRaw.keyword) { $_lastKw = "$($_lkRaw.keyword)".Trim() }
+            } catch {
+                Write-Host "  Note: could not read last keyword file: $_lastKwFile -- $($_.Exception.Message)" -ForegroundColor DarkYellow
+            }
+        }
+
         if ($_isInteractive) {
             # Curated completion candidates for Tab cycling at the keyword(s)> prompt.
             # Mirrors the curated list in `help --list`. Kept inline here so prompt
@@ -3067,7 +3081,13 @@ if ($_isEarlyHelp) {
             Write-Host "  Examples: chrome | chrome ext | vscode uninstall | conemu menu" -ForegroundColor DarkGray
             Write-Host "  Append --out <path> / --json <path> to also save the matches." -ForegroundColor DarkGray
             Write-Host "  Press TAB to cycle completions (Shift+TAB reverse). ? lists matches." -ForegroundColor DarkGray
-            Write-Host "  Press ENTER with no input to show the full help screen." -ForegroundColor DarkGray
+            if ($_lastKw) {
+                Write-Host "  Last used: " -ForegroundColor DarkGray -NoNewline
+                Write-Host $_lastKw -ForegroundColor Cyan -NoNewline
+                Write-Host "  (pre-filled -- press ENTER to reuse, Esc to clear)" -ForegroundColor DarkGray
+            } else {
+                Write-Host "  Press ENTER with no input to show the full help screen." -ForegroundColor DarkGray
+            }
             Write-Host ""
 
             # Custom line editor with Tab completion. Falls back to Read-Host if
@@ -3078,7 +3098,9 @@ if ($_isEarlyHelp) {
 
             if (-not $_useRaw) {
                 Write-Host "  keyword(s)> " -ForegroundColor Yellow -NoNewline
+                if ($_lastKw) { Write-Host "[default: $_lastKw] " -ForegroundColor DarkGray -NoNewline }
                 try { $_typed = Read-Host } catch { $_typed = $null }
+                if ((-not $_typed) -and $_lastKw) { $_typed = $_lastKw }
             } else {
                 $_promptText = "  keyword(s)> "
                 Write-Host $_promptText -ForegroundColor Yellow -NoNewline
@@ -3091,6 +3113,12 @@ if ($_isEarlyHelp) {
 
                 function script:_ResetCompletion { $script:_compMatches=@(); $script:_compIndex=-1; $script:_compPrefix=$null }
                 _ResetCompletion
+
+                # Pre-seed buffer with last-used keyword so ENTER reuses it.
+                if ($_lastKw) {
+                    [void]$_buf.Append($_lastKw)
+                    Write-Host $_lastKw -ForegroundColor DarkCyan -NoNewline
+                }
 
                 while ($true) {
                     $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -3187,6 +3215,22 @@ if ($_isEarlyHelp) {
                 $_typed = $_typed.Trim()
                 if ($_typed.Length -gt 0) { $_earlyHelpFilter = $_typed }
             }
+        }
+    }
+
+    # Persist last-used keyword(s) so the next interactive `help` pre-fills it.
+    if (-not [string]::IsNullOrWhiteSpace($_earlyHelpFilter)) {
+        try {
+            $_lastKwFileSave = Join-Path $RootDir ".resolved\help-last-keyword.json"
+            $_lastKwDir = Split-Path -Parent $_lastKwFileSave
+            if (-not (Test-Path $_lastKwDir)) { New-Item -ItemType Directory -Path $_lastKwDir -Force | Out-Null }
+            $_lastKwPayload = [pscustomobject]@{
+                keyword = $_earlyHelpFilter.Trim()
+                savedAt = (Get-Date).ToString("o")
+            }
+            $_lastKwPayload | ConvertTo-Json -Compress | Set-Content -Path $_lastKwFileSave -Encoding UTF8
+        } catch {
+            Write-Host "  Note: could not write last keyword file: $_lastKwFileSave -- $($_.Exception.Message)" -ForegroundColor DarkYellow
         }
     }
 
