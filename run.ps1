@@ -868,8 +868,10 @@ function Show-RootHelpRaw {
 
 # ── Help wrapper with optional keyword filter ────────────────────────
 # Usage:
-#   Show-RootHelp                    -> full help
-#   Show-RootHelp -Filter "chrome"   -> only lines containing "chrome" (case-insensitive)
+#   Show-RootHelp                           -> full help
+#   Show-RootHelp -Filter "chrome"          -> lines containing "chrome"
+#   Show-RootHelp -Filter "chrome startup"  -> lines matching ALL terms (AND)
+#   Show-RootHelp -Filter "chrome,ext"      -> commas/spaces both split terms
 function Show-RootHelp {
     param([string]$Filter)
 
@@ -879,14 +881,27 @@ function Show-RootHelp {
         return
     }
 
-    $needle = $Filter.Trim().ToLower()
+    # Split on whitespace and commas; lower-case; drop empties.
+    # Each term must appear in a logical line for it to match (AND semantics).
+    $needles = @(
+        $Filter.ToLower() -split '[\s,]+' |
+            ForEach-Object { $_.Trim() } |
+            Where-Object   { $_.Length -gt 0 }
+    )
+    $hasNeedles = $needles.Count -gt 0
+    if (-not $hasNeedles) {
+        Show-RootHelpRaw
+        return
+    }
+
+    $displayFilter = $needles -join ' AND '
 
     # Capture Write-Host output (Information stream, ID 6) as records so we
     # can preserve the original colors when re-emitting matched lines.
     $records = & { Show-RootHelpRaw } 6>&1
 
     Write-Host ""
-    Write-Host "  Filtered help -- keyword: '$Filter'" -ForegroundColor Cyan
+    Write-Host "  Filtered help -- keyword(s): $displayFilter" -ForegroundColor Cyan
     Write-Host "  ===================================" -ForegroundColor DarkGray
     Write-Host ""
 
@@ -911,9 +926,13 @@ function Show-RootHelp {
         $pending.Add([pscustomobject]@{ Message = $msg; ForegroundColor = $fg; NoNewLine = $nl })
 
         if (-not $nl) {
-            # Logical line complete -- decide whether to emit
-            $combined = -join ($pending | ForEach-Object { $_.Message })
-            if ($combined.ToLower().Contains($needle)) {
+            # Logical line complete -- emit only if EVERY needle matches.
+            $combinedLower = (-join ($pending | ForEach-Object { $_.Message })).ToLower()
+            $isMatch = $true
+            foreach ($n in $needles) {
+                if (-not $combinedLower.Contains($n)) { $isMatch = $false; break }
+            }
+            if ($isMatch) {
                 foreach ($p in $pending) {
                     $hp = @{ Object = $p.Message; NoNewline = $true }
                     if ($null -ne $p.ForegroundColor -and [int]$p.ForegroundColor -ge 0) {
@@ -930,10 +949,11 @@ function Show-RootHelp {
 
     Write-Host ""
     if ($matched -eq 0) {
-        Write-Host "  No help lines match '$Filter'." -ForegroundColor Yellow
-        Write-Host "  Tip: try a broader keyword, e.g. 'chrome', 'ext', 'menu', 'os', 'update'." -ForegroundColor DarkGray
+        Write-Host "  No help lines match: $displayFilter" -ForegroundColor Yellow
+        Write-Host "  Tip: try fewer terms or broader keywords (e.g. 'chrome', 'ext', 'menu', 'os')." -ForegroundColor DarkGray
     } else {
-        Write-Host "  $matched line(s) matched '$Filter'." -ForegroundColor Green
+        $termWord = if ($needles.Count -eq 1) { "term" } else { "terms (AND)" }
+        Write-Host "  $matched line(s) matched $($needles.Count) $termWord -- $displayFilter" -ForegroundColor Green
         Write-Host "  Run '.\run.ps1 help' (no keyword) to see the full help screen." -ForegroundColor DarkGray
     }
     Write-Host ""
