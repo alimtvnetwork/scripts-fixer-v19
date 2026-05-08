@@ -5,7 +5,7 @@
     "updateUserPath": true
   },
   "modelsConfig": {
-    "devDirSubfolder": "ai-models"
+    "devDirSubfolder": "models"
   },
   "aria2c": {
     "maxConnections": 16,

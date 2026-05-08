@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.219.0] -- 2026-05-08
+
+### Changed
+- **Models dispatcher**: default download folder is now `<DEV_DIR>\models` (shared by both llama.cpp and Ollama backends) instead of `ai-models` / `llama-models` / `ollama-models`. Per-backend env vars (`LLAMA_MODELS_DIR`, `OLLAMA_MODELS`) and `models path` overrides still take precedence.
+
 ## [v0.218.0] -- 2026-05-08
 
 ### Fixed: `os clean` corrupting Chrome / Brave / Edge extensions (CODE RED)

@@ -11,7 +11,7 @@
   },
   "models": {
     "promptForDirectory": true,
-    "devDirSubfolder": "ai-models",
+    "devDirSubfolder": "models",
     "envVarName": "OLLAMA_MODELS"
   },
   "defaultModels": [

@@ -817,7 +817,7 @@ function Invoke-ModelInstaller {
         [Parameter(Mandatory)]
         [string]$DevDir,
 
-        [string]$DefaultModelsSubfolder = "llama-models",
+        [string]$DefaultModelsSubfolder = "models",
 
         $Aria2Config,
         $DownloadConfig,
