@@ -70,6 +70,7 @@ $catalog = Get-Catalog -Path $catalogPath
 if ($null -eq $catalog) { exit 2 }
 
 $cmd = ($Action ?? "list").ToLower()
+try {
 switch ($cmd) {
     'list' {
         Write-Host ("  Catalog : " + $catalogPath) -ForegroundColor DarkGray
