@@ -2605,6 +2605,50 @@ function Invoke-PathCommand {
     Write-Host ""
 }
 
+# ── GLOBAL early help intercept ──────────────────────────────────────
+# Catches every variant of help invocation BEFORE normalization, git pull
+# or keyword resolution can turn them into "Unknown keyword" errors:
+#   .\run.ps1 help              .\run.ps1 help chrome
+#   .\run.ps1 --help            .\run.ps1 --help chrome
+#   .\run.ps1 -help ext-url     .\run.ps1 /? conemu
+#   .\run.ps1 -h                .\run.ps1 -h chrome
+# Works whether PowerShell binds the token to $Command, $Install, or $Help.
+$_helpAliases = @("help", "--help", "-help", "/?", "?", "-?")
+$_earlyHelpFilter = $null
+$_isEarlyHelp = $false
+
+$_cmdLow = if ($Command) { $Command.Trim().ToLower() } else { "" }
+$_installList = @()
+if ($null -ne $Install) {
+    $_installList = @($Install | Where-Object { $null -ne $_ -and "$_".Length -gt 0 })
+}
+
+if ($_cmdLow -in $_helpAliases) {
+    $_isEarlyHelp = $true
+    if ($_installList.Count -gt 0) { $_earlyHelpFilter = ($_installList -join ' ').Trim() }
+} elseif ($_installList.Count -gt 0 -and "$($_installList[0])".Trim().ToLower() -in $_helpAliases) {
+    # e.g. PowerShell pushed `--help chrome` entirely into $Install
+    $_isEarlyHelp = $true
+    $_rest = @($_installList | Select-Object -Skip 1)
+    if ($_rest.Count -gt 0) { $_earlyHelpFilter = ($_rest -join ' ').Trim() }
+} elseif (($Help -or $h) -and -not $I) {
+    # `-h <keyword>` or `-Help <keyword>` -- token typically lands in $Command
+    $_isEarlyHelp = $true
+    if ($_cmdLow -and ($_cmdLow -notin $_helpAliases)) {
+        $_earlyHelpFilter = $Command.Trim()
+        if ($_installList.Count -gt 0) {
+            $_earlyHelpFilter = (@($_earlyHelpFilter) + $_installList -join ' ').Trim()
+        }
+    } elseif ($_installList.Count -gt 0) {
+        $_earlyHelpFilter = ($_installList -join ' ').Trim()
+    }
+}
+
+if ($_isEarlyHelp) {
+    Show-RootHelp -Filter $_earlyHelpFilter
+    exit 0
+}
+
 # ── Normalize positional command mode ────────────────────────────────
 # Supports:  .\run.ps1 install alldev,mysql
 #             .\run.ps1 install alldev mysql
