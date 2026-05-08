@@ -2956,6 +2956,7 @@ if ($hasCommand) {
 
     if ($isBareProfileCommand) {
         Show-VersionHeader
+        $profileScript = Join-Path $RootDir "scripts\profile\run.ps1"
         $isProfileScriptPresent = Test-Path $profileScript
         if (-not $isProfileScriptPresent) {
             Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
