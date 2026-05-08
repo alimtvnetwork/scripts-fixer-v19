@@ -158,6 +158,10 @@ try {
 
     # ── Uninstall ────────────────────────────────────────────────────────
     if ($cmd -eq "uninstall") {
+        Assert-Elevated `
+            -ScriptPath $PSCommandPath `
+            -ScriptArgs ((@($Command) + @($Rest)) -join ' ') `
+            -Reason 'Chrome uninstall removes HKLM and HKCU registry keys and requires Administrator privileges.'
         Uninstall-Chrome -ChromeConfig $config.chrome -LogMessages $logMessages
         return
     }
