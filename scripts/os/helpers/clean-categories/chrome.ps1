@@ -1,23 +1,26 @@
-<# Bucket D: chrome -- Cache + Code Cache + GPUCache (cookies/history NEVER touched) #>
+<#
+    Bucket D: chrome -- HTTP cache + GPU/code cache + (closed-only) Service Worker ScriptCache.
+
+    SAFETY: never wipes 'Service Worker\CacheStorage' (persistent caches.open()
+    store used by adblockers / VPN extensions / tab managers). Refuses to run
+    while chrome.exe is alive -- sweeping a live cache desyncs Cache\index +
+    Service Worker\Database and triggers "this extension may be corrupted".
+    See _sweep.ps1 :: Invoke-ChromiumCacheSweep for the full safety contract.
+#>
 param([switch]$DryRun, [switch]$Yes, [int]$Days = 30, [hashtable]$SharedResult)
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Definition
 . (Join-Path $here "_sweep.ps1")
 
-$result = New-CleanResult -Category "chrome" -Label "Chrome cache (all profiles)" -Bucket "D"
-$root = Join-Path (Get-LocalAppDataPath) "Google\Chrome\User Data"
-if (-not (Test-Path -LiteralPath $root)) {
-    $result.Notes += "Chrome not installed (no $root)"
-    Set-CleanResultStatus -Result $result -DryRun:$DryRun
-    return $result
-}
+$result = New-CleanResult -Category "chrome" -Label "Chrome cache (all profiles, SW data preserved)" -Bucket "D"
+$root   = Join-Path (Get-LocalAppDataPath) "Google\Chrome\User Data"
 
-$profiles = @(Get-ChildItem -LiteralPath $root -Directory -Force -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -eq "Default" -or $_.Name -match "^Profile \d+$" -or $_.Name -eq "Guest Profile" })
-foreach ($p in $profiles) {
-    foreach ($sub in @("Cache", "Code Cache", "GPUCache", "Service Worker\CacheStorage", "Service Worker\ScriptCache")) {
-        Invoke-PathSweep -Path (Join-Path $p.FullName $sub) -Result $result -DryRun:$DryRun -LogPrefix "chrome/$($p.Name)/$sub"
-    }
-}
+Invoke-ChromiumCacheSweep `
+    -Result      $result `
+    -Root        $root `
+    -ProcessName "chrome" `
+    -LogLabel    "chrome" `
+    -DryRun:$DryRun
+
 Set-CleanResultStatus -Result $result -DryRun:$DryRun
 return $result

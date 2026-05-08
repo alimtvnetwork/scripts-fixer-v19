@@ -1,23 +1,21 @@
-<# Bucket D: edge -- Cache + Code Cache + GPUCache (cookies/history NEVER touched) #>
+<#
+    Bucket D: edge -- HTTP cache + GPU/code cache + (closed-only) SW ScriptCache.
+    SAFETY: see chrome.ps1 / _sweep.ps1 :: Invoke-ChromiumCacheSweep.
+#>
 param([switch]$DryRun, [switch]$Yes, [int]$Days = 30, [hashtable]$SharedResult)
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Definition
 . (Join-Path $here "_sweep.ps1")
 
-$result = New-CleanResult -Category "edge" -Label "Microsoft Edge cache (all profiles)" -Bucket "D"
-$root = Join-Path (Get-LocalAppDataPath) "Microsoft\Edge\User Data"
-if (-not (Test-Path -LiteralPath $root)) {
-    $result.Notes += "Edge not installed (no $root)"
-    Set-CleanResultStatus -Result $result -DryRun:$DryRun
-    return $result
-}
+$result = New-CleanResult -Category "edge" -Label "Microsoft Edge cache (all profiles, SW data preserved)" -Bucket "D"
+$root   = Join-Path (Get-LocalAppDataPath) "Microsoft\Edge\User Data"
 
-$profiles = @(Get-ChildItem -LiteralPath $root -Directory -Force -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -eq "Default" -or $_.Name -match "^Profile \d+$" })
-foreach ($p in $profiles) {
-    foreach ($sub in @("Cache", "Code Cache", "GPUCache", "Service Worker\CacheStorage", "Service Worker\ScriptCache")) {
-        Invoke-PathSweep -Path (Join-Path $p.FullName $sub) -Result $result -DryRun:$DryRun -LogPrefix "edge/$($p.Name)/$sub"
-    }
-}
+Invoke-ChromiumCacheSweep `
+    -Result      $result `
+    -Root        $root `
+    -ProcessName "msedge" `
+    -LogLabel    "edge" `
+    -DryRun:$DryRun
+
 Set-CleanResultStatus -Result $result -DryRun:$DryRun
 return $result

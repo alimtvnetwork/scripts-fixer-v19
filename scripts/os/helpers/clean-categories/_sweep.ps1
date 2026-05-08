@@ -362,6 +362,100 @@ function Start-WindowsService {
     }
 }
 
+# ---------- Browser running detector --------------------------------------
+function Test-BrowserRunning {
+    <#
+    .SYNOPSIS
+        Returns $true when at least one process for a chromium-family browser
+        (chrome / brave / msedge) is alive on the local machine.
+
+    .PARAMETER ProcessName
+        Bare process name without .exe (e.g. "chrome", "brave", "msedge").
+
+    .NOTES
+        Sweeping cache/SW folders while the browser is RUNNING is the #1 way
+        to soft-corrupt the profile (orphan entries in Cache\index, desynced
+        Service Worker\Database -> "extension may be corrupted" errors).
+        Every chromium-family cleaner MUST gate its sweep behind this check.
+    #>
+    param([Parameter(Mandatory)] [string]$ProcessName)
+    try {
+        $procs = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)
+        return ($procs.Count -gt 0)
+    } catch { return $false }
+}
+
+# ---------- Chromium cache sweep (chrome/brave/edge share this) -----------
+function Invoke-ChromiumCacheSweep {
+    <#
+    .SYNOPSIS
+        Safe sweep for chromium-family browsers (Chrome / Brave / Edge).
+
+        SAFE TO SWEEP:
+          Cache, Code Cache, GPUCache  -- pure HTTP caches, regenerated on demand.
+          Service Worker\ScriptCache    -- compiled SW bytecode, regenerated.
+
+        NEVER SWEPT:
+          Service Worker\CacheStorage   -- this is the persistent caches.open()
+            store used by extensions and PWAs (adblock filter lists, VPN session,
+            tab-manager state). Despite the name, this is DATA not cache.
+          IndexedDB, Local Storage, Login Data, Cookies, History, Preferences,
+          Extension State, Local Extension Settings -- all extension data lives
+          here and must remain untouched.
+
+        SAFETY GATES:
+          1. If the browser process is running, skip the entire sweep with a
+             "close the browser first" note (sweeping live cache corrupts
+             Cache\index AND Service Worker\Database -> "this extension may be
+             corrupted" errors and silent extension disablement).
+          2. ScriptCache is only swept when the browser is NOT running.
+
+    .PARAMETER Result
+        The category result hashtable; gets Count/Bytes/Locked accumulated.
+    #>
+    param(
+        [Parameter(Mandatory)] [hashtable]$Result,
+        [Parameter(Mandatory)] [string]$Root,
+        [Parameter(Mandatory)] [string]$ProcessName,
+        [Parameter(Mandatory)] [string]$LogLabel,
+        [string[]]$ProfilePatterns = @("Default", "Guest Profile"),
+        [string]$ProfileRegex = '^Profile \d+$',
+        [switch]$DryRun
+    )
+
+    if (-not (Test-Path -LiteralPath $Root)) {
+        $Result.Notes += "$LogLabel not installed (no $Root)"
+        return
+    }
+
+    # ── SAFETY GATE: refuse to sweep a running browser ──────────────────
+    if (Test-BrowserRunning -ProcessName $ProcessName) {
+        $msg = "$LogLabel ($ProcessName.exe) is RUNNING -- skipping cache sweep to avoid profile corruption. Close $LogLabel and re-run 'os clean'."
+        $Result.Notes += $msg
+        Write-Log $msg -Level "warn"
+        return
+    }
+
+    $profiles = @(Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction SilentlyContinue |
+                  Where-Object { ($ProfilePatterns -contains $_.Name) -or ($_.Name -match $ProfileRegex) })
+
+    # CacheStorage is INTENTIONALLY excluded -- see function header.
+    $safeSubs = @(
+        "Cache",
+        "Code Cache",
+        "GPUCache",
+        "Service Worker\ScriptCache"
+    )
+
+    foreach ($p in $profiles) {
+        foreach ($sub in $safeSubs) {
+            $target = Join-Path $p.FullName $sub
+            Invoke-PathSweep -Path $target -Result $Result -DryRun:$DryRun -LogPrefix "$LogLabel/$($p.Name)/$sub"
+        }
+    }
+    $Result.Notes += "Skipped (preserved by design): Service Worker\CacheStorage, IndexedDB, Local Storage, Cookies, Extension State, Local Extension Settings"
+}
+
 # ---------- Status finalizer ----------------------------------------------
 function Set-CleanResultStatus {
     param([hashtable]$Result, [switch]$DryRun)

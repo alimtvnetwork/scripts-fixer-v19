@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.218.0] -- 2026-05-08
+
+### Fixed: `os clean` corrupting Chrome / Brave / Edge extensions (CODE RED)
+
+**Root cause** -- chromium-family cleaners (`chrome.ps1`, `brave.ps1`, `edge.ps1`) were sweeping two folders that are **NOT caches** despite the path names:
+
+- `Service Worker\CacheStorage` -- the persistent `caches.open()` store. Adblockers keep filter lists here, VPN extensions keep server/session config, tab managers keep their persisted state. Wiping it = adblocker shows ads, Urban VPN "won't connect", tabExtend loses tabs.
+- `Service Worker\ScriptCache` (when the browser is **running**) -- compiled bytecode for the SW that backs every Manifest V3 extension. Wiping it while Chrome holds open handles desyncs `Service Worker\Database`, producing the classic "this extension may be corrupted" / silently disabled extensions.
+
+There was also no "browser is running" gate, so the sweep regularly orphaned entries inside `Cache\index` while Chrome was using them -- a separate path to soft-corruption.
+
+**Fix**
+
+- New shared helpers in `scripts/os/helpers/clean-categories/_sweep.ps1`:
+  - `Test-BrowserRunning -ProcessName <name>` -- detects live `chrome`, `brave`, or `msedge` processes.
+  - `Invoke-ChromiumCacheSweep` -- the only place chromium-family cache sweeps now happen. Refuses to run while the browser is alive (logs an actionable "close <browser> and re-run" warn). Sweeps **only** `Cache`, `Code Cache`, `GPUCache`, and `Service Worker\ScriptCache`. Explicitly **never** touches `Service Worker\CacheStorage`, `IndexedDB`, `Local Storage`, `Cookies`, `Extension State`, `Local Extension Settings`.
+- `chrome.ps1`, `brave.ps1`, `edge.ps1` rewritten as 20-line wrappers that delegate to `Invoke-ChromiumCacheSweep` with the right root + process name. No category helper writes a sweep list directly anymore -- there is exactly one place to audit chromium safety.
+- Each result now carries a `Skipped (preserved by design): ...` note so the JSON log explains *why* the SW data store was left alone.
+
+
+
 ## [v0.217.0] -- 2026-05-08
 
 ### Added: shared `ai-models` directory + `models path` overrides + Chrome extension installer
