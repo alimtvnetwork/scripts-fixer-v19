@@ -313,6 +313,7 @@ function Show-RootHelp {
     Write-Host "    $(".\run.ps1 -M".PadRight($col))" -NoNewline; Write-Host "Shortcut for 'models'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 os <action>".PadRight($col))" -NoNewline; Write-Host "OS housekeeping: clean, temp-clean, hib-off, flp, add-user ('os -h' for full list)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 vscode-folder <action>".PadRight($col))" -NoNewline; Write-Host "VS Code folder-only context-menu repair ('vscode-folder help')" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 vscode-context-menu install".PadRight($col))" -NoNewline; Write-Host "Add VS Code 'Open with Code' to Windows right-click menu (uninstall to remove)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 profile <name>".PadRight($col))" -NoNewline; Write-Host "Run a profile recipe (see 'Profiles' section below for list)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 install <profile>".PadRight($col))" -NoNewline; Write-Host "Same as above -- 'install minimal' == 'profile minimal'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 profile list".PadRight($col))" -NoNewline; Write-Host "Show all available profiles with descriptions" -ForegroundColor DarkGray
@@ -2823,6 +2824,7 @@ if ($hasCommand) {
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareOsCommand      = $normalizedCommand -eq "os"
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
+    $isBareVscodeContextMenuCommand = $normalizedCommand -in @("vscode-context-menu", "vscode-contextmenu", "vscodecontextmenu", "vscode-menu", "vscodemenu")
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
@@ -2838,7 +2840,7 @@ if ($hasCommand) {
     #   - any of $Install contains --no-pull / -no-pull / --offline
     #   - command is read-only (status/path/scan/export/doctor)
     $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand
-    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand
+    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand
     $isNoPullEnv = $env:SCRIPTS_FIXER_NO_PULL -eq "1"
     $isNoPullFlag = $false
     if ($null -ne $Install) {
@@ -2910,6 +2912,46 @@ if ($hasCommand) {
             exit 1
         }
         & $vscodeFolderScript @Install
+        exit $LASTEXITCODE
+    }
+
+    if ($isBareVscodeContextMenuCommand) {
+        Show-VersionHeader
+        $vscodeCtxScript = Join-Path $RootDir "scripts\52-vscode-folder-repair\run.ps1"
+        $isVscodeCtxScriptPresent = Test-Path $vscodeCtxScript
+        if (-not $isVscodeCtxScriptPresent) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "VS Code context-menu dispatcher missing at: $vscodeCtxScript"
+            exit 1
+        }
+
+        # Map friendly install/uninstall verbs to script 52 subcommands.
+        # Pass-through anything else (verify, dry-run, restore, help, ...).
+        $ctxArgs = @()
+        if ($null -ne $Install -and $Install.Count -gt 0) { $ctxArgs = @($Install) }
+
+        $hasFirstArg = $ctxArgs.Count -gt 0
+        if ($hasFirstArg) {
+            $firstArg = "$($ctxArgs[0])".Trim().ToLower()
+            $isInstallVerb   = $firstArg -in @("install", "add", "enable", "fix", "repair-menu")
+            $isUninstallVerb = $firstArg -in @("uninstall", "remove", "disable", "rollback-menu")
+            if ($isInstallVerb) {
+                $ctxArgs[0] = "repair"
+            } elseif ($isUninstallVerb) {
+                $ctxArgs[0] = "rollback"
+            }
+        } else {
+            # Bare 'vscode-context-menu' with no subcommand -> show help so the
+            # user discovers install/uninstall/verify without reading docs.
+            $ctxArgs = @("help")
+        }
+
+        if (($h -or $Help) -and -not $hasFirstArg) {
+            & $vscodeCtxScript "help"
+            exit $LASTEXITCODE
+        }
+
+        & $vscodeCtxScript @ctxArgs
         exit $LASTEXITCODE
     }
 
