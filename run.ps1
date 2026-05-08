@@ -882,6 +882,10 @@ function Show-RootHelpRaw {
     Write-Host "      .\run.ps1 help vscode --json vscode.json       Force JSON regardless of extension" -ForegroundColor DarkGray
     Write-Host "      .\run.ps1 help conemu --text conemu.log        Force plain text" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "    Discover available filter keywords:" -ForegroundColor Cyan
+    Write-Host "      .\run.ps1 help --list                          Show every recommended filter + match count" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help filters                         Same (aliases: list, filters, keywords)" -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "    Verify the filter is case-insensitive:" -ForegroundColor Cyan
     Write-Host "      .\run.ps1 help --self-test                     Run canned PASS/FAIL casing tests" -ForegroundColor DarkGray
     Write-Host "      .\run.ps1 help --test                          Same (short alias)" -ForegroundColor DarkGray
