@@ -176,6 +176,21 @@ Aliases: `ext-url` = `ext-urls` = `ext-from-url`; batch alias `ext-url-all` does
 
 > Pre-flight validation flags duplicates and copy-paste mistakes before any registry write. On warnings, the script prompts to confirm — pass `-Yes` to skip the prompt in CI.
 
+### 🔎 Filter / search the help text
+
+The root help screen is huge. Pass a keyword after `help` (or `-h`) to print only the matching lines, with original colors preserved:
+
+```powershell
+.\run.ps1 help                  # full help screen (default)
+.\run.ps1 help chrome           # every Chrome / extension command + cheatsheet line
+.\run.ps1 help ext-url          # ad-hoc Chrome extension URL examples only
+.\run.ps1 help conemu           # ConEmu install + context-menu commands
+.\run.ps1 help update           # update / self-update commands
+.\run.ps1 -h chrome             # same as `help chrome` (aliases: help, --help, -h, /?, ?)
+```
+
+Matching is case-insensitive and operates on the rendered logical lines of the help screen, so label + description pairs stay together. A summary line at the end reports how many lines matched.
+
 ---
 
 ## Demo / Showcase
