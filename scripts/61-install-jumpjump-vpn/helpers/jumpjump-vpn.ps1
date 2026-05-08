@@ -45,15 +45,14 @@ function Get-JumpJumpDownloadDirs {
         $configuredDir = Expand-JjPath -Raw $DirectConfig.downloadDir
         if (-not [string]::IsNullOrWhiteSpace($configuredDir)) { [void]$dirs.Add($configuredDir) }
     }
-
-    if (-not [string]::IsNullOrWhiteSpace($env:TEMP)) {
-        [void]$dirs.Add((Join-Path $env:TEMP "jumpjump-vpn"))
-    }
     if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
         [void]$dirs.Add((Join-Path $env:LOCALAPPDATA "scripts-fixer\jumpjump-vpn"))
     }
     if (-not [string]::IsNullOrWhiteSpace($repoRoot)) {
         [void]$dirs.Add((Join-Path $repoRoot ".tmp\jumpjump-vpn"))
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:TEMP)) {
+        [void]$dirs.Add((Join-Path $env:TEMP "jumpjump-vpn"))
     }
 
     $seen = @{}
@@ -114,6 +113,47 @@ function Test-JumpJumpExecutablePayload {
         $FailureReason.Value = "could not inspect downloaded installer: $($_.Exception.Message)"
         return $false
     }
+}
+
+function Start-JumpJumpInstaller {
+    param(
+        [Parameter(Mandatory)] [string]$InstallerPath,
+        [Parameter(Mandatory)] [string]$SilentArgs,
+        [int]$TimeoutSeconds = 900
+    )
+
+    $installerDir = Split-Path -Parent $InstallerPath
+    $timeoutMs = if ($TimeoutSeconds -gt 0) { $TimeoutSeconds * 1000 } else { 900000 }
+    $launchErrors = New-Object System.Collections.Generic.List[string]
+    $proc = $null
+    $launcherUsed = $null
+
+    try {
+        $proc = Start-Process -FilePath $InstallerPath -ArgumentList $SilentArgs -WorkingDirectory $installerDir -PassThru -WindowStyle Hidden -ErrorAction Stop
+        $launcherUsed = 'Start-Process'
+    } catch {
+        [void]$launchErrors.Add("Start-Process failed: $($_.Exception.Message)")
+        try {
+            $comSpec = if ([string]::IsNullOrWhiteSpace($env:ComSpec)) { 'cmd.exe' } else { $env:ComSpec }
+            $cmdLine = '"' + $InstallerPath + '"'
+            if (-not [string]::IsNullOrWhiteSpace($SilentArgs)) {
+                $cmdLine += " $SilentArgs"
+            }
+            $proc = Start-Process -FilePath $comSpec -ArgumentList @('/c', $cmdLine) -WorkingDirectory $installerDir -PassThru -WindowStyle Hidden -ErrorAction Stop
+            $launcherUsed = $comSpec
+        } catch {
+            [void]$launchErrors.Add("cmd launcher failed: $($_.Exception.Message)")
+            return @{ ok = $false; exitCode = $null; launcher = $null; reason = ($launchErrors -join ' | ') }
+        }
+    }
+
+    $hasExited = $proc.WaitForExit($timeoutMs)
+    if (-not $hasExited) {
+        try { $proc.Kill() } catch { }
+        return @{ ok = $false; exitCode = $null; launcher = $launcherUsed; reason = "installer timed out after ${TimeoutSeconds}s" }
+    }
+
+    return @{ ok = $true; exitCode = $proc.ExitCode; launcher = $launcherUsed; reason = 'ok' }
 }
 
 function Get-JumpJumpVpnPath {
@@ -208,7 +248,7 @@ function Invoke-JumpJumpDirectInstall {
                 New-Item -ItemType Directory -Force -Path $downloadDir -ErrorAction Stop | Out-Null
             }
         } catch {
-            Write-FileError -FilePath $downloadDir -Operation "prepare download dir" -Reason "Could not create or access download directory: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
+            Write-FileError -FilePath $downloadDir -Operation "mkdir" -Reason "Could not create or access download directory: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
             continue
         }
 
@@ -218,7 +258,7 @@ function Invoke-JumpJumpDirectInstall {
             try {
                 Remove-Item -LiteralPath $dest -Force -ErrorAction Stop
             } catch {
-                Write-FileError -FilePath $dest -Operation "cleanup stale installer" -Reason "Could not remove previous installer before re-download: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
+                Write-FileError -FilePath $dest -Operation "delete" -Reason "Could not remove previous installer before re-download: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
                 continue
             }
         }
@@ -250,22 +290,26 @@ function Invoke-JumpJumpDirectInstall {
         $validationReason = $null
         $isPayloadValid = Test-JumpJumpExecutablePayload -Path $dest -FailureReason ([ref]$validationReason)
         if (-not $isPayloadValid) {
-            Write-FileError -FilePath $dest -Operation "download validation" -Reason $validationReason -Module "Install-JumpJumpVpn"
+            Write-FileError -FilePath $dest -Operation "validate" -Reason $validationReason -Module "Install-JumpJumpVpn"
             try { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue } catch { }
             continue
         }
 
         Write-Log (($msgs.directRunning -replace '\{path\}', $dest) -replace '\{args\}', $silentArgs) -Level "info"
-        try {
-            $proc = Start-Process -FilePath $dest -ArgumentList $silentArgs -Wait -PassThru -ErrorAction Stop
-            if ($proc.ExitCode -ne 0) {
-                Write-Log "Installer exited with code $($proc.ExitCode) -- continuing to verify" -Level "warn"
+        $timeout = [int]$direct.timeoutSeconds
+        if ($timeout -le 0) { $timeout = 900 }
+
+        $launchResult = Start-JumpJumpInstaller -InstallerPath $dest -SilentArgs $silentArgs -TimeoutSeconds $timeout
+        if ($launchResult.ok) {
+            Write-Log "JumpJump VPN installer launched via $($launchResult.launcher) from $downloadDir" -Level "info"
+            if ($launchResult.exitCode -ne 0) {
+                Write-Log "Installer exited with code $($launchResult.exitCode) -- continuing to verify" -Level "warn"
             }
             return $true
-        } catch {
-            Write-FileError -FilePath $dest -Operation "silent install" -Reason "Start-Process failed: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
-            Write-Log "Retrying JumpJump VPN installer from a different download location..." -Level "warn"
         }
+
+        Write-FileError -FilePath $dest -Operation "execute" -Reason $launchResult.reason -Module "Install-JumpJumpVpn"
+        Write-Log "Retrying JumpJump VPN installer from a different download location..." -Level "warn"
     }
 
     Write-Log "JumpJump VPN direct installer failed across all download locations." -Level "error"
