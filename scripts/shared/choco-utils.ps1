@@ -473,7 +473,9 @@ function Invoke-ChocoProcess {
         [Parameter(Mandatory)]
         [string]$Label,
 
-        [int]$TimeoutSeconds = (Get-ChocoTimeoutSeconds)
+        [int]$TimeoutSeconds = (Get-ChocoTimeoutSeconds),
+
+        [switch]$SuppressFailureLogs
     )
 
     # Suppress Chocolatey's CR-progress firehose at the source. Safe for all
@@ -582,13 +584,15 @@ function Invoke-ChocoProcess {
         $diagnosticPath = $null
         if (-not $isSuccess) {
             $diagnosticPath = Save-ChocoDiagnosticLog -Label $Label -ArgumentList $ArgumentList -ExitCode $process.ExitCode -TimedOut $false -TimeoutSeconds $TimeoutSeconds -Stdout $stdout -Stderr $stderr
-            $errSummary = if ($parsed.ErrorLines.Count -gt 0) { " -- " + ($parsed.ErrorLines | Select-Object -First 1) } `
-                          elseif ($parsed.FailedPackages.Count -gt 0) { " -- failed package(s): " + (($parsed.FailedPackages | Select-Object -First 3) -join ', ') } `
-                          else { "" }
-            Write-Log "[$Label] FAILED (exit $($process.ExitCode))$errSummary." -Level "error"
-            if (-not [string]::IsNullOrWhiteSpace($diagnosticPath)) {
-                Write-Log "[$Label] Detailed installer log: $diagnosticPath" -Level "error"
-                Write-Log "[$Label] Next: open that log, then retry the printed command in elevated PowerShell" -Level "info"
+            if (-not $SuppressFailureLogs) {
+                $errSummary = if ($parsed.ErrorLines.Count -gt 0) { " -- " + ($parsed.ErrorLines | Select-Object -First 1) } `
+                              elseif ($parsed.FailedPackages.Count -gt 0) { " -- failed package(s): " + (($parsed.FailedPackages | Select-Object -First 3) -join ', ') } `
+                              else { "" }
+                Write-Log "[$Label] FAILED (exit $($process.ExitCode))$errSummary." -Level "error"
+                if (-not [string]::IsNullOrWhiteSpace($diagnosticPath)) {
+                    Write-Log "[$Label] Detailed installer log: $diagnosticPath" -Level "error"
+                    Write-Log "[$Label] Next: open that log, then retry the printed command in elevated PowerShell" -Level "info"
+                }
             }
         }
 
@@ -788,7 +792,7 @@ function Uninstall-ChocoPackage {
 
     Write-Log "Uninstalling Chocolatey package: $PackageName" -Level "info"
     try {
-        $result = Invoke-ChocoProcess -ArgumentList @("uninstall", $PackageName, "-y", "--remove-dependencies") -Label "choco uninstall $PackageName"
+        $result = Invoke-ChocoProcess -ArgumentList @("uninstall", $PackageName, "-y", "--remove-dependencies") -Label "choco uninstall $PackageName" -SuppressFailureLogs
         $output = $result.Output
         $hasUninstallFailed = -not $result.Success
 
@@ -806,6 +810,19 @@ function Uninstall-ChocoPackage {
         }
 
         if ($hasUninstallFailed) {
+            $verifyResult = Invoke-ChocoProcess -ArgumentList @("list", "--exact", $PackageName) -Label "choco verify uninstall $PackageName" -TimeoutSeconds 120
+            $verifyOutput = $verifyResult.Output
+            $isStillInstalled = ($verifyOutput -match "(?im)^\s*$([regex]::Escape($PackageName))\s+\d") -and ($verifyOutput -notmatch "0 packages installed")
+
+            if (-not $isStillInstalled) {
+                Write-Log "Chocolatey uninstall for $PackageName returned a failure code, but the package is now absent -- treating as success." -Level "warn"
+                return $true
+            }
+
+            Write-Log "[choco uninstall $PackageName] FAILED (exit $($result.ExitCode))." -Level "error"
+            if ($result.ContainsKey('DiagnosticPath') -and -not [string]::IsNullOrWhiteSpace($result.DiagnosticPath)) {
+                Write-Log "[choco uninstall $PackageName] Detailed installer log: $($result.DiagnosticPath)" -Level "error"
+            }
             Write-Log "Chocolatey uninstall failed for $PackageName : $output" -Level "error"
             return $false
         }

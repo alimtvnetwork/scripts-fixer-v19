@@ -380,12 +380,13 @@ function Remove-ChromeRegistryKeys {
             continue
         }
 
-        # Still here -- genuine failure. If we are NOT elevated, surface a
-        # clean actionable warning instead of a CODE RED. Chrome's HKLM key
-        # is owned by SYSTEM and cannot be deleted from a non-admin shell;
-        # asking the user to relaunch elevated is the real fix.
+        # Protected / locked registry leftovers are common after uninstall.
+        # Treat authorization-style failures as actionable warnings so a
+        # mostly-successful uninstall does not stay red just because cleanup
+        # could not remove a leftover key.
+        $isAuthzFailure = -not [string]::IsNullOrWhiteSpace($firstErr) -and ($firstErr -match '(?i)unauthorized|denied|access')
         $isHkml = $key -match '^HKLM[:\\]'
-        if (-not $isElev -and ($isHkml -or $firstErr -match 'unauthorized|denied|access')) {
+        if ($isAuthzFailure -or (-not $isElev -and $isHkml)) {
             Write-Log ("Skipped registry key (needs Administrator): $key -- relaunch with elevated PowerShell to remove.") -Level "warn"
             $counter.skippedNoElevation++
             continue
