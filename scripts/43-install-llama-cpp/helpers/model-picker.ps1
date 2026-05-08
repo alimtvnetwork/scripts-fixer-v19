@@ -125,7 +125,7 @@ function Show-ModelCatalog {
     $colName = 40
 
     Write-Host ""
-    Write-Host "  Models (size | RAM | ratings on line 1, 'Best for' on line 2; 9-10 = yellow)" -ForegroundColor Cyan
+    Write-Host "  Models  (line 1: size | RAM | code/reason/speed/overall   line 2: Best for)   9-10 = yellow" -ForegroundColor Cyan
     Write-Host ("  " + ("-" * 100)) -ForegroundColor DarkGray
 
     $prevStarred = $null
