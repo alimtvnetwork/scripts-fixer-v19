@@ -114,6 +114,26 @@ Audit mode, health checks, settings sync, context-menu repair, and CI-tested ver
 
 ---
 
+## 🆕 Recently Added
+
+| Command | What it does | Aliases / notes |
+|---|---|---|
+| `install chrome` | Install Google Chrome via Chocolatey (`googlechrome`) with the official standalone installer as a fallback. | `install google-chrome`, `install googlechrome` |
+| `install chrome with-ext` | Install Chrome **and** every configured Web Store extension in one shot. | `-WithExt` flag also accepted |
+| `install chrome ext` | Show the bundled extension catalog. Pass names to install: `ext vpn,tabcopy,adblocker`. | `ext`, `extension`, `extensions` |
+| `install chrome ext-all` | Install every extension in `scripts/58-install-chrome/config.json`. | `extall`, `all-ext` |
+| `install chrome ext-url <urls\|csv\|txt>` | Install ad-hoc extensions from raw Chrome Web Store URLs, raw IDs, or a `.csv`/`.txt` file. CSV parser handles quoted URLs with embedded commas. | `ext-urls`, `ext-from-url` |
+| `uninstall chrome` | Uninstall Chrome and clean shortcuts, registry, and AppData. Falls back to `reg.exe` for stubborn keys; warns (instead of CODE RED) when HKLM keys need Administrator. | — |
+| `install protonvpn` | Install Proton VPN. State recorded in `.installed/protonvpn.json`. | `proton`, `proton-vpn`, `vpn` |
+| `uninstall protonvpn` / `reinstall protonvpn` | Standard install/uninstall/reinstall flow; `.installed/protonvpn.json` updated each time. | — |
+| `status` | Dashboard of every tool currently recorded in `.installed/`. | `list-installed`, `installed` |
+| `report [--since=24h\|7d\|all] [--open]` | Timestamped JSON + HTML report of install / uninstall / reinstall actions, cross-referenced with `.installed/` records. Output goes to `.reports/`. | `install-report`, `reports` |
+| `vscode-context-menu install` / `uninstall` | Thin wrapper around script 52 — adds/removes the Windows folder right-click "Open with Code" entry. | `vscode-menu`, `vscode-contextmenu` |
+
+> Every install/uninstall now persists state under `.installed/<tool>.json` (gitignored). `status` and `report` read from that folder, so you always know what's on the box.
+
+---
+
 ## Demo / Showcase
 
 > **One PowerShell entry point. Three commands. Hours of manual setup, gone.**
