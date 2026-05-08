@@ -2821,6 +2821,7 @@ if ($hasCommand) {
     $isBareExportCommand  = $normalizedCommand -eq "export"
     $isBareStatusCommand  = $normalizedCommand -in @("status", "list-installed", "listinstalled", "installed")
     $isBareDoctorCommand  = $normalizedCommand -eq "doctor"
+    $isBareReportCommand  = $normalizedCommand -in @("report", "install-report", "installreport", "reports")
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareOsCommand      = $normalizedCommand -eq "os"
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
