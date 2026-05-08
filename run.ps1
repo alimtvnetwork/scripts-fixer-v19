@@ -861,6 +861,8 @@ function Show-RootHelpRaw {
     Write-Host "      .\run.ps1 help mysql              MySQL installer + related database keywords" -ForegroundColor DarkGray
     Write-Host "      .\run.ps1 help uninstall          Every uninstall / remove command" -ForegroundColor DarkGray
     Write-Host "      .\run.ps1 help export             Settings export commands across tools" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help chrome ext         Multiple terms -> AND match (lines with BOTH words)" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help vscode uninstall   AND match: VS Code uninstall commands only" -ForegroundColor DarkGray
     Write-Host ""
 
     Show-VersionFooter
