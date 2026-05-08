@@ -63,10 +63,11 @@ try {
     $secondArg = if ($Args -and $Args.Count -gt 1) { $Args[1].Trim() } else { "" }
 
     $isListMode      = $List -or $firstArg.ToLower() -eq "list"
+    $isDownloadMode  = $firstArg.ToLower() -eq "download" -or $firstArg.ToLower() -eq "dl" -or $firstArg.ToLower() -eq "install"
     $isSearchMode    = $firstArg.ToLower() -eq "search"
     $isUninstallMode = $firstArg.ToLower() -eq "uninstall" -or $firstArg.ToLower() -eq "remove" -or $firstArg.ToLower() -eq "rm"
     $hasInstallParam = -not [string]::IsNullOrWhiteSpace($Install)
-    $reservedFirstArgs = @("list", "search", "uninstall", "remove", "rm")
+    $reservedFirstArgs = @("list", "search", "uninstall", "remove", "rm", "download", "dl", "install")
     $hasCsvFirstArg  = $firstArg -and ($reservedFirstArgs -notcontains $firstArg.ToLower()) -and $firstArg -match '[a-z0-9]'
 
     # ── List mode ────────────────────────────────────────────────────────
