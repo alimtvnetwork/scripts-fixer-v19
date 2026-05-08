@@ -211,6 +211,30 @@ function Install-ProtonVpn {
         return $true
     }
 
+    # ---- Windows Server gate -------------------------------------------------
+    # Proton VPN's Windows installer (both choco and the official .exe) refuses
+    # to run on Server SKUs. Detect early and offer the JumpJump VPN fallback
+    # instead of letting the installer hard-fail with a confusing error.
+    $isServer = Test-IsWindowsServer
+    if ($isServer) {
+        $serverCaption = Get-WindowsServerCaption
+        Write-Host ""
+        Write-Host "  [ SKIP ] " -ForegroundColor Yellow -NoNewline
+        Write-Host "Proton VPN does NOT support Windows Server SKUs." -ForegroundColor White
+        Write-Host "          Detected OS: $serverCaption" -ForegroundColor Gray
+        Write-Host "          Proton's installer will refuse to run -- not even attempting choco install." -ForegroundColor Gray
+        Write-Log "Detected Windows Server ('$serverCaption') -- skipping Proton VPN install (not supported by vendor)." -Level "warn"
+        Save-InstalledError -Name "protonvpn" -ErrorMessage "Skipped: Proton VPN does not support Windows Server ($serverCaption). Use JumpJump VPN (script 61) instead."
+
+        $jjOk = Invoke-JumpJumpVpnFallback -LogMessages $LogMessages
+        if ($jjOk) {
+            Write-Log "JumpJump VPN installed as the Server-friendly alternative to Proton VPN." -Level "success"
+            return $true
+        }
+        Write-Log "No VPN was installed. Re-run with: .\\run.ps1 install jumpjump-vpn  (or set PROTON_AUTOFALLBACK_JUMPJUMP=1 to auto-accept the prompt)." -Level "info"
+        return $false
+    }
+
     Write-Log $msgs.checking -Level "info"
 
     $existing = Get-ProtonVpnPath
