@@ -11,6 +11,11 @@
       "list llama": "Show only llama.cpp catalog",
       "list ollama": "Show only Ollama defaults",
       "search <query>": "Search Ollama Hub (ollama.com/library) live and pick models to pull",
+      "path": "Show the resolved model download paths and current overrides",
+      "path <dir>": "Persist a SHARED model directory used by both backends (creates <dir>\\ai-models)",
+      "path llama <dir>": "Persist llama.cpp-only download directory",
+      "path ollama <dir>": "Persist Ollama-only download directory",
+      "path --reset [scope]": "Clear persisted overrides. scope = all | shared | llama | ollama (default: all)",
       "uninstall": "List locally installed models from BOTH backends, multi-select, delete",
       "uninstall llama": "Uninstall picker scoped to llama.cpp GGUF files only",
       "uninstall ollama": "Uninstall picker scoped to Ollama daemon models only"
