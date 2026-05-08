@@ -24,11 +24,96 @@ $_resolvedPath = Join-Path $_sharedDir "resolved.ps1"
 if ((Test-Path $_resolvedPath) -and -not (Get-Command Remove-ResolvedData -ErrorAction SilentlyContinue)) {
     . $_resolvedPath
 }
+$_downloadRetryPath = Join-Path $_sharedDir "download-retry.ps1"
+if ((Test-Path $_downloadRetryPath) -and -not (Get-Command Invoke-DownloadWithRetry -ErrorAction SilentlyContinue)) {
+    . $_downloadRetryPath
+}
 
 function Expand-JjPath {
     param([string]$Raw)
     if ([string]::IsNullOrWhiteSpace($Raw)) { return $null }
     try { return [Environment]::ExpandEnvironmentVariables($Raw) } catch { return $Raw }
+}
+
+function Get-JumpJumpDownloadDirs {
+    param($DirectConfig)
+
+    $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    $dirs = New-Object System.Collections.Generic.List[string]
+
+    if ($DirectConfig -and -not [string]::IsNullOrWhiteSpace([string]$DirectConfig.downloadDir)) {
+        $configuredDir = Expand-JjPath -Raw $DirectConfig.downloadDir
+        if (-not [string]::IsNullOrWhiteSpace($configuredDir)) { [void]$dirs.Add($configuredDir) }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:TEMP)) {
+        [void]$dirs.Add((Join-Path $env:TEMP "jumpjump-vpn"))
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        [void]$dirs.Add((Join-Path $env:LOCALAPPDATA "scripts-fixer\jumpjump-vpn"))
+    }
+    if (-not [string]::IsNullOrWhiteSpace($repoRoot)) {
+        [void]$dirs.Add((Join-Path $repoRoot ".tmp\jumpjump-vpn"))
+    }
+
+    $seen = @{}
+    $unique = New-Object System.Collections.Generic.List[string]
+    foreach ($dir in $dirs) {
+        if ([string]::IsNullOrWhiteSpace($dir)) { continue }
+        $normalized = $dir.TrimEnd('\\')
+        if (-not $seen.ContainsKey($normalized)) {
+            $seen[$normalized] = $true
+            [void]$unique.Add($normalized)
+        }
+    }
+
+    return $unique.ToArray()
+}
+
+function Test-JumpJumpExecutablePayload {
+    param(
+        [Parameter(Mandatory)] [string]$Path,
+        [ref]$FailureReason
+    )
+
+    $FailureReason.Value = $null
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        $FailureReason.Value = "installer file not found after download"
+        return $false
+    }
+
+    try {
+        $item = Get-Item -LiteralPath $Path -ErrorAction Stop
+        if ($item.Length -le 0) {
+            $FailureReason.Value = "downloaded installer is empty (0 bytes)"
+            return $false
+        }
+
+        $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+        try {
+            $header = New-Object byte[] 2
+            $bytesRead = $stream.Read($header, 0, 2)
+        } finally {
+            $stream.Dispose()
+        }
+
+        if ($bytesRead -lt 2) {
+            $FailureReason.Value = "downloaded installer is smaller than a valid executable header"
+            return $false
+        }
+
+        $isMzHeader = ($header[0] -eq 0x4D) -and ($header[1] -eq 0x5A)
+        if (-not $isMzHeader) {
+            $FailureReason.Value = "downloaded file is not a Windows executable (missing MZ header) -- URL may have returned HTML or an error page"
+            return $false
+        }
+
+        return $true
+    } catch {
+        $FailureReason.Value = "could not inspect downloaded installer: $($_.Exception.Message)"
+        return $false
+    }
 }
 
 function Get-JumpJumpVpnPath {
@@ -113,42 +198,78 @@ function Invoke-JumpJumpDirectInstall {
         return $false
     }
 
-    $downloadDir = if ([string]::IsNullOrWhiteSpace([string]$direct.downloadDir)) {
-        Join-Path $env:TEMP "jumpjump-vpn"
-    } else { Expand-JjPath -Raw $direct.downloadDir }
-    if (-not (Test-Path $downloadDir)) { New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null }
-
     $fileName = if ([string]::IsNullOrWhiteSpace([string]$direct.fileName)) { "jumpjump-vpn-setup.exe" } else { $direct.fileName }
-    $dest = Join-Path $downloadDir $fileName
-
-    Write-Log ($msgs.directDownloading -replace '\{url\}', $direct.url) -Level "info"
-    try {
-        $oldProgress = $ProgressPreference
-        $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -Uri $direct.url -OutFile $dest -UseBasicParsing -ErrorAction Stop
-        $ProgressPreference = $oldProgress
-    } catch {
-        Write-FileError -FilePath $dest -Operation "download" -Reason "Invoke-WebRequest failed: $($_.Exception.Message) -- check directInstall.url in config.json (vendor rotates filenames)" -Module "Install-JumpJumpVpn"
-        return $false
-    }
-
-    if (-not (Test-Path -LiteralPath $dest)) {
-        Write-FileError -FilePath $dest -Operation "download" -Reason "installer file did not appear after Invoke-WebRequest" -Module "Install-JumpJumpVpn"
-        return $false
-    }
-
     $silentArgs = if ([string]::IsNullOrWhiteSpace([string]$direct.silentArgs)) { "/S" } else { $direct.silentArgs }
-    Write-Log (($msgs.directRunning -replace '\{path\}', $dest) -replace '\{args\}', $silentArgs) -Level "info"
-    try {
-        $proc = Start-Process -FilePath $dest -ArgumentList $silentArgs -Wait -PassThru -ErrorAction Stop
-        if ($proc.ExitCode -ne 0) {
-            Write-Log "Installer exited with code $($proc.ExitCode) -- continuing to verify" -Level "warn"
+
+    $attemptDirs = Get-JumpJumpDownloadDirs -DirectConfig $direct
+    foreach ($downloadDir in $attemptDirs) {
+        try {
+            if (-not (Test-Path -LiteralPath $downloadDir)) {
+                New-Item -ItemType Directory -Force -Path $downloadDir -ErrorAction Stop | Out-Null
+            }
+        } catch {
+            Write-FileError -FilePath $downloadDir -Operation "prepare download dir" -Reason "Could not create or access download directory: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
+            continue
         }
-    } catch {
-        Write-FileError -FilePath $dest -Operation "silent install" -Reason "Start-Process failed: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
-        return $false
+
+        $dest = Join-Path $downloadDir $fileName
+
+        if (Test-Path -LiteralPath $dest) {
+            try {
+                Remove-Item -LiteralPath $dest -Force -ErrorAction Stop
+            } catch {
+                Write-FileError -FilePath $dest -Operation "cleanup stale installer" -Reason "Could not remove previous installer before re-download: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
+                continue
+            }
+        }
+
+        Write-Log ((($msgs.directDownloading -replace '\{url\}', $direct.url) + " -- target: ") + $dest) -Level "info"
+
+        $isDownloadOk = $false
+        if (Get-Command Invoke-DownloadWithRetry -ErrorAction SilentlyContinue) {
+            $isDownloadOk = Invoke-DownloadWithRetry -Uri $direct.url -OutFile $dest -Label $fileName
+        } else {
+            try {
+                $oldProgress = $ProgressPreference
+                $ProgressPreference = 'SilentlyContinue'
+                Invoke-WebRequest -Uri $direct.url -OutFile $dest -UseBasicParsing -ErrorAction Stop
+                $ProgressPreference = $oldProgress
+                $isDownloadOk = $true
+            } catch {
+                $ProgressPreference = $oldProgress
+                Write-FileError -FilePath $dest -Operation "download" -Reason "Invoke-WebRequest failed: $($_.Exception.Message) -- check directInstall.url in config.json (vendor rotates filenames)" -Module "Install-JumpJumpVpn"
+                $isDownloadOk = $false
+            }
+        }
+
+        if (-not $isDownloadOk) {
+            Write-FileError -FilePath $dest -Operation "download" -Reason "direct installer download failed for this location" -Module "Install-JumpJumpVpn"
+            continue
+        }
+
+        $validationReason = $null
+        $isPayloadValid = Test-JumpJumpExecutablePayload -Path $dest -FailureReason ([ref]$validationReason)
+        if (-not $isPayloadValid) {
+            Write-FileError -FilePath $dest -Operation "download validation" -Reason $validationReason -Module "Install-JumpJumpVpn"
+            try { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue } catch { }
+            continue
+        }
+
+        Write-Log (($msgs.directRunning -replace '\{path\}', $dest) -replace '\{args\}', $silentArgs) -Level "info"
+        try {
+            $proc = Start-Process -FilePath $dest -ArgumentList $silentArgs -Wait -PassThru -ErrorAction Stop
+            if ($proc.ExitCode -ne 0) {
+                Write-Log "Installer exited with code $($proc.ExitCode) -- continuing to verify" -Level "warn"
+            }
+            return $true
+        } catch {
+            Write-FileError -FilePath $dest -Operation "silent install" -Reason "Start-Process failed: $($_.Exception.Message)" -Module "Install-JumpJumpVpn"
+            Write-Log "Retrying JumpJump VPN installer from a different download location..." -Level "warn"
+        }
     }
-    return $true
+
+    Write-Log "JumpJump VPN direct installer failed across all download locations." -Level "error"
+    return $false
 }
 
 function Install-JumpJumpVpn {
