@@ -2853,38 +2853,6 @@
       "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
     },
     {
-      "id": "gemma-3-12b-it",
-      "displayName": "★ Google Gemma 3 12B Instruct",
-      "family": "Google Gemma 3",
-      "parameters": "12B",
-      "quantization": "Q4_K_M",
-      "fileSizeGB": 7.3,
-      "fileName": "gemma-3-12b-it-q4_k_m.gguf",
-      "ramRequiredGB": 10,
-      "ramRecommendedGB": 16,
-      "isCoding": true,
-      "isReasoning": true,
-      "isVoice": false,
-      "isWriting": true,
-      "isMultilingual": true,
-      "isChat": true,
-      "rating": {
-        "coding": 7,
-        "reasoning": 7,
-        "speed": 7,
-        "overall": 7
-      },
-      "bestFor": "Strong general assistant with very good multilingual coverage (140+ languages) and image-aware variants. Good fit when you want a Google open model for chat + light coding on a 16 GB machine.",
-      "notes": "Latest Gemma family. 128K context. Trained for instruction following, safer defaults, and broad language coverage. Pairs well with the 4B variant for low-RAM setups.",
-      "source": "Google DeepMind",
-      "license": "Gemma Terms of Use",
-      "downloadUrl": "https://huggingface.co/google/gemma-3-12b-it-GGUF/resolve/main/gemma-3-12b-it-q4_k_m.gguf",
-      "huggingfacePage": "https://huggingface.co/google/gemma-3-12b-it-GGUF",
-      "index": 91,
-      "sha256": "",
-      "manualReason": "Newly added 2026-05 -- run 'fill-sha256 -- -Ids gemma-3-12b-it' to populate"
-    },
-    {
       "id": "gemma-3-27b-it",
       "displayName": "★ Google Gemma 3 27B Instruct",
       "family": "Google Gemma 3",
