@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------------
 #  Scripts Fixer -- One-liner bootstrap installer (Unix/macOS)
-#  Usage:  curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.sh | bash
+#  Usage:  curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.sh | bash
 #
 #  Auto-discovery: probes scripts-fixer-vN repos (N = current+1..current+30)
 #  in parallel and redirects to the newest published version.
@@ -21,7 +21,7 @@ OWNER="alimtvnetwork"
 #   2. The script path on disk (./install.sh from a clone), walking
 #      parents to find a `scripts-fixer-vNN` folder.
 #   3. The literal fallback below -- only used if both probes fail.
-FALLBACK_SLUG="scripts-fixer-v16"
+FALLBACK_SLUG="scripts-fixer-v17"
 SLUG_RE='(scripts-fixer)-v([0-9]+)'
 
 REPO_SLUG=""
@@ -124,7 +124,7 @@ if [ "$DRY_RUN" = "1" ]; then
 fi
 
 # -- Helper: fetch payload semver from a repo's scripts/version.json -------
-# Args: <repo-vN-name>   (e.g. scripts-fixer-v16)
+# Args: <repo-vN-name>   (e.g. scripts-fixer-v17)
 # Echoes: "X.Y.Z" on success, "(unknown)" on any failure (network, missing
 #         file, malformed JSON). Never fails the caller -- version reporting
 #         must remain best-effort.

@@ -16,7 +16,7 @@
 [![AI Models](https://img.shields.io/badge/AI%20Models-90-ef4444?logo=huggingface&logoColor=white)](scripts/43-install-llama-cpp/models-list.md)
 [![Changelog](https://img.shields.io/badge/Changelog-Latest-ec4899)](changelog.md)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](.github/workflows)
-[![Maintained](https://img.shields.io/badge/Maintained-Yes-22c55e)](https://github.com/alimtvnetwork/scripts-fixer-v16)
+[![Maintained](https://img.shields.io/badge/Maintained-Yes-22c55e)](https://github.com/alimtvnetwork/scripts-fixer-v17)
 
 *One command to set up your entire dev environment. No manual installs. No guesswork.*
 
@@ -29,38 +29,38 @@
 ### 🪟 Windows · PowerShell
 
 ```powershell
-irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1 | iex
 ```
 
 ### 🪟 Windows · PowerShell · skip latest-version probe
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1))) -NoUpgrade
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1))) -NoUpgrade
 ```
 
 ### 🐧 macOS · Linux · Bash
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.sh | bash
 ```
 
 ### 🐧 macOS · Linux · Bash · skip latest-version probe
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.sh | bash -s -- --skip-latest-probe
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.sh | bash -s -- --skip-latest-probe
 ```
 
 If PowerShell blocks scripts, use a process-only bypass for the current shell first:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1 | iex
 ```
 
 Or run the root installer inside a bypassed PowerShell process:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1 | iex"
 ```
 
 After installation, use `./run.ps1 -d` on Windows or `bash scripts-linux/run.sh --list` on Unix / macOS for the toolkit menu.
@@ -1463,12 +1463,12 @@ Console:
 
 ```powershell
 # Run the root bootstrap installer from this repo
-irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1 | iex
 
 # Run elevated when a script needs HKCR / Program Files access
 Start-Process powershell -Verb RunAs -ArgumentList @(
     '-NoProfile','-ExecutionPolicy','Bypass','-Command',
-    'irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex'
+    'irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1 | iex'
 )
 ```
 
@@ -1476,7 +1476,7 @@ Start-Process powershell -Verb RunAs -ArgumentList @(
 
 ```bash
 # Run the root bootstrap installer from this repo
-curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.sh | bash
 
 # Run with sudo only when a script needs root access
 sudo bash scripts-linux/run.sh install <keyword>
@@ -1488,7 +1488,7 @@ To open the full toolkit menu instead, use `./run.ps1 -d` on Windows or `bash sc
 ### Manual clone
 
 ```powershell
-git clone https://github.com/alimtvnetwork/scripts-fixer-v16.git scripts-fixer
+git clone https://github.com/alimtvnetwork/scripts-fixer-v17.git scripts-fixer
 cd scripts-fixer
 ```
 
@@ -1536,7 +1536,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 For a single command without changing the current shell policy:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1 | iex"
 ```
 
 

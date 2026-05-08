@@ -26,9 +26,9 @@
 ## Purpose
 
 When a user pipes `install.ps1` (Windows) or `install.sh` (Unix/macOS) from a
-specific versioned repository (e.g. `scripts-fixer-v16`), the bootstrap should
+specific versioned repository (e.g. `scripts-fixer-v17`), the bootstrap should
 **transparently redirect to the newest published version** of the repo
-(e.g. `scripts-fixer-v16`) instead of installing a stale generation.
+(e.g. `scripts-fixer-v17`) instead of installing a stale generation.
 
 This solves the problem of users sharing or bookmarking old one-liners and
 unknowingly installing outdated code.
@@ -38,17 +38,17 @@ unknowingly installing outdated code.
 The project is published as a **family of versioned repositories**:
 
 ```
-github.com/<owner>/scripts-fixer-v16
-github.com/<owner>/scripts-fixer-v16
+github.com/<owner>/scripts-fixer-v17
+github.com/<owner>/scripts-fixer-v17
 ...
-github.com/<owner>/scripts-fixer-v16      <-- current
-github.com/<owner>/scripts-fixer-v16      <-- not yet created
+github.com/<owner>/scripts-fixer-v17      <-- current
+github.com/<owner>/scripts-fixer-v17      <-- not yet created
 ```
 
 Each major generation lives in its own repo. A user who runs:
 
 ```
-irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v16/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/scripts-fixer-v17/main/install.ps1 | iex
 ```
 
 should not be locked into v5. The bootstrap must discover that v7 exists and
@@ -122,7 +122,7 @@ The user must see exactly what is happening:
 
   [SCAN] Currently on v5. Probing v6..v25 for newer releases (parallel)...
   [FOUND] Newer version available: v7
-  [REDIRECT] Switching to scripts-fixer-v16...
+  [REDIRECT] Switching to scripts-fixer-v17...
 
   Scripts Fixer -- Bootstrap Installer  (now running v7)
   ...
@@ -238,9 +238,9 @@ exit 0
 
 ## Testing checklist
 
-- [ ] Run from `scripts-fixer-v16` when only v5 exists → runs self
-- [ ] Run from `scripts-fixer-v16` when v7 exists → redirects to v7
-- [ ] Run from `scripts-fixer-v16` (latest) → runs self with "[OK] You're on the latest"
+- [ ] Run from `scripts-fixer-v17` when only v5 exists → runs self
+- [ ] Run from `scripts-fixer-v17` when v7 exists → redirects to v7
+- [ ] Run from `scripts-fixer-v17` (latest) → runs self with "[OK] You're on the latest"
 - [ ] Run from a fork named `my-fork` (no `-vN`) → runs self, no probes
 - [ ] Run with `-NoUpgrade` → skips discovery
 - [ ] Run with `-Version` / `--version` → prints version info and exits without cloning
@@ -253,7 +253,7 @@ exit 0
 
 ## Release / Version Bump Checklist
 
-When copying `install.ps1` and `install.sh` into a new `-vN` repository (e.g., `scripts-fixer-v16`), update these values before committing:
+When copying `install.ps1` and `install.sh` into a new `-vN` repository (e.g., `scripts-fixer-v17`), update these values before committing:
 
 ### install.ps1
 - [ ] `$current = 7` → Bump to new version number (e.g., `$current = 8`)

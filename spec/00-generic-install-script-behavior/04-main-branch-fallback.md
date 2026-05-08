@@ -32,7 +32,7 @@ If forbidden and no release exists, exit code `2` with
   {
     "source": "main",
     "owner": "alimtvnetwork",
-    "repo": "scripts-fixer-v16",
+    "repo": "scripts-fixer-v17",
     "ref": "main",
     "commit": "abc123...",
     "resolvedAt": "2026-04-23T10:00:00+08:00"
