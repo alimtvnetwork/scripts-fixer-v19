@@ -897,6 +897,8 @@ function Show-RootHelp {
 
     # Split on whitespace and commas; lower-case; drop empties.
     # Each term must appear in a logical line for it to match (AND semantics).
+    # Matching is case-INSENSITIVE: needles are lower-cased here, and each
+    # captured help line is compared via .ToLower().Contains(...) below.
     $needles = @(
         $Filter.ToLower() -split '[\s,]+' |
             ForEach-Object { $_.Trim() } |
