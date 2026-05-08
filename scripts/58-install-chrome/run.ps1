@@ -27,6 +27,7 @@ $sharedDir  = Join-Path (Split-Path -Parent $scriptDir) "shared"
 . (Join-Path $sharedDir "installed.ps1")
 . (Join-Path $sharedDir "choco-utils.ps1")
 . (Join-Path $sharedDir "install-paths.ps1")
+. (Join-Path $sharedDir "admin-check.ps1")
 
 . (Join-Path $scriptDir "helpers\chrome.ps1")
 . (Join-Path $scriptDir "helpers\extensions.ps1")
@@ -157,6 +158,10 @@ try {
 
     # ── Uninstall ────────────────────────────────────────────────────────
     if ($cmd -eq "uninstall") {
+        Assert-Elevated `
+            -ScriptPath $PSCommandPath `
+            -ScriptArgs ((@($Command) + @($Rest)) -join ' ') `
+            -Reason 'Chrome uninstall removes HKLM and HKCU registry keys and requires Administrator privileges.'
         Uninstall-Chrome -ChromeConfig $config.chrome -LogMessages $logMessages
         return
     }
