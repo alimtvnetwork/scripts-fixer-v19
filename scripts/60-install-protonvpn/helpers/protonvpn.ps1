@@ -26,21 +26,79 @@ if ((Test-Path $_resolvedPath) -and -not (Get-Command Remove-ResolvedData -Error
 function Get-ProtonVpnPath {
     <#
     .SYNOPSIS
-        Searches for ProtonVPN.exe in common install locations.
-        Returns the path string or $null.
+        Searches for the Proton VPN executable in common install locations,
+        the Windows Uninstall registry, and (as a last resort) by recursive
+        scan of likely root folders. Returns the path string or $null.
+        Proton has shipped the binary under several names across versions:
+        ProtonVPN.exe, Proton VPN.exe, ProtonVPN.Launcher.exe.
     #>
-    $candidates = @(
-        "$env:ProgramFiles\Proton\VPN\ProtonVPN.exe",
-        "${env:ProgramFiles(x86)}\Proton\VPN\ProtonVPN.exe",
-        "$env:ProgramFiles\Proton VPN\ProtonVPN.exe",
-        "${env:ProgramFiles(x86)}\Proton VPN\ProtonVPN.exe",
-        "$env:ProgramFiles\Proton Technologies\ProtonVPN\ProtonVPN.exe",
-        "${env:ProgramFiles(x86)}\Proton Technologies\ProtonVPN\ProtonVPN.exe",
-        "$env:LOCALAPPDATA\Programs\Proton\VPN\ProtonVPN.exe"
+    $exeNames = @('ProtonVPN.exe', 'Proton VPN.exe', 'ProtonVPN.Launcher.exe')
+    $dirs = @(
+        "$env:ProgramFiles\Proton\VPN",
+        "${env:ProgramFiles(x86)}\Proton\VPN",
+        "$env:ProgramFiles\Proton VPN",
+        "${env:ProgramFiles(x86)}\Proton VPN",
+        "$env:ProgramFiles\Proton AG\Proton VPN",
+        "${env:ProgramFiles(x86)}\Proton AG\Proton VPN",
+        "$env:ProgramFiles\Proton Technologies\ProtonVPN",
+        "${env:ProgramFiles(x86)}\Proton Technologies\ProtonVPN",
+        "$env:LOCALAPPDATA\Programs\Proton\VPN",
+        "$env:LOCALAPPDATA\Programs\Proton VPN"
     )
-    foreach ($p in $candidates) {
-        if (Test-Path $p) { return $p }
+    foreach ($d in $dirs) {
+        foreach ($n in $exeNames) {
+            $p = Join-Path $d $n
+            if (Test-Path -LiteralPath $p) { return $p }
+        }
     }
+
+    # Registry uninstall lookup -- Proton writes InstallLocation / DisplayIcon
+    $regRoots = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+    )
+    foreach ($root in $regRoots) {
+        if (-not (Test-Path $root)) { continue }
+        try {
+            $keys = Get-ChildItem $root -ErrorAction SilentlyContinue | Where-Object {
+                $dn = $_.GetValue('DisplayName')
+                $dn -and ($dn -match 'Proton\s*VPN')
+            }
+            foreach ($k in $keys) {
+                $loc = $k.GetValue('InstallLocation')
+                if ($loc -and (Test-Path $loc)) {
+                    foreach ($n in $exeNames) {
+                        $p = Join-Path $loc $n
+                        if (Test-Path -LiteralPath $p) { return $p }
+                    }
+                    $found = Get-ChildItem -LiteralPath $loc -Filter '*.exe' -Recurse -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Name -match '^Proton.*VPN.*\.exe$' -or $_.Name -eq 'ProtonVPN.exe' } |
+                        Select-Object -First 1
+                    if ($found) { return $found.FullName }
+                }
+                $icon = $k.GetValue('DisplayIcon')
+                if ($icon) {
+                    $iconPath = $icon -replace ',.*$', ''
+                    if ((Test-Path -LiteralPath $iconPath) -and ($iconPath -match '\.exe$')) {
+                        return $iconPath
+                    }
+                }
+            }
+        } catch { }
+    }
+
+    # Last-resort recursive scan of likely roots
+    $scanRoots = @("$env:ProgramFiles\Proton", "${env:ProgramFiles(x86)}\Proton",
+                   "$env:ProgramFiles\Proton AG", "${env:ProgramFiles(x86)}\Proton AG",
+                   "$env:LOCALAPPDATA\Programs\Proton") | Where-Object { Test-Path $_ }
+    foreach ($r in $scanRoots) {
+        $found = Get-ChildItem -LiteralPath $r -Filter '*.exe' -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -in $exeNames -or $_.Name -match '^Proton.*VPN.*\.exe$' } |
+            Select-Object -First 1
+        if ($found) { return $found.FullName }
+    }
+
     return $null
 }
 
