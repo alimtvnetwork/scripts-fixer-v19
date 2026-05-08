@@ -613,7 +613,12 @@ function Save-LogFile {
     $hasErrors = $script:_LogErrors.Count -gt 0
     $hasWarnings = $script:_LogWarnings.Count -gt 0
     $isOverallFailure = $Status -eq "fail"
-    $shouldWriteErrorLog = $hasErrors -or $hasWarnings -or $isOverallFailure
+    # Only write the *-error.json sidecar when something actually went wrong:
+    # real errors logged, or an explicit fail status. Warnings alone stay in
+    # the main log -- they don't justify a scary "Error log saved" banner +
+    # full JSON dump on an otherwise-OK run (e.g. benign "tool not on PATH,
+    # falling back" notices).
+    $shouldWriteErrorLog = $hasErrors -or $isOverallFailure
     if ($shouldWriteErrorLog) {
         $errorData = [ordered]@{
             projectVersion = $identity.projectVersion
