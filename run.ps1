@@ -2990,256 +2990,290 @@ if ($_isEarlyHelp) {
         exit 0
     }
 
-    # ── Strip export flags from the filter terms ─────────────────────
-    # Recognized:
-    #   --out <path> | --out=<path>     (auto-detect format from extension)
-    #   --text <path> | --text=<path>   (force plain text)
-    #   --json <path> | --json=<path>   (force JSON)
-    $_helpOutFile = $null
-    $_helpFormat  = $null
-    if ($_earlyHelpFilter) {
-        $_termsRaw = @($_earlyHelpFilter -split '[\s]+' | Where-Object { $_ })
-        $_kept = New-Object System.Collections.Generic.List[string]
-        for ($_i = 0; $_i -lt $_termsRaw.Count; $_i++) {
-            $_t = "$($_termsRaw[$_i])"
-            $_tl = $_t.ToLower()
-            $_consumeNext = $false
-            $_inlineVal = $null
-            $_fmtHere = $null
+    # ── Helpers: parse out-file flags + interactive line reader ──────
+    # Extracted so we can reuse them across the initial render and the
+    # subsequent REPL iterations introduced by the multi-search loop.
 
-            if     ($_tl -eq "--out"  -or $_tl -eq "-out")  { $_consumeNext = $true; $_fmtHere = "auto" }
-            elseif ($_tl -eq "--text" -or $_tl -eq "-text") { $_consumeNext = $true; $_fmtHere = "text" }
-            elseif ($_tl -eq "--json" -or $_tl -eq "-json") { $_consumeNext = $true; $_fmtHere = "json" }
-            elseif ($_tl -match '^--?out=(.+)$')  { $_inlineVal = $Matches[1]; $_fmtHere = "auto" }
-            elseif ($_tl -match '^--?text=(.+)$') { $_inlineVal = $Matches[1]; $_fmtHere = "text" }
-            elseif ($_tl -match '^--?json=(.+)$') { $_inlineVal = $Matches[1]; $_fmtHere = "json" }
-            else { $_kept.Add($_t); continue }
+    function script:_Parse-HelpOutFlags {
+        param([string]$Filter)
+        $outFile = $null; $format = $null
+        if (-not $Filter) { return [pscustomobject]@{ Filter=""; OutFile=$null; Format=$null } }
+        $termsRaw = @($Filter -split '[\s]+' | Where-Object { $_ })
+        $kept = New-Object System.Collections.Generic.List[string]
+        for ($i = 0; $i -lt $termsRaw.Count; $i++) {
+            $t = "$($termsRaw[$i])"; $tl = $t.ToLower()
+            $consumeNext = $false; $inlineVal = $null; $fmtHere = $null
 
-            $_val = $_inlineVal
-            if ($_consumeNext -and ($_i + 1) -lt $_termsRaw.Count) {
-                $_val = "$($_termsRaw[$_i + 1])"
-                $_i++
+            if     ($tl -eq "--out"  -or $tl -eq "-out")  { $consumeNext = $true; $fmtHere = "auto" }
+            elseif ($tl -eq "--text" -or $tl -eq "-text") { $consumeNext = $true; $fmtHere = "text" }
+            elseif ($tl -eq "--json" -or $tl -eq "-json") { $consumeNext = $true; $fmtHere = "json" }
+            elseif ($tl -match '^--?out=(.+)$')  { $inlineVal = $Matches[1]; $fmtHere = "auto" }
+            elseif ($tl -match '^--?text=(.+)$') { $inlineVal = $Matches[1]; $fmtHere = "text" }
+            elseif ($tl -match '^--?json=(.+)$') { $inlineVal = $Matches[1]; $fmtHere = "json" }
+            else { $kept.Add($t); continue }
+
+            $val = $inlineVal
+            if ($consumeNext -and ($i + 1) -lt $termsRaw.Count) {
+                $val = "$($termsRaw[$i + 1])"; $i++
             }
-            if ($_val) {
-                $_helpOutFile = $_val
-                if ($_fmtHere -eq "auto") {
-                    $_ext = [System.IO.Path]::GetExtension($_val).ToLower()
-                    $_helpFormat = if ($_ext -eq ".json") { "json" } else { "text" }
+            if ($val) {
+                $outFile = $val
+                if ($fmtHere -eq "auto") {
+                    $ext = [System.IO.Path]::GetExtension($val).ToLower()
+                    $format = if ($ext -eq ".json") { "json" } else { "text" }
+                } else { $format = $fmtHere }
+            }
+        }
+        return [pscustomobject]@{
+            Filter  = ($kept -join ' ').Trim()
+            OutFile = $outFile
+            Format  = $format
+        }
+    }
+
+    function script:_Read-HelpKeywordLine {
+        param(
+            [string[]]$Pool,
+            [string]$LastKw,
+            [string]$PromptText = "  keyword(s)> "
+        )
+        $useRaw = $true
+        try { $null = $Host.UI.RawUI.KeyAvailable } catch { $useRaw = $false }
+
+        if (-not $useRaw) {
+            Write-Host $PromptText -ForegroundColor Yellow -NoNewline
+            if ($LastKw) { Write-Host "[default: $LastKw] " -ForegroundColor DarkGray -NoNewline }
+            $typed = $null
+            try { $typed = Read-Host } catch { $typed = $null }
+            if ((-not $typed) -and $LastKw) { $typed = $LastKw }
+            return $typed
+        }
+
+        Write-Host $PromptText -ForegroundColor Yellow -NoNewline
+        $buf = New-Object System.Text.StringBuilder
+        $script:_compMatches = @(); $script:_compIndex = -1; $script:_compPrefix = $null; $script:_compTokenStart = 0
+        $reset = { $script:_compMatches=@(); $script:_compIndex=-1; $script:_compPrefix=$null }
+
+        if ($LastKw) {
+            [void]$buf.Append($LastKw)
+            Write-Host $LastKw -ForegroundColor DarkCyan -NoNewline
+        }
+
+        while ($true) {
+            $key   = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+            $vk    = $key.VirtualKeyCode
+            $ch    = $key.Character
+            $ctrl  = ($key.ControlKeyState -band 0x000C) -ne 0
+            $shift = ($key.ControlKeyState -band 0x0010) -ne 0
+
+            if ($vk -eq 13) { Write-Host ""; break }
+            if ($vk -eq 27) {
+                $buf.Clear() | Out-Null; & $reset
+                [Console]::Write("`r" + (' ' * ([Console]::WindowWidth - 1)) + "`r")
+                Write-Host $PromptText -ForegroundColor Yellow -NoNewline
+                continue
+            }
+            if ($ctrl -and ($vk -eq 67)) { Write-Host ""; $buf.Clear() | Out-Null; [void]$buf.Append("exit"); break }
+
+            if ($vk -eq 8) {
+                if ($buf.Length -gt 0) { $buf.Length = $buf.Length - 1; [Console]::Write("`b `b") }
+                & $reset; continue
+            }
+
+            if ($vk -eq 9) {
+                $cur = $buf.ToString()
+                if ($script:_compMatches.Count -eq 0 -or $script:_compPrefix -eq $null) {
+                    $splitIdx = [Math]::Max($cur.LastIndexOf(' '), $cur.LastIndexOf(','))
+                    $script:_compTokenStart = $splitIdx + 1
+                    $script:_compPrefix = $cur.Substring($script:_compTokenStart)
+                    $pfxLow = $script:_compPrefix.ToLower()
+                    $script:_compMatches = @($Pool | Where-Object { $_.ToLower().StartsWith($pfxLow) })
+                    $script:_compIndex = -1
+                }
+                if ($script:_compMatches.Count -eq 0) { continue }
+                if ($shift) {
+                    $script:_compIndex--
+                    if ($script:_compIndex -lt 0) { $script:_compIndex = $script:_compMatches.Count - 1 }
                 } else {
-                    $_helpFormat = $_fmtHere
+                    $script:_compIndex++
+                    if ($script:_compIndex -ge $script:_compMatches.Count) { $script:_compIndex = 0 }
                 }
+                $pick = $script:_compMatches[$script:_compIndex]
+                $head = $buf.ToString().Substring(0, $script:_compTokenStart)
+                $buf.Clear() | Out-Null
+                [void]$buf.Append($head + $pick)
+                $line = $PromptText + $buf.ToString()
+                [Console]::Write("`r" + (' ' * ([Math]::Max([Console]::WindowWidth - 1, $line.Length + 1))) + "`r")
+                Write-Host $PromptText -ForegroundColor Yellow -NoNewline
+                Write-Host $buf.ToString() -NoNewline
+                if ($script:_compMatches.Count -gt 1) {
+                    $hint = "   [$($script:_compIndex + 1)/$($script:_compMatches.Count)]"
+                    Write-Host $hint -ForegroundColor DarkGray -NoNewline
+                    [Console]::Write(("`b" * $hint.Length))
+                }
+                continue
+            }
+
+            if ($ch -eq '?' -and $buf.Length -gt 0 -and $buf.ToString().Substring($buf.Length - 1) -ne ' ') {
+                $cur = $buf.ToString()
+                $splitIdx = [Math]::Max($cur.LastIndexOf(' '), $cur.LastIndexOf(','))
+                $tokStart = $splitIdx + 1
+                $pfx = $cur.Substring($tokStart).ToLower()
+                $matches = @($Pool | Where-Object { $_.ToLower().StartsWith($pfx) })
+                Write-Host ""
+                if ($matches.Count -eq 0) {
+                    Write-Host "    (no completions for '$pfx')" -ForegroundColor DarkGray
+                } else {
+                    Write-Host ("    " + ($matches -join '  ')) -ForegroundColor DarkCyan
+                }
+                Write-Host $PromptText -ForegroundColor Yellow -NoNewline
+                Write-Host $buf.ToString() -NoNewline
+                continue
+            }
+
+            if ($ch -and [int][char]$ch -ge 32) {
+                [void]$buf.Append($ch); [Console]::Write($ch); & $reset; continue
             }
         }
-        $_earlyHelpFilter = ($_kept -join ' ').Trim()
+        return $buf.ToString()
     }
 
-    # Interactive prompt: if user ran bare `help` / `--help` / `-h` with NO
-    # keyword AND we have a real interactive console (not redirected / piped),
-    # ask for one. Empty input -> full help. Non-TTY -> full help (old behavior).
-    $_hasFilter = -not [string]::IsNullOrWhiteSpace($_earlyHelpFilter)
-    if (-not $_hasFilter) {
-        $_isInteractive = $false
+    # ── Initial filter parse + last-keyword load ─────────────────────
+    $_parsed       = _Parse-HelpOutFlags -Filter $_earlyHelpFilter
+    $_earlyHelpFilter = $_parsed.Filter
+    $_helpOutFile  = $_parsed.OutFile
+    $_helpFormat   = $_parsed.Format
+
+    $_isInteractive = $false
+    try {
+        $_isInteractive = ($Host.Name -ne 'Default Host') -and `
+                          (-not [Console]::IsInputRedirected) -and `
+                          (-not [Console]::IsOutputRedirected)
+    } catch { $_isInteractive = $false }
+
+    $_lastKwFile = Join-Path $RootDir ".resolved\help-last-keyword.json"
+    $_lastKw = $null
+    if (Test-Path $_lastKwFile) {
         try {
-            $_isInteractive = ($Host.Name -ne 'Default Host') -and `
-                              (-not [Console]::IsInputRedirected) -and `
-                              (-not [Console]::IsOutputRedirected)
-        } catch { $_isInteractive = $false }
-
-        # Last-used keyword persistence: read prior value (if any) so we can
-        # pre-seed the prompt buffer. File lives under .resolved/ alongside
-        # other runtime state.
-        $_lastKwFile = Join-Path $RootDir ".resolved\help-last-keyword.json"
-        $_lastKw = $null
-        if (Test-Path $_lastKwFile) {
-            try {
-                $_lkRaw = Get-Content $_lastKwFile -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-                if ($_lkRaw -and $_lkRaw.keyword) { $_lastKw = "$($_lkRaw.keyword)".Trim() }
-            } catch {
-                Write-Host "  Note: could not read last keyword file: $_lastKwFile -- $($_.Exception.Message)" -ForegroundColor DarkYellow
-            }
-        }
-
-        if ($_isInteractive) {
-            # Curated completion candidates for Tab cycling at the keyword(s)> prompt.
-            # Mirrors the curated list in `help --list`. Kept inline here so prompt
-            # works even if user never invokes --list. Sorted + unique.
-            $_completionPool = @(
-                'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
-                'menu','context-menu','profile','install','uninstall','update',
-                'self-update','settings','export','os','doctor','logs','report',
-                'path','models','git','git-tools','gsa','mysql','postgresql',
-                'mariadb','mongodb','redis','sqlite','node','python','docker',
-                'kubernetes','java','dotnet','rust','go','php','obs','npp','wt',
-                'dbeaver','ollama','user','ssh',
-                '--out','--json','--text','--list','--self-test'
-            ) | Sort-Object -Unique
-
-            Write-Host ""
-            Write-Host "  Interactive help filter" -ForegroundColor Cyan
-            Write-Host "  =======================" -ForegroundColor DarkGray
-            Write-Host "  Enter one or more keywords (space/comma separated) to filter the help." -ForegroundColor DarkGray
-            Write-Host "  Examples: chrome | chrome ext | vscode uninstall | conemu menu" -ForegroundColor DarkGray
-            Write-Host "  Append --out <path> / --json <path> to also save the matches." -ForegroundColor DarkGray
-            Write-Host "  Press TAB to cycle completions (Shift+TAB reverse). ? lists matches." -ForegroundColor DarkGray
-            if ($_lastKw) {
-                Write-Host "  Last used: " -ForegroundColor DarkGray -NoNewline
-                Write-Host $_lastKw -ForegroundColor Cyan -NoNewline
-                Write-Host "  (pre-filled -- press ENTER to reuse, Esc to clear)" -ForegroundColor DarkGray
-            } else {
-                Write-Host "  Press ENTER with no input to show the full help screen." -ForegroundColor DarkGray
-            }
-            Write-Host ""
-
-            # Custom line editor with Tab completion. Falls back to Read-Host if
-            # the host doesn't support RawUI key reads (e.g. ISE, redirected).
-            $_typed = $null
-            $_useRaw = $true
-            try { $null = $Host.UI.RawUI.KeyAvailable } catch { $_useRaw = $false }
-
-            if (-not $_useRaw) {
-                Write-Host "  keyword(s)> " -ForegroundColor Yellow -NoNewline
-                if ($_lastKw) { Write-Host "[default: $_lastKw] " -ForegroundColor DarkGray -NoNewline }
-                try { $_typed = Read-Host } catch { $_typed = $null }
-                if ((-not $_typed) -and $_lastKw) { $_typed = $_lastKw }
-            } else {
-                $_promptText = "  keyword(s)> "
-                Write-Host $_promptText -ForegroundColor Yellow -NoNewline
-
-                $_buf      = New-Object System.Text.StringBuilder
-                $_compMatches = @()
-                $_compIndex   = -1
-                $_compPrefix  = $null
-                $_compTokenStart = 0   # index in $_buf where current token starts
-
-                function script:_ResetCompletion { $script:_compMatches=@(); $script:_compIndex=-1; $script:_compPrefix=$null }
-                _ResetCompletion
-
-                # Pre-seed buffer with last-used keyword so ENTER reuses it.
-                if ($_lastKw) {
-                    [void]$_buf.Append($_lastKw)
-                    Write-Host $_lastKw -ForegroundColor DarkCyan -NoNewline
-                }
-
-                while ($true) {
-                    $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-                    $vk = $key.VirtualKeyCode
-                    $ch = $key.Character
-                    $ctrl  = ($key.ControlKeyState -band 0x000C) -ne 0  # Left/Right Ctrl
-                    $shift = ($key.ControlKeyState -band 0x0010) -ne 0
-
-                    if ($vk -eq 13) { Write-Host ""; break }                          # Enter
-                    if ($vk -eq 27) { $_buf.Clear() | Out-Null; _ResetCompletion      # Esc -> clear line
-                        # repaint
-                        [Console]::Write("`r" + (' ' * ([Console]::WindowWidth - 1)) + "`r")
-                        Write-Host $_promptText -ForegroundColor Yellow -NoNewline
-                        continue
-                    }
-                    if ($ctrl -and ($vk -eq 67)) { Write-Host ""; $_buf.Clear() | Out-Null; break }  # Ctrl+C
-
-                    if ($vk -eq 8) {                                                  # Backspace
-                        if ($_buf.Length -gt 0) {
-                            $_buf.Length = $_buf.Length - 1
-                            [Console]::Write("`b `b")
-                        }
-                        _ResetCompletion
-                        continue
-                    }
-
-                    if ($vk -eq 9) {                                                  # Tab
-                        $cur = $_buf.ToString()
-                        if ($_compMatches.Count -eq 0 -or $_compPrefix -eq $null) {
-                            # establish current token (split by space or comma)
-                            $splitIdx = [Math]::Max($cur.LastIndexOf(' '), $cur.LastIndexOf(','))
-                            $script:_compTokenStart = $splitIdx + 1
-                            $script:_compPrefix = $cur.Substring($script:_compTokenStart)
-                            $pfxLow = $script:_compPrefix.ToLower()
-                            $script:_compMatches = @($_completionPool | Where-Object { $_.ToLower().StartsWith($pfxLow) })
-                            $script:_compIndex = -1
-                        }
-                        if ($_compMatches.Count -eq 0) { continue }
-                        if ($shift) {
-                            $script:_compIndex--
-                            if ($script:_compIndex -lt 0) { $script:_compIndex = $_compMatches.Count - 1 }
-                        } else {
-                            $script:_compIndex++
-                            if ($script:_compIndex -ge $_compMatches.Count) { $script:_compIndex = 0 }
-                        }
-                        $pick = $_compMatches[$script:_compIndex]
-                        # rebuild buffer: keep prefix-of-buffer up to token start, append pick
-                        $head = $_buf.ToString().Substring(0, $script:_compTokenStart)
-                        $_buf.Clear() | Out-Null
-                        [void]$_buf.Append($head + $pick)
-                        # repaint line
-                        $line = $_promptText + $_buf.ToString()
-                        [Console]::Write("`r" + (' ' * ([Math]::Max([Console]::WindowWidth - 1, $line.Length + 1))) + "`r")
-                        Write-Host $_promptText -ForegroundColor Yellow -NoNewline
-                        Write-Host $_buf.ToString() -NoNewline
-                        if ($_compMatches.Count -gt 1) {
-                            Write-Host "   [$($script:_compIndex + 1)/$($_compMatches.Count)]" -ForegroundColor DarkGray -NoNewline
-                            # erase the hint on next keypress by tracking length
-                            $_hintLen = "   [$($script:_compIndex + 1)/$($_compMatches.Count)]".Length
-                            [Console]::Write(("`b" * $_hintLen))
-                        }
-                        continue
-                    }
-
-                    if ($ch -eq '?' -and $_buf.Length -gt 0 -and $_buf.ToString().Substring($_buf.Length - 1) -ne ' ') {
-                        # '?' after a partial token -> list matches without inserting
-                        $cur = $_buf.ToString()
-                        $splitIdx = [Math]::Max($cur.LastIndexOf(' '), $cur.LastIndexOf(','))
-                        $tokStart = $splitIdx + 1
-                        $pfx = $cur.Substring($tokStart).ToLower()
-                        $matches = @($_completionPool | Where-Object { $_.ToLower().StartsWith($pfx) })
-                        Write-Host ""
-                        if ($matches.Count -eq 0) {
-                            Write-Host "    (no completions for '$pfx')" -ForegroundColor DarkGray
-                        } else {
-                            Write-Host ("    " + ($matches -join '  ')) -ForegroundColor DarkCyan
-                        }
-                        Write-Host $_promptText -ForegroundColor Yellow -NoNewline
-                        Write-Host $_buf.ToString() -NoNewline
-                        continue
-                    }
-
-                    if ($ch -and [int][char]$ch -ge 32) {                              # printable
-                        [void]$_buf.Append($ch)
-                        [Console]::Write($ch)
-                        _ResetCompletion
-                        continue
-                    }
-                }
-                $_typed = $_buf.ToString()
-            }
-
-            if ($_typed) {
-                $_typed = $_typed.Trim()
-                if ($_typed.Length -gt 0) { $_earlyHelpFilter = $_typed }
-            }
-        }
-    }
-
-    # Persist last-used keyword(s) so the next interactive `help` pre-fills it.
-    if (-not [string]::IsNullOrWhiteSpace($_earlyHelpFilter)) {
-        try {
-            $_lastKwFileSave = Join-Path $RootDir ".resolved\help-last-keyword.json"
-            $_lastKwDir = Split-Path -Parent $_lastKwFileSave
-            if (-not (Test-Path $_lastKwDir)) { New-Item -ItemType Directory -Path $_lastKwDir -Force | Out-Null }
-            $_lastKwPayload = [pscustomobject]@{
-                keyword = $_earlyHelpFilter.Trim()
-                savedAt = (Get-Date).ToString("o")
-            }
-            $_lastKwPayload | ConvertTo-Json -Compress | Set-Content -Path $_lastKwFileSave -Encoding UTF8
+            $lkRaw = Get-Content $_lastKwFile -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+            if ($lkRaw -and $lkRaw.keyword) { $_lastKw = "$($lkRaw.keyword)".Trim() }
         } catch {
-            Write-Host "  Note: could not write last keyword file: $_lastKwFileSave -- $($_.Exception.Message)" -ForegroundColor DarkYellow
+            Write-Host "  Note: could not read last keyword file: $_lastKwFile -- $($_.Exception.Message)" -ForegroundColor DarkYellow
         }
     }
+
+    $_completionPool = @(
+        'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
+        'menu','context-menu','profile','install','uninstall','update',
+        'self-update','settings','export','os','doctor','logs','report',
+        'path','models','git','git-tools','gsa','mysql','postgresql',
+        'mariadb','mongodb','redis','sqlite','node','python','docker',
+        'kubernetes','java','dotnet','rust','go','php','obs','npp','wt',
+        'dbeaver','ollama','user','ssh',
+        'exit','quit',
+        '--out','--json','--text','--list','--self-test'
+    ) | Sort-Object -Unique
+
+    function script:_Save-LastKeyword {
+        param([string]$Filter)
+        if ([string]::IsNullOrWhiteSpace($Filter)) { return }
+        try {
+            $f = Join-Path $RootDir ".resolved\help-last-keyword.json"
+            $d = Split-Path -Parent $f
+            if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+            ([pscustomobject]@{ keyword = $Filter.Trim(); savedAt = (Get-Date).ToString("o") } |
+                ConvertTo-Json -Compress) | Set-Content -Path $f -Encoding UTF8
+        } catch {
+            Write-Host "  Note: could not write last keyword file: $f -- $($_.Exception.Message)" -ForegroundColor DarkYellow
+        }
+    }
+
+    # ── If no CLI keyword AND interactive: prompt for first one ──────
+    if ([string]::IsNullOrWhiteSpace($_earlyHelpFilter) -and $_isInteractive) {
+        Write-Host ""
+        Write-Host "  Interactive help filter (multi-search loop)" -ForegroundColor Cyan
+        Write-Host "  ===========================================" -ForegroundColor DarkGray
+        Write-Host "  Enter one or more keywords (space/comma separated) to filter the help." -ForegroundColor DarkGray
+        Write-Host "  Examples: chrome | chrome ext | vscode uninstall | conemu menu" -ForegroundColor DarkGray
+        Write-Host "  Append --out <path> / --json <path> to also save the matches." -ForegroundColor DarkGray
+        Write-Host "  TAB cycles completions (Shift+TAB reverse). ? lists matches." -ForegroundColor DarkGray
+        Write-Host "  Type " -ForegroundColor DarkGray -NoNewline
+        Write-Host "exit" -ForegroundColor Yellow -NoNewline
+        Write-Host " (or quit / q) to leave the loop. Empty input -> full help." -ForegroundColor DarkGray
+        if ($_lastKw) {
+            Write-Host "  Last used: " -ForegroundColor DarkGray -NoNewline
+            Write-Host $_lastKw -ForegroundColor Cyan -NoNewline
+            Write-Host "  (pre-filled -- press ENTER to reuse, Esc to clear)" -ForegroundColor DarkGray
+        }
+        Write-Host ""
+
+        $typed = _Read-HelpKeywordLine -Pool $_completionPool -LastKw $_lastKw
+        if ($typed) {
+            $typed = $typed.Trim()
+            $tl = $typed.ToLower()
+            if ($tl -in @('exit','quit','q',':q')) { exit 0 }
+            if ($typed.Length -gt 0) {
+                $reparsed = _Parse-HelpOutFlags -Filter $typed
+                $_earlyHelpFilter = $reparsed.Filter
+                if ($reparsed.OutFile) { $_helpOutFile = $reparsed.OutFile; $_helpFormat = $reparsed.Format }
+            }
+        }
+    }
+
+    # ── First render ────────────────────────────────────────────────
+    _Save-LastKeyword -Filter $_earlyHelpFilter
 
     $_showArgs = @{ Filter = $_earlyHelpFilter }
     if ($_helpOutFile) {
         $_showArgs.OutFile = $_helpOutFile
-        if ($_helpFormat)  { $_showArgs.Format = $_helpFormat }
+        if ($_helpFormat) { $_showArgs.Format = $_helpFormat }
     }
     Show-RootHelp @_showArgs
+
+    # ── REPL: keep prompting while interactive until user exits ─────
+    if ($_isInteractive) {
+        while ($true) {
+            Write-Host ""
+            Write-Host "  ----------------------------------------------------------" -ForegroundColor DarkGray
+            Write-Host "  Refine the search. Type " -ForegroundColor DarkGray -NoNewline
+            Write-Host "exit" -ForegroundColor Yellow -NoNewline
+            Write-Host " (quit / q) to leave, ENTER for full help, " -ForegroundColor DarkGray -NoNewline
+            Write-Host "TAB" -ForegroundColor Yellow -NoNewline
+            Write-Host " to complete." -ForegroundColor DarkGray
+
+            $_lastKw = $_earlyHelpFilter   # pre-seed prompt with the just-used filter
+            $typed = _Read-HelpKeywordLine -Pool $_completionPool -LastKw $_lastKw
+
+            if ($null -eq $typed) { break }
+            $typed = $typed.Trim()
+            if ($typed.Length -eq 0) {
+                # bare ENTER -> full help, then keep looping
+                $_earlyHelpFilter = ""; $_helpOutFile = $null; $_helpFormat = $null
+                Show-RootHelp -Filter ""
+                continue
+            }
+            $tl = $typed.ToLower()
+            if ($tl -in @('exit','quit','q',':q','bye','done')) {
+                Write-Host "  Goodbye." -ForegroundColor DarkGray
+                break
+            }
+
+            $reparsed = _Parse-HelpOutFlags -Filter $typed
+            $_earlyHelpFilter = $reparsed.Filter
+            $_helpOutFile     = $reparsed.OutFile
+            $_helpFormat      = $reparsed.Format
+
+            _Save-LastKeyword -Filter $_earlyHelpFilter
+
+            $_showArgs = @{ Filter = $_earlyHelpFilter }
+            if ($_helpOutFile) {
+                $_showArgs.OutFile = $_helpOutFile
+                if ($_helpFormat) { $_showArgs.Format = $_helpFormat }
+            }
+            Show-RootHelp @_showArgs
+        }
+    }
+
     exit 0
 }
 
