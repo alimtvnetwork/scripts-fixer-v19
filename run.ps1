@@ -2802,7 +2802,7 @@ if ($hasCommand) {
     $isBarePathCommand    = $normalizedCommand -eq "path"
     $isBareScanCommand    = $normalizedCommand -eq "scan"
     $isBareExportCommand  = $normalizedCommand -eq "export"
-    $isBareStatusCommand  = $normalizedCommand -eq "status"
+    $isBareStatusCommand  = $normalizedCommand -in @("status", "list-installed", "listinstalled", "installed")
     $isBareDoctorCommand  = $normalizedCommand -eq "doctor"
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareOsCommand      = $normalizedCommand -eq "os"
