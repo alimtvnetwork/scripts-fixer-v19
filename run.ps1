@@ -1686,80 +1686,95 @@ function Invoke-StatusCommand {
         return
     }
 
-    # Parse --no-choco flag
-    $isNoChoco = $false
+    # Parse flags
+    $isNoChoco     = $false
+    $isModelsOnly  = $false
+    $isToolsOnly   = $false
     if ($null -ne $Args) {
         foreach ($arg in $Args) {
             $argLower = "$arg".Trim().ToLower()
-            $isNoChocoFlag = $argLower -eq "--no-choco" -or $argLower -eq "--fast"
-            if ($isNoChocoFlag) { $isNoChoco = $true }
+            if ($argLower -eq "--no-choco" -or $argLower -eq "--fast") { $isNoChoco = $true }
+            if ($argLower -in @("--models", "--models-only", "models")) { $isModelsOnly = $true }
+            if ($argLower -in @("--tools", "--tools-only", "tools"))    { $isToolsOnly = $true }
         }
     }
 
-    # Table header
-    $nameCol = 24
-    $versionCol = 24
-    $statusCol = 12
-    $methodCol = 12
-    $header = "    {0}  {1}  {2}  {3}" -f "Tool".PadRight($nameCol), "Version".PadRight($versionCol), "Status".PadRight($statusCol), "Source".PadRight($methodCol)
-    Write-Host $header -ForegroundColor DarkGray
-    $separator = "    {0}  {1}  {2}  {3}" -f ("-" * $nameCol), ("-" * $versionCol), ("-" * $statusCol), ("-" * $methodCol)
-    Write-Host $separator -ForegroundColor DarkGray
+    # Split records into tools vs models (model-<slug>.json entries)
+    $toolRecords  = @()
+    $modelRecords = @()
+    foreach ($file in $records) {
+        $isModelFile = $file.BaseName -like "model-*"
+        if ($isModelFile) { $modelRecords += $file } else { $toolRecords += $file }
+    }
 
     $okCount = 0
     $errorCount = 0
     $unknownCount = 0
 
-    foreach ($file in $records) {
-        try {
-            $record = Get-Content $file.FullName -Raw | ConvertFrom-Json
-        } catch {
-            continue
+    function Write-StatusGroup {
+        param([string]$Title, $Files, [int]$NameCol, [int]$VerCol, [int]$StatusCol, [int]$MethodCol)
+
+        $hasFiles = @($Files).Count -gt 0
+        if (-not $hasFiles) {
+            Write-Host "  $Title -- (none tracked)" -ForegroundColor DarkGray
+            Write-Host ""
+            return @{ ok = 0; err = 0; unk = 0 }
         }
 
-        $toolName = if ($record.name) { $record.name } else { $file.BaseName }
-        $version  = if ($record.version) { $record.version } else { "unknown" }
-        $method   = if ($record.method) { $record.method } else { "--" }
+        Write-Host "  $Title" -ForegroundColor White
+        $header = "    {0}  {1}  {2}  {3}" -f "Name".PadRight($NameCol), "Version".PadRight($VerCol), "Status".PadRight($StatusCol), "Source".PadRight($MethodCol)
+        Write-Host $header -ForegroundColor DarkGray
+        $separator = "    {0}  {1}  {2}  {3}" -f ("-" * $NameCol), ("-" * $VerCol), ("-" * $StatusCol), ("-" * $MethodCol)
+        Write-Host $separator -ForegroundColor DarkGray
 
-        # Determine status
-        $hasError = $record.lastError -and ($record.lastError -ne "")
-        $isVersionUnknown = $version -eq "unknown" -or $version -eq "installed" -or $version -eq "(version pending)"
+        $local = @{ ok = 0; err = 0; unk = 0 }
+        foreach ($file in $Files) {
+            try { $record = Get-Content $file.FullName -Raw | ConvertFrom-Json } catch { continue }
 
-        $status = "ok"
-        $statusColor = "Green"
-        if ($hasError) {
-            $status = "error"
-            $statusColor = "Red"
-            $errorCount++
-        } elseif ($isVersionUnknown) {
-            $status = "unverified"
-            $statusColor = "Yellow"
-            $unknownCount++
-        } else {
-            $okCount++
+            $toolName = if ($record.name) { $record.name } else { $file.BaseName }
+            $version  = if ($record.version) { $record.version } else { "unknown" }
+            $method   = if ($record.method) { $record.method } else { "--" }
+
+            $hasError = $record.lastError -and ($record.lastError -ne "")
+            $isVersionUnknown = $version -eq "unknown" -or $version -eq "installed" -or $version -eq "(version pending)"
+
+            $status = "ok"; $statusColor = "Green"
+            if ($hasError)             { $status = "error";      $statusColor = "Red";    $local.err++ }
+            elseif ($isVersionUnknown) { $status = "unverified"; $statusColor = "Yellow"; $local.unk++ }
+            else                       { $local.ok++ }
+
+            $displayName = if ($toolName.Length -gt $NameCol) { $toolName.Substring(0, $NameCol - 2) + ".." } else { $toolName }
+            $displayVer  = if ($version.Length  -gt $VerCol)  { $version.Substring(0, $VerCol - 2)  + ".." } else { $version }
+
+            Write-Host "    $($displayName.PadRight($NameCol))  $($displayVer.PadRight($VerCol))  " -NoNewline
+            Write-Host $status.PadRight($StatusCol) -ForegroundColor $statusColor -NoNewline
+            Write-Host "  $method"
         }
-
-        # Truncate long values
-        $displayName = if ($toolName.Length -gt $nameCol) { $toolName.Substring(0, $nameCol - 2) + ".." } else { $toolName }
-        $displayVer  = if ($version.Length -gt $versionCol) { $version.Substring(0, $versionCol - 2) + ".." } else { $version }
-
-        Write-Host "    $($displayName.PadRight($nameCol))  $($displayVer.PadRight($versionCol))  " -NoNewline
-        Write-Host $status.PadRight($statusCol) -ForegroundColor $statusColor -NoNewline
-        Write-Host "  $method"
+        Write-Host ""
+        return $local
     }
 
-    Write-Host ""
+    $showTools  = -not $isModelsOnly
+    $showModels = -not $isToolsOnly
+
+    if ($showTools) {
+        $r = Write-StatusGroup -Title "Tools" -Files $toolRecords -NameCol 24 -VerCol 24 -StatusCol 12 -MethodCol 16
+        $okCount += $r.ok; $errorCount += $r.err; $unknownCount += $r.unk
+    }
+    if ($showModels) {
+        $r = Write-StatusGroup -Title "Models" -Files $modelRecords -NameCol 32 -VerCol 20 -StatusCol 12 -MethodCol 16
+        $okCount += $r.ok; $errorCount += $r.err; $unknownCount += $r.unk
+    }
+
+    $totalShown = 0
+    if ($showTools)  { $totalShown += @($toolRecords).Count }
+    if ($showModels) { $totalShown += @($modelRecords).Count }
+
     Write-Host "  Summary: " -NoNewline -ForegroundColor DarkGray
     Write-Host "$okCount ok" -ForegroundColor Green -NoNewline
-    $hasErrors = $errorCount -gt 0
-    if ($hasErrors) {
-        Write-Host ", $errorCount error(s)" -ForegroundColor Red -NoNewline
-    }
-    $hasUnknowns = $unknownCount -gt 0
-    if ($hasUnknowns) {
-        Write-Host ", $unknownCount unverified" -ForegroundColor Yellow -NoNewline
-    }
-    Write-Host " -- $($records.Count) total tracked"
+    if ($errorCount -gt 0)   { Write-Host ", $errorCount error(s)" -ForegroundColor Red -NoNewline }
+    if ($unknownCount -gt 0) { Write-Host ", $unknownCount unverified" -ForegroundColor Yellow -NoNewline }
+    Write-Host " -- $totalShown tracked (tools: $(@($toolRecords).Count), models: $(@($modelRecords).Count))"
 
     # Optionally check choco outdated
     $isChocoCheckEnabled = -not $isNoChoco
@@ -1795,7 +1810,8 @@ function Invoke-StatusCommand {
     }
 
     Write-Host ""
-    Write-Host "  Tip: Use '.\run.ps1 status --no-choco' to skip the outdated check." -ForegroundColor DarkGray
+    Write-Host "  Tip: '.\run.ps1 status --tools' / '--models' to filter; '--no-choco' to skip outdated check." -ForegroundColor DarkGray
+    Write-Host "  Aliases: status, list-installed, installed" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -2802,7 +2818,7 @@ if ($hasCommand) {
     $isBarePathCommand    = $normalizedCommand -eq "path"
     $isBareScanCommand    = $normalizedCommand -eq "scan"
     $isBareExportCommand  = $normalizedCommand -eq "export"
-    $isBareStatusCommand  = $normalizedCommand -eq "status"
+    $isBareStatusCommand  = $normalizedCommand -in @("status", "list-installed", "listinstalled", "installed")
     $isBareDoctorCommand  = $normalizedCommand -eq "doctor"
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareOsCommand      = $normalizedCommand -eq "os"
