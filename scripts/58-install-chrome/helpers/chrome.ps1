@@ -449,6 +449,11 @@ function Invoke-ChromePostUninstallCleanup {
     $summary = $summary -replace '\{scMissing\}', $scCounter.missing
     $summary = $summary -replace '\{scFailed\}', $scCounter.failed
     $hasAnyFailure = ($regCounter.failed + $scCounter.failed) -gt 0
+    $skippedElev   = 0
+    if ($regCounter.ContainsKey('skippedNoElevation')) { $skippedElev = $regCounter.skippedNoElevation }
+    if ($skippedElev -gt 0) {
+        $summary += " | $skippedElev registry key(s) skipped (need Administrator)"
+    }
     Write-Log $summary -Level $(if ($hasAnyFailure) { "warn" } else { "success" })
 }
 
