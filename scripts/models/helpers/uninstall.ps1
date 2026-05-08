@@ -37,11 +37,11 @@ function Get-InstalledLlamaCppModels {
     if (Test-Path $resolvedPath) {
         $resolved = Get-Content $resolvedPath -Raw | ConvertFrom-Json
         if ($resolved.baseDir) {
-            $modelsDir = Join-Path (Split-Path -Parent $resolved.baseDir) "llama-models"
+            $modelsDir = Join-Path (Split-Path -Parent $resolved.baseDir) "models"
         }
     }
     if (-not $modelsDir -and $env:DEV_DIR) {
-        $modelsDir = Join-Path $env:DEV_DIR "llama-models"
+        $modelsDir = Join-Path $env:DEV_DIR "models"
     }
 
     $records = Get-ChildItem -Path $installedDir -Filter "model-*.json" -ErrorAction SilentlyContinue

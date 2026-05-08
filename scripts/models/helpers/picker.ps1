@@ -95,7 +95,7 @@ function Get-ModelDownloadPaths {
           2. saved per-backend override (.resolved/models-paths.json -> llama|ollama)
           3. $env:MODELS_DIR  (shared)
           4. saved shared override  (.resolved/models-paths.json -> shared)
-          5. <DEV_DIR>\<configured subfolder, default 'ai-models'>
+          5. <DEV_DIR>\<configured subfolder, default 'models'>
     #>
     param(
         [Parameter(Mandatory)] [PSObject]$Config,
@@ -108,9 +108,9 @@ function Get-ModelDownloadPaths {
                     elseif ($hasDevDir) { "saved" }
                     else { "unset" }
 
-    # Per-backend default subfolders -- now both default to 'ai-models'
-    $llamaSub  = "ai-models"
-    $ollamaSub = "ai-models"
+    # Per-backend default subfolders -- now both default to 'models'
+    $llamaSub  = "models"
+    $ollamaSub = "models"
     try {
         $llamaCfg = Get-Content (Join-Path $ScriptsRoot "43-install-llama-cpp\config.json") -Raw | ConvertFrom-Json
         if ($llamaCfg.modelsConfig.devDirSubfolder) { $llamaSub = $llamaCfg.modelsConfig.devDirSubfolder }
