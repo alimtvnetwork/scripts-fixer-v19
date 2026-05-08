@@ -137,6 +137,8 @@ switch ($cmd) {
                     $rc52 = $LASTEXITCODE
                 } catch {
                     Write-Host ("  [ FAIL ] script 52 threw: " + $_.Exception.Message) -ForegroundColor Red
+                    Write-Host  "  [ STACK ]" -ForegroundColor DarkGray
+                    Write-Host ($_.ScriptStackTrace) -ForegroundColor DarkGray
                     $rc52 = 1
                 }
                 if ($rc52 -ne 0) { Write-Host "  [ WARN ] script 52 reported non-zero ($rc52). Continuing to script 53." -ForegroundColor Yellow }
