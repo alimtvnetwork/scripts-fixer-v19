@@ -179,11 +179,15 @@ function Expand-ChromeExtensionUrlInputs {
                 if (-not $stripped) { continue }
                 if ($stripped.StartsWith('#') -or $stripped.StartsWith('//')) { continue }
 
-                $cells = $stripped -split '[,;\t]'
+                # Quote-aware splitter: commas inside "..." stay literal, so
+                # URLs with embedded query commas don't get torn apart.
+                $cells = Split-ChromeExtensionCsvLine -Line $stripped
                 $rowHasId = $false
                 $rowAdds  = @()
                 foreach ($cell in $cells) {
-                    $c = $cell.Trim().Trim('"').Trim("'")
+                    # Splitter already strips surrounding whitespace and removes
+                    # the wrapping double-quotes; only strip stray single quotes.
+                    $c = $cell.Trim("'")
                     if (-not $c) { continue }
                     if ($c -match $idRx) { $rowHasId = $true }
                     $rowAdds += $c
