@@ -304,6 +304,7 @@ function Show-RootHelp {
     Write-Host "    $(".\run.ps1 export npp,obs".PadRight($col))" -NoNewline; Write-Host "Export specific app settings" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 status".PadRight($col))" -NoNewline; Write-Host "Show dashboard of all installed tools" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 status --no-choco".PadRight($col))" -NoNewline; Write-Host "Status without outdated package check" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 report [--since=24h] [--open]".PadRight($col))" -NoNewline; Write-Host "Timestamped JSON+HTML report of install/uninstall actions" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 doctor".PadRight($col))" -NoNewline; Write-Host "Quick health check of project setup" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 doctor --self-check".PadRight($col))" -NoNewline; Write-Host "Deep audit: changelog files, version, clean catalog, keyword resolution, SHA256 pins" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 doctor --self-check --skip-network".PadRight($col))" -NoNewline; Write-Host "Same as above but skips sections (d) + (e) for offline use" -ForegroundColor DarkGray
@@ -2821,6 +2822,7 @@ if ($hasCommand) {
     $isBareExportCommand  = $normalizedCommand -eq "export"
     $isBareStatusCommand  = $normalizedCommand -in @("status", "list-installed", "listinstalled", "installed")
     $isBareDoctorCommand  = $normalizedCommand -eq "doctor"
+    $isBareReportCommand  = $normalizedCommand -in @("report", "install-report", "installreport", "reports")
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareOsCommand      = $normalizedCommand -eq "os"
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
@@ -2839,7 +2841,7 @@ if ($hasCommand) {
     #   - SCRIPTS_FIXER_NO_PULL=1 env var is set
     #   - any of $Install contains --no-pull / -no-pull / --offline
     #   - command is read-only (status/path/scan/export/doctor)
-    $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand
+    $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand -or $isBareReportCommand
     $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand
     $isNoPullEnv = $env:SCRIPTS_FIXER_NO_PULL -eq "1"
     $isNoPullFlag = $false
@@ -3059,6 +3061,11 @@ if ($hasCommand) {
     } elseif ($isBareStatusCommand) {
         Show-VersionHeader
         Invoke-StatusCommand -Args $Install
+        exit 0
+    } elseif ($isBareReportCommand) {
+        Show-VersionHeader
+        . (Join-Path $RootDir "scripts\shared\install-report.ps1")
+        Invoke-InstallReport -Args $Install -ProjectRoot $RootDir
         exit 0
     } elseif ($isBarePathCommand) {
         Show-VersionHeader
