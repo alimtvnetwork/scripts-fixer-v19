@@ -304,6 +304,7 @@ function Show-RootHelp {
     Write-Host "    $(".\run.ps1 export npp,obs".PadRight($col))" -NoNewline; Write-Host "Export specific app settings" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 status".PadRight($col))" -NoNewline; Write-Host "Show dashboard of all installed tools" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 status --no-choco".PadRight($col))" -NoNewline; Write-Host "Status without outdated package check" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 report [--since=24h] [--open]".PadRight($col))" -NoNewline; Write-Host "Timestamped JSON+HTML report of install/uninstall actions" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 doctor".PadRight($col))" -NoNewline; Write-Host "Quick health check of project setup" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 doctor --self-check".PadRight($col))" -NoNewline; Write-Host "Deep audit: changelog files, version, clean catalog, keyword resolution, SHA256 pins" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 doctor --self-check --skip-network".PadRight($col))" -NoNewline; Write-Host "Same as above but skips sections (d) + (e) for offline use" -ForegroundColor DarkGray
