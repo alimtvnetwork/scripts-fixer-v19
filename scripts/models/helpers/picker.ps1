@@ -2,24 +2,115 @@
 #  Models orchestrator -- backend picker, catalog loading, CSV resolution
 # --------------------------------------------------------------------------
 
+function Get-ModelsPathsStore {
+    <#
+    .SYNOPSIS
+        Returns absolute path to .resolved/models-paths.json (persistent overrides
+        for shared/llama/ollama model directories, set via `models path ...`).
+    #>
+    param([Parameter(Mandatory)] [string]$ScriptsRoot)
+    $projectRoot = Split-Path -Parent $ScriptsRoot
+    $resolvedDir = Join-Path $projectRoot ".resolved"
+    if (-not (Test-Path $resolvedDir)) {
+        New-Item -ItemType Directory -Path $resolvedDir -Force | Out-Null
+    }
+    return (Join-Path $resolvedDir "models-paths.json")
+}
+
+function Read-ModelsPathOverrides {
+    param([Parameter(Mandatory)] [string]$ScriptsRoot)
+    $store = Get-ModelsPathsStore -ScriptsRoot $ScriptsRoot
+    if (-not (Test-Path $store)) {
+        return [PSCustomObject]@{ shared = $null; llama = $null; ollama = $null }
+    }
+    try {
+        $raw = Get-Content $store -Raw | ConvertFrom-Json
+        return [PSCustomObject]@{
+            shared = if ($raw.PSObject.Properties['shared']) { $raw.shared } else { $null }
+            llama  = if ($raw.PSObject.Properties['llama'])  { $raw.llama }  else { $null }
+            ollama = if ($raw.PSObject.Properties['ollama']) { $raw.ollama } else { $null }
+        }
+    } catch {
+        Write-Log ("Failed to read models-paths store '$store' -- $_") -Level "warn"
+        return [PSCustomObject]@{ shared = $null; llama = $null; ollama = $null }
+    }
+}
+
+function Save-ModelsPathOverride {
+    <#
+    .SYNOPSIS
+        Persist a model-dir override. -Scope: 'shared' | 'llama' | 'ollama'.
+        -Path '' / $null clears the entry.
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$ScriptsRoot,
+        [Parameter(Mandatory)] [ValidateSet('shared','llama','ollama','all')] [string]$Scope,
+        [string]$Path
+    )
+    $store = Get-ModelsPathsStore -ScriptsRoot $ScriptsRoot
+    $cur   = Read-ModelsPathOverrides -ScriptsRoot $ScriptsRoot
+    $obj = @{
+        shared = $cur.shared
+        llama  = $cur.llama
+        ollama = $cur.ollama
+    }
+    if ($Scope -eq 'all') {
+        $obj.shared = $null; $obj.llama = $null; $obj.ollama = $null
+    } else {
+        $obj[$Scope] = if ([string]::IsNullOrWhiteSpace($Path)) { $null } else { $Path }
+    }
+    try {
+        ($obj | ConvertTo-Json -Depth 5) | Set-Content -Path $store -Encoding UTF8
+        Write-Log "Saved models-path override ($Scope) -> '$($obj[$Scope])' [$store]" -Level "success"
+    } catch {
+        Write-Log "Failed to write models-path store '$store' -- $_" -Level "error"
+    }
+}
+
+function Resolve-EffectiveDevDir {
+    <#
+    .SYNOPSIS
+        Resolves DEV_DIR with this priority:
+        1. $env:DEV_DIR
+        2. saved dev path (from `.\run.ps1 path <dir>`, .resolved/dev-dir.json)
+    #>
+    $envDir = $env:DEV_DIR
+    if (-not [string]::IsNullOrWhiteSpace($envDir)) { return $envDir }
+    if (Get-Command Get-SavedDevPath -ErrorAction SilentlyContinue) {
+        try {
+            $saved = Get-SavedDevPath
+            if ($saved) { return $saved }
+        } catch {}
+    }
+    return $null
+}
+
 function Get-ModelDownloadPaths {
     <#
     .SYNOPSIS
         Returns the on-disk folders where each backend stores model weights.
-        Honors $env:DEV_DIR when set; otherwise reports the configured subfolder
-        and a hint about how to set the dev directory.
+
+        Resolution priority per backend:
+          1. $env:LLAMA_MODELS_DIR  /  $env:OLLAMA_MODELS
+          2. saved per-backend override (.resolved/models-paths.json -> llama|ollama)
+          3. $env:MODELS_DIR  (shared)
+          4. saved shared override  (.resolved/models-paths.json -> shared)
+          5. <DEV_DIR>\<configured subfolder, default 'ai-models'>
     #>
     param(
         [Parameter(Mandatory)] [PSObject]$Config,
         [Parameter(Mandatory)] [string]$ScriptsRoot
     )
 
-    $devDir = $env:DEV_DIR
+    $devDir = Resolve-EffectiveDevDir
     $hasDevDir = -not [string]::IsNullOrWhiteSpace($devDir)
+    $devDirSource = if (-not [string]::IsNullOrWhiteSpace($env:DEV_DIR)) { "env" }
+                    elseif ($hasDevDir) { "saved" }
+                    else { "unset" }
 
-    # Resolve sub-folder names from the per-backend config files
-    $llamaSub  = "llama-models"
-    $ollamaSub = "ollama-models"
+    # Per-backend default subfolders -- now both default to 'ai-models'
+    $llamaSub  = "ai-models"
+    $ollamaSub = "ai-models"
     try {
         $llamaCfg = Get-Content (Join-Path $ScriptsRoot "43-install-llama-cpp\config.json") -Raw | ConvertFrom-Json
         if ($llamaCfg.modelsConfig.devDirSubfolder) { $llamaSub = $llamaCfg.modelsConfig.devDirSubfolder }
@@ -29,14 +120,44 @@ function Get-ModelDownloadPaths {
         if ($ollamaCfg.models.devDirSubfolder) { $ollamaSub = $ollamaCfg.models.devDirSubfolder }
     } catch {}
 
-    $llamaPath  = if ($hasDevDir) { Join-Path $devDir $llamaSub }  else { "<DEV_DIR not set>\$llamaSub" }
-    $ollamaPath = if ($hasDevDir) { Join-Path $devDir $ollamaSub } else { "<DEV_DIR not set>\$ollamaSub  (Ollama also honors `$env:OLLAMA_MODELS)" }
+    $overrides = Read-ModelsPathOverrides -ScriptsRoot $ScriptsRoot
+
+    function _ResolveOne {
+        param([string]$BackendKey, [string]$EnvName, [string]$Sub)
+        $envVal = [Environment]::GetEnvironmentVariable($EnvName)
+        if (-not [string]::IsNullOrWhiteSpace($envVal)) {
+            return @{ Path = $envVal; Source = "env:$EnvName" }
+        }
+        $savedBackend = $overrides.$BackendKey
+        if (-not [string]::IsNullOrWhiteSpace($savedBackend)) {
+            return @{ Path = $savedBackend; Source = "saved:$BackendKey" }
+        }
+        $envShared = $env:MODELS_DIR
+        if (-not [string]::IsNullOrWhiteSpace($envShared)) {
+            return @{ Path = (Join-Path $envShared $Sub); Source = "env:MODELS_DIR/$Sub" }
+        }
+        if (-not [string]::IsNullOrWhiteSpace($overrides.shared)) {
+            return @{ Path = (Join-Path $overrides.shared $Sub); Source = "saved:shared/$Sub" }
+        }
+        if ($hasDevDir) {
+            return @{ Path = (Join-Path $devDir $Sub); Source = "DEV_DIR/$Sub" }
+        }
+        return @{ Path = "<DEV_DIR not set>\$Sub"; Source = "unresolved" }
+    }
+
+    $llama  = _ResolveOne -BackendKey 'llama'  -EnvName 'LLAMA_MODELS_DIR' -Sub $llamaSub
+    $ollama = _ResolveOne -BackendKey 'ollama' -EnvName 'OLLAMA_MODELS'    -Sub $ollamaSub
 
     return [PSCustomObject]@{
-        DevDir     = if ($hasDevDir) { $devDir } else { "(not set)" }
-        Llama      = $llamaPath
-        Ollama     = $ollamaPath
-        IsResolved = $hasDevDir
+        DevDir       = if ($hasDevDir) { $devDir } else { "(not set)" }
+        DevDirSource = $devDirSource
+        Llama        = $llama.Path
+        LlamaSource  = $llama.Source
+        Ollama       = $ollama.Path
+        OllamaSource = $ollama.Source
+        SharedEnv    = $env:MODELS_DIR
+        SharedSaved  = $overrides.shared
+        IsResolved   = $hasDevDir -or (-not [string]::IsNullOrWhiteSpace($env:MODELS_DIR)) -or (-not [string]::IsNullOrWhiteSpace($overrides.shared))
     }
 }
 
@@ -46,13 +167,19 @@ function Show-ModelDownloadPaths {
     )
     Write-Host ""
     Write-Host "  Model download locations" -ForegroundColor Yellow
-    Write-Host ("    DEV_DIR             : {0}" -f $Paths.DevDir)        -ForegroundColor Gray
-    Write-Host ("    llama.cpp (GGUF)    : {0}" -f $Paths.Llama)         -ForegroundColor White
-    Write-Host ("    Ollama daemon store : {0}" -f $Paths.Ollama)        -ForegroundColor Cyan
+    Write-Host ("    DEV_DIR             : {0}  [{1}]" -f $Paths.DevDir, $Paths.DevDirSource) -ForegroundColor Gray
+    Write-Host ("    llama.cpp (GGUF)    : {0}" -f $Paths.Llama)  -ForegroundColor White
+    Write-Host ("                          source: {0}" -f $Paths.LlamaSource) -ForegroundColor DarkGray
+    Write-Host ("    Ollama daemon store : {0}" -f $Paths.Ollama) -ForegroundColor Cyan
+    Write-Host ("                          source: {0}" -f $Paths.OllamaSource) -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Override syntax" -ForegroundColor Yellow
+    Write-Host "    Shared (both)      : `$env:MODELS_DIR='X:\ai'         OR  .\run.ps1 models path X:\ai" -ForegroundColor DarkGray
+    Write-Host "    llama.cpp only     : `$env:LLAMA_MODELS_DIR='X:\gguf'  OR  .\run.ps1 models path llama X:\gguf" -ForegroundColor DarkGray
+    Write-Host "    Ollama only        : `$env:OLLAMA_MODELS='X:\ollama'   OR  .\run.ps1 models path ollama X:\ollama" -ForegroundColor DarkGray
+    Write-Host "    Show / reset       : .\run.ps1 models path            |   .\run.ps1 models path --reset [llama|ollama|all]" -ForegroundColor DarkGray
     if (-not $Paths.IsResolved) {
-        Write-Host "    Tip: set the dev dir with  `$env:DEV_DIR='D:\dev'  or  .\run.ps1 path D:\dev" -ForegroundColor DarkGray
-    } else {
-        Write-Host "    Change with: `$env:DEV_DIR='X:\new-dev'  (Ollama: `$env:OLLAMA_MODELS='X:\ollama-models')" -ForegroundColor DarkGray
+        Write-Host "    Tip: set DEV_DIR via  `$env:DEV_DIR='D:\dev'   or   .\run.ps1 path D:\dev" -ForegroundColor DarkGray
     }
     Write-Host ""
 }
