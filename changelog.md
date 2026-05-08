@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.216.0] -- 2026-05-08
+
+### Added: Windows registry writes for catalog A1..B5 + `os context-menu` install/uninstall/restore (spec 55, P3 + P6)
+
+- New helper `scripts/53-script-fixer-context-menu/helpers/catalog-leaves.ps1`. Reads `scripts/shared/context-menu-actions.json` and emits a `Universal Actions` sub-cascade under each enabled scope (file / directory / background / desktop). Catalog `{path}` is substituted with Explorer's `%V` (background/directory) or `%1` (file). Verbs supported: `os`, `run`, `models`. `raw` (B3 ConEmu open-here) is intentionally skipped on Windows -- needs runtime exe resolution and lands in a follow-up.
+- Wired into `Invoke-Install` (script 53) right after the auto-generated category leaves, so a single `run.ps1 -I 53 install` now writes BOTH the script-cascade AND catalog A1..B5 leaves. Install summary's `leafCount` includes universal leaves.
+- `os context-menu install` is no longer a stub: it now confirms via `Confirm-DestructiveAction`, runs script 52 (`repair`) to restore VS Code folder + empty-folder right-click, then runs script 53 (`install`) for the full cascade. `uninstall` runs script 53 uninstall. `restore` runs script 52 rollback (newest snapshot).
+- `--yes` / `-y` / `--non-interactive` are forwarded to the destructive prompt; unknown flags pass through to the underlying script.
+
 ## [v0.215.0] -- 2026-05-07
 
 ### Added: `install os-context-menu` / `install context-menu-all` keywords (script 53)

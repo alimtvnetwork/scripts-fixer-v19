@@ -107,11 +107,78 @@ switch ($cmd) {
         foreach ($e in $errors) { Write-Host "  [ FAIL ] $e" -ForegroundColor Red }
         exit 1
     }
-    { $_ -in 'install','uninstall','restore','list-snapshots' } {
+    { $_ -in 'install','uninstall','restore' } {
+        $repoRoot = Split-Path -Parent $scriptsDir
+        $confirmHelper = Join-Path $sharedDir "confirm-prompt.ps1"
+        if (Test-Path -LiteralPath $confirmHelper) { . $confirmHelper }
+
+        $isYes  = ($Rest -contains '--yes') -or ($Rest -contains '-y')
+        $isNonI = ($Rest -contains '--non-interactive')
+
+        $passthrough = @()
+        foreach ($r in $Rest) {
+            if ($r -in '--yes','-y','--non-interactive','--all') { continue }
+            $passthrough += $r
+        }
+
+        switch ($cmd) {
+            'install' {
+                $action = "INSTALL Scripts Fixer right-click menu (catalog A1..B5 + script cascade) AND repair VS Code folder/empty-folder right-click."
+                if (Get-Command Confirm-DestructiveAction -ErrorAction SilentlyContinue) {
+                    $proceed = Confirm-DestructiveAction -ActionDescription $action -Yes:$isYes -NonInteractive:$isNonI
+                    if (-not $proceed) { Write-Host "  [ INFO ] Cancelled." -ForegroundColor Yellow; exit 5 }
+                }
+
+                Write-Host ""
+                Write-Host "  [ STEP 1/2 ] Repairing VS Code folder + empty-folder right-click (script 52)..." -ForegroundColor Cyan
+                $rc52 = 0
+                try {
+                    & (Join-Path $repoRoot "run.ps1") -I 52 repair @passthrough
+                    $rc52 = $LASTEXITCODE
+                } catch {
+                    Write-Host ("  [ FAIL ] script 52 threw: " + $_.Exception.Message) -ForegroundColor Red
+                    $rc52 = 1
+                }
+                if ($rc52 -ne 0) { Write-Host "  [ WARN ] script 52 reported non-zero ($rc52). Continuing to script 53." -ForegroundColor Yellow }
+
+                Write-Host ""
+                Write-Host "  [ STEP 2/2 ] Installing Scripts Fixer cascading menu + Universal Actions (script 53)..." -ForegroundColor Cyan
+                & (Join-Path $repoRoot "run.ps1") -I 53 install @passthrough
+                $rc53 = $LASTEXITCODE
+
+                $exitCode = if ($rc53 -ne 0) { $rc53 } elseif ($rc52 -ne 0) { $rc52 } else { 0 }
+                Write-Host ""
+                if ($exitCode -eq 0) {
+                    Write-Host "  [  OK  ] Context menu install complete (52 + 53)." -ForegroundColor Green
+                } else {
+                    Write-Host "  [ FAIL ] Context menu install finished with errors (exit $exitCode)." -ForegroundColor Red
+                }
+                exit $exitCode
+            }
+            'uninstall' {
+                $action = "UNINSTALL Scripts Fixer right-click menu from all scopes (script 53). VS Code keys are not touched here -- use 'restore' for that."
+                if (Get-Command Confirm-DestructiveAction -ErrorAction SilentlyContinue) {
+                    $proceed = Confirm-DestructiveAction -ActionDescription $action -Yes:$isYes -NonInteractive:$isNonI
+                    if (-not $proceed) { Write-Host "  [ INFO ] Cancelled." -ForegroundColor Yellow; exit 5 }
+                }
+                & (Join-Path $repoRoot "run.ps1") -I 53 uninstall @passthrough
+                exit $LASTEXITCODE
+            }
+            'restore' {
+                $action = "RESTORE VS Code folder/empty-folder right-click from the newest registry snapshot (script 52 rollback)."
+                if (Get-Command Confirm-DestructiveAction -ErrorAction SilentlyContinue) {
+                    $proceed = Confirm-DestructiveAction -ActionDescription $action -Yes:$isYes -NonInteractive:$isNonI
+                    if (-not $proceed) { Write-Host "  [ INFO ] Cancelled." -ForegroundColor Yellow; exit 5 }
+                }
+                & (Join-Path $repoRoot "run.ps1") -I 52 restore @passthrough
+                exit $LASTEXITCODE
+            }
+        }
+    }
+    'list-snapshots' {
         Write-Host ""
-        Write-Host "  [ INFO ] '$cmd' is not implemented yet." -ForegroundColor Yellow
-        Write-Host "          Tracking spec: spec/55-universal-context-menu/readme.md (P3 + P6)." -ForegroundColor Gray
-        Write-Host "          For now use:   .\run.ps1 53 install   (Windows leaves only)." -ForegroundColor Gray
+        Write-Host "  [ INFO ] 'list-snapshots' is not implemented yet." -ForegroundColor Yellow
+        Write-Host "          Browse: scripts\\52-vscode-folder-repair\\.installed\\snapshots\\" -ForegroundColor Gray
         exit 64
     }
     default {

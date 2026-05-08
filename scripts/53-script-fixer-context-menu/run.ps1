@@ -33,6 +33,7 @@ $repoRoot  = Split-Path -Parent (Split-Path -Parent $scriptDir)
 . (Join-Path $scriptDir "helpers\categorize.ps1")
 . (Join-Path $scriptDir "helpers\shell-detect.ps1")
 . (Join-Path $scriptDir "helpers\menu-writer.ps1")
+. (Join-Path $scriptDir "helpers\catalog-leaves.ps1")
 
 # -- Load config & log messages -----------------------------------------------
 $config      = Import-JsonConfig (Join-Path $scriptDir "config.json")
@@ -294,6 +295,18 @@ function Invoke-Install {
                 if (-not $okPair) { $isAllSuccessful = $false } else { $totalLeaves++ }
             }
         }
+
+        # 2b. Universal Actions cascade (catalog A1..B5 -- spec 55, P3)
+        $catalogResult = Add-CatalogLeaves `
+            -TopKey         $topKey `
+            -ExplorerScope  $scopeName `
+            -ShellExe       $shellExe `
+            -RepoRoot       $RepoRoot `
+            -IconPath       $iconPath `
+            -MaxLen         $maxLen `
+            -LogMsgs        $LogMsgs
+        if (-not $catalogResult.Ok) { $isAllSuccessful = $false }
+        $totalLeaves += [int]$catalogResult.LeafCount
 
         # 3. Verify
         Write-Log ($LogMsgs.messages.verifyStart -replace '\{scope\}', $scopeName) -Level "info"
