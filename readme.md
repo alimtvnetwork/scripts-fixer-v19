@@ -134,6 +134,50 @@ Audit mode, health checks, settings sync, context-menu repair, and CI-tested ver
 
 ---
 
+## 🌐 Chrome & Extensions (script 58)
+
+Chrome installs go through Chocolatey (`googlechrome`) with the official standalone installer as a fallback. Extensions are pushed via the Chrome `ExtensionInstallForcelist` policy registry key, so they apply on next Chrome launch — no per-profile clicking required.
+
+### Browser
+
+```powershell
+.\run.ps1 install chrome                 # Chrome only
+.\run.ps1 install chrome with-ext        # Chrome + every configured Web Store extension
+.\run.ps1 uninstall chrome               # Remove Chrome + clean shortcuts/registry/AppData
+```
+
+### Extensions from the bundled catalog
+
+The catalog lives in `scripts/58-install-chrome/config.json` (`extensions.list`). Edit it to add your own.
+
+```powershell
+.\run.ps1 install chrome ext                            # List the catalog (name -> Web Store ID)
+.\run.ps1 install chrome ext vpn                        # Install ONE extension by name
+.\run.ps1 install chrome ext vpn,tabcopy,adblocker      # MANY by comma-separated names (no spaces)
+.\run.ps1 install chrome ext vpn tabcopy adblocker      # Same thing, space-separated also works
+.\run.ps1 install chrome ext-all                        # Install every extension in config.json
+```
+
+Aliases: `ext` = `extension` = `extensions`; `ext-all` = `extall` = `all-ext` = `extensions-all`.
+
+### Ad-hoc extensions from raw URLs, IDs, or files
+
+Use `ext-url` when you want to install something that isn't in the bundled catalog. Accepts full Chrome Web Store URLs, raw 32-character extension IDs, or one/more `.csv` / `.txt` files (one entry per row; quoted fields with embedded commas are handled correctly).
+
+```powershell
+.\run.ps1 install chrome ext-url https://chromewebstore.google.com/detail/<slug>/<id>
+.\run.ps1 install chrome ext-url <id1> <id2> <id3>          # Multiple raw IDs / URLs
+.\run.ps1 install chrome ext-url url1,url2,url3             # Comma-separated list
+.\run.ps1 install chrome ext-url .\my-extensions.csv        # .csv file -- one URL/ID per row
+.\run.ps1 install chrome ext-url list.txt https://...       # Mix file(s) and inline URLs
+```
+
+Aliases: `ext-url` = `ext-urls` = `ext-from-url`; batch alias `ext-url-all` does the same thing.
+
+> Pre-flight validation flags duplicates and copy-paste mistakes before any registry write. On warnings, the script prompts to confirm — pass `-Yes` to skip the prompt in CI.
+
+---
+
 ## Demo / Showcase
 
 > **One PowerShell entry point. Three commands. Hours of manual setup, gone.**
