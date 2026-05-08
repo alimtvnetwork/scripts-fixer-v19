@@ -2943,7 +2943,19 @@ if ($hasCommand) {
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
+    $isBareHelpCommand    = $normalizedCommand -in @("help", "--help", "-help", "/?", "?")
     $isBareScriptId = $normalizedCommand -match '^\d+$'
+
+    # ── Bare 'help [keyword]' -- short-circuit before the unknown-command
+    # fallback prepends "help" to $Install (which would corrupt the filter).
+    if ($isBareHelpCommand) {
+        $helpFilterEarly = $null
+        if ($Install -and $Install.Count -gt 0) {
+            $helpFilterEarly = (@($Install | Where-Object { $_ }) -join ' ').Trim()
+        }
+        Show-RootHelp -Filter $helpFilterEarly
+        exit 0
+    }
 
     # ── Pull-before-subcommand-dispatch ──────────────────────────────────
     # CODE RED fix for stale config.json on long-running clones: any "bare"
