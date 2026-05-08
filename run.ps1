@@ -2823,6 +2823,7 @@ if ($hasCommand) {
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareOsCommand      = $normalizedCommand -eq "os"
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
+    $isBareVscodeContextMenuCommand = $normalizedCommand -in @("vscode-context-menu", "vscode-contextmenu", "vscodecontextmenu", "vscode-menu", "vscodemenu")
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
