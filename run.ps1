@@ -909,7 +909,9 @@ function Show-RootHelp {
             if ($combined.ToLower().Contains($needle)) {
                 foreach ($p in $pending) {
                     $hp = @{ Object = $p.Message; NoNewline = $true }
-                    if ($null -ne $p.ForegroundColor) { $hp.ForegroundColor = $p.ForegroundColor }
+                    if ($null -ne $p.ForegroundColor -and [int]$p.ForegroundColor -ge 0) {
+                        $hp.ForegroundColor = $p.ForegroundColor
+                    }
                     Write-Host @hp
                 }
                 Write-Host ""
