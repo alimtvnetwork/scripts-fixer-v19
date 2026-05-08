@@ -6,6 +6,11 @@ param(
     [Parameter(Position = 0)]
     [string]$Command = "all",
 
+    [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
+    [string[]]$Rest,
+
+    [string]$Method = "auto",
+    [switch]$WithExt,
     [switch]$Help
 )
 
@@ -23,6 +28,7 @@ $sharedDir  = Join-Path (Split-Path -Parent $scriptDir) "shared"
 . (Join-Path $sharedDir "install-paths.ps1")
 
 . (Join-Path $scriptDir "helpers\chrome.ps1")
+. (Join-Path $scriptDir "helpers\extensions.ps1")
 
 $config      = Import-JsonConfig (Join-Path $scriptDir "config.json")
 $logMessages = Import-JsonConfig (Join-Path $scriptDir "log-messages.json")
@@ -46,17 +52,55 @@ try {
 
     Invoke-GitPull
 
-    $isUninstall = $Command.ToLower() -eq "uninstall"
-    if ($isUninstall) {
+    $cmd = $Command.ToLower().Trim()
+
+    # ── Extension subcommands ────────────────────────────────────────────
+    $isExtMode    = $cmd -in @("ext","extension","extensions")
+    $isExtAllMode = $cmd -in @("ext-all","extall","ext_all","all-ext","extensions-all")
+    $isWithExt    = $cmd -in @("with-ext","withext","plus-ext","chrome+ext","chrome-with-ext") -or $WithExt
+
+    if ($isExtMode) {
+        $sub = if ($Rest -and $Rest.Count -gt 0) { $Rest[0].ToLower() } else { "" }
+        if (-not $sub -or $sub -eq "list") {
+            Show-ChromeExtensionCatalog -ExtConfig $config.extensions
+            return
+        }
+        # `ext <name1,name2,...>`  or  `ext name1 name2 name3`
+        $names = @()
+        foreach ($r in $Rest) {
+            foreach ($t in ($r -split ',')) {
+                $tt = $t.Trim()
+                if ($tt) { $names += $tt }
+            }
+        }
+        if ($names.Count -eq 0) { $names = @("all") }
+        Install-ChromeExtensions -ExtConfig $config.extensions -Names $names -Method $Method | Out-Null
+        Write-Log $logMessages.messages.setupComplete -Level "success"
+        return
+    }
+
+    if ($isExtAllMode) {
+        Install-ChromeExtensions -ExtConfig $config.extensions -Names @("all") -Method $Method | Out-Null
+        Write-Log $logMessages.messages.setupComplete -Level "success"
+        return
+    }
+
+    # ── Uninstall ────────────────────────────────────────────────────────
+    if ($cmd -eq "uninstall") {
         Uninstall-Chrome -ChromeConfig $config.chrome -LogMessages $logMessages
         return
     }
 
+    # ── Install (default) -- optionally followed by extensions ──────────
     $ok = Install-Chrome -ChromeConfig $config.chrome -LogMessages $logMessages
-
     $isSuccess = $ok -eq $true
     if ($isSuccess) {
         Write-Log $logMessages.messages.setupComplete -Level "success"
+
+        if ($isWithExt) {
+            Write-Log "with-ext flag set -- installing all configured extensions..." -Level "info"
+            Install-ChromeExtensions -ExtConfig $config.extensions -Names @("all") -Method $Method | Out-Null
+        }
     } else {
         Write-Log ($logMessages.messages.installFailed -replace '\{error\}', "See errors above") -Level "error"
     }
