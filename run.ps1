@@ -3931,6 +3931,7 @@ if ($hasCommand) {
             & $chromeScript $chromeSub @chromeRest
             exit $LASTEXITCODE
         }
+    } elseif ($isBareExportCommand) {
         Show-VersionHeader
         Invoke-ExportCommand -Args $Install
         exit 0
