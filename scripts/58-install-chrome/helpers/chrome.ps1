@@ -14,6 +14,10 @@ $_chocoUtilsPath = Join-Path $_sharedDir "choco-utils.ps1"
 if ((Test-Path $_chocoUtilsPath) -and -not (Get-Command Install-ChocoPackage -ErrorAction SilentlyContinue)) {
     . $_chocoUtilsPath
 }
+$_adminCheckPath = Join-Path $_sharedDir "admin-check.ps1"
+if ((Test-Path $_adminCheckPath) -and -not (Get-Command Assert-Elevated -ErrorAction SilentlyContinue)) {
+    . $_adminCheckPath
+}
 
 function Get-ChromePath {
     <#
@@ -507,6 +511,11 @@ function Invoke-ChromePostUninstallCleanup {
 
 function Uninstall-Chrome {
     param($ChromeConfig, $LogMessages)
+
+    Assert-Elevated `
+        -ScriptPath $(if ($PSCommandPath) { $PSCommandPath } else { (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'run.ps1') }) `
+        -ScriptArgs 'uninstall chrome' `
+        -Reason 'Chrome uninstall removes protected registry keys and requires Administrator privileges.'
 
     Write-Log ($LogMessages.messages.uninstalling -replace '\{name\}', "Google Chrome") -Level "info"
     $isUninstalled = Uninstall-ChocoPackage -PackageName $ChromeConfig.chocoPackage
