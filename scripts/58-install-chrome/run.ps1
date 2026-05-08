@@ -11,6 +11,7 @@ param(
 
     [string]$Method = "auto",
     [switch]$WithExt,
+    [switch]$Yes,
     [switch]$Help
 )
 
