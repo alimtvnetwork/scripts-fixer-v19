@@ -864,18 +864,30 @@ function Show-RootHelpRaw {
     Write-Host "      .\run.ps1 help chrome ext         Multiple terms -> AND match (lines with BOTH words)" -ForegroundColor DarkGray
     Write-Host "      .\run.ps1 help vscode uninstall   AND match: VS Code uninstall commands only" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "    Save filtered help to a file:" -ForegroundColor Cyan
+    Write-Host "      .\run.ps1 help chrome --out chrome-help.txt    Plain text (extension auto-detected)" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help chrome --out chrome-help.json   JSON (auto from .json extension)" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help vscode --json vscode.json       Force JSON regardless of extension" -ForegroundColor DarkGray
+    Write-Host "      .\run.ps1 help conemu --text conemu.log        Force plain text" -ForegroundColor DarkGray
+    Write-Host ""
 
     Show-VersionFooter
 }
 
-# ── Help wrapper with optional keyword filter ────────────────────────
+# ── Help wrapper with optional keyword filter + export ───────────────
 # Usage:
-#   Show-RootHelp                           -> full help
-#   Show-RootHelp -Filter "chrome"          -> lines containing "chrome"
-#   Show-RootHelp -Filter "chrome startup"  -> lines matching ALL terms (AND)
-#   Show-RootHelp -Filter "chrome,ext"      -> commas/spaces both split terms
+#   Show-RootHelp                                       -> full help
+#   Show-RootHelp -Filter "chrome"                      -> lines containing "chrome"
+#   Show-RootHelp -Filter "chrome startup"              -> AND match
+#   Show-RootHelp -Filter "chrome" -OutFile out.txt     -> also save plain text
+#   Show-RootHelp -Filter "chrome" -OutFile out.json -Format json
 function Show-RootHelp {
-    param([string]$Filter)
+    param(
+        [string]$Filter,
+        [string]$OutFile,
+        [ValidateSet("text", "json")]
+        [string]$Format = "text"
+    )
 
     $hasFilter = -not [string]::IsNullOrWhiteSpace($Filter)
     if (-not $hasFilter) {
@@ -898,6 +910,13 @@ function Show-RootHelp {
 
     $displayFilter = $needles -join ' AND '
 
+    # Auto-pick format from extension if -OutFile given without explicit -Format.
+    $hasOutFile = -not [string]::IsNullOrWhiteSpace($OutFile)
+    if ($hasOutFile -and -not $PSBoundParameters.ContainsKey('Format')) {
+        $ext = [System.IO.Path]::GetExtension($OutFile).ToLower()
+        if ($ext -eq ".json") { $Format = "json" } else { $Format = "text" }
+    }
+
     # Capture Write-Host output (Information stream, ID 6) as records so we
     # can preserve the original colors when re-emitting matched lines.
     $records = & { Show-RootHelpRaw } 6>&1
@@ -909,6 +928,9 @@ function Show-RootHelp {
 
     $pending = New-Object System.Collections.Generic.List[object]
     $matched = 0
+    # Plain-text and structured copies of matched logical lines for export.
+    $matchedPlain = New-Object System.Collections.Generic.List[string]
+    $matchedRich  = New-Object System.Collections.Generic.List[object]
 
     foreach ($rec in $records) {
         $msg = ""; $fg = $null; $nl = $false
@@ -929,7 +951,8 @@ function Show-RootHelp {
 
         if (-not $nl) {
             # Logical line complete -- emit only if EVERY needle matches.
-            $combinedLower = (-join ($pending | ForEach-Object { $_.Message })).ToLower()
+            $combined = -join ($pending | ForEach-Object { $_.Message })
+            $combinedLower = $combined.ToLower()
             $isMatch = $true
             foreach ($n in $needles) {
                 if (-not $combinedLower.Contains($n)) { $isMatch = $false; break }
@@ -944,6 +967,17 @@ function Show-RootHelp {
                 }
                 Write-Host ""
                 $matched++
+
+                $matchedPlain.Add($combined.TrimEnd())
+                $segments = @()
+                foreach ($p in $pending) {
+                    $colorName = if ($null -ne $p.ForegroundColor) { "$($p.ForegroundColor)" } else { $null }
+                    $segments += [pscustomobject]@{ text = $p.Message; color = $colorName }
+                }
+                $matchedRich.Add([pscustomobject]@{
+                    line     = $combined.TrimEnd()
+                    segments = $segments
+                })
             }
             $pending.Clear()
         }
@@ -957,6 +991,50 @@ function Show-RootHelp {
         $termWord = if ($needles.Count -eq 1) { "term" } else { "terms (AND)" }
         Write-Host "  $matched line(s) matched $($needles.Count) $termWord -- $displayFilter" -ForegroundColor Green
         Write-Host "  Run '.\run.ps1 help' (no keyword) to see the full help screen." -ForegroundColor DarkGray
+    }
+
+    # ── Export ────────────────────────────────────────────────────────
+    if ($hasOutFile) {
+        try {
+            $outFull = $OutFile
+            if (-not [System.IO.Path]::IsPathRooted($outFull)) {
+                $outFull = Join-Path (Get-Location).Path $OutFile
+            }
+            $parent = Split-Path -Parent $outFull
+            if ($parent -and -not (Test-Path $parent)) {
+                New-Item -ItemType Directory -Path $parent -Force | Out-Null
+            }
+
+            if ($Format -eq "json") {
+                $payload = [pscustomobject]@{
+                    generatedAt = (Get-Date).ToString("o")
+                    filter      = $displayFilter
+                    keywords    = $needles
+                    matchCount  = $matched
+                    lines       = $matchedRich
+                }
+                $payload | ConvertTo-Json -Depth 6 | Set-Content -Path $outFull -Encoding UTF8
+            } else {
+                $header = @(
+                    "# Filtered help -- keyword(s): $displayFilter",
+                    "# Generated: $((Get-Date).ToString('o'))",
+                    "# Matches  : $matched",
+                    ""
+                )
+                ($header + $matchedPlain) | Set-Content -Path $outFull -Encoding UTF8
+            }
+
+            Write-Host ""
+            Write-Host "  [  OK  ] " -ForegroundColor Green -NoNewline
+            Write-Host "Saved $matched line(s) to: " -NoNewline
+            Write-Host "$outFull" -ForegroundColor Cyan
+            Write-Host "          Format: $Format" -ForegroundColor DarkGray
+        } catch {
+            Write-Host ""
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "Could not write export file: $OutFile"
+            Write-Host "          Reason: $($_.Exception.Message)" -ForegroundColor DarkGray
+        }
     }
     Write-Host ""
 }
@@ -2674,6 +2752,49 @@ if ($_cmdLow -in $_helpAliases) {
 }
 
 if ($_isEarlyHelp) {
+    # ── Strip export flags from the filter terms ─────────────────────
+    # Recognized:
+    #   --out <path> | --out=<path>     (auto-detect format from extension)
+    #   --text <path> | --text=<path>   (force plain text)
+    #   --json <path> | --json=<path>   (force JSON)
+    $_helpOutFile = $null
+    $_helpFormat  = $null
+    if ($_earlyHelpFilter) {
+        $_termsRaw = @($_earlyHelpFilter -split '[\s]+' | Where-Object { $_ })
+        $_kept = New-Object System.Collections.Generic.List[string]
+        for ($_i = 0; $_i -lt $_termsRaw.Count; $_i++) {
+            $_t = "$($_termsRaw[$_i])"
+            $_tl = $_t.ToLower()
+            $_consumeNext = $false
+            $_inlineVal = $null
+            $_fmtHere = $null
+
+            if     ($_tl -eq "--out"  -or $_tl -eq "-out")  { $_consumeNext = $true; $_fmtHere = "auto" }
+            elseif ($_tl -eq "--text" -or $_tl -eq "-text") { $_consumeNext = $true; $_fmtHere = "text" }
+            elseif ($_tl -eq "--json" -or $_tl -eq "-json") { $_consumeNext = $true; $_fmtHere = "json" }
+            elseif ($_tl -match '^--?out=(.+)$')  { $_inlineVal = $Matches[1]; $_fmtHere = "auto" }
+            elseif ($_tl -match '^--?text=(.+)$') { $_inlineVal = $Matches[1]; $_fmtHere = "text" }
+            elseif ($_tl -match '^--?json=(.+)$') { $_inlineVal = $Matches[1]; $_fmtHere = "json" }
+            else { $_kept.Add($_t); continue }
+
+            $_val = $_inlineVal
+            if ($_consumeNext -and ($_i + 1) -lt $_termsRaw.Count) {
+                $_val = "$($_termsRaw[$_i + 1])"
+                $_i++
+            }
+            if ($_val) {
+                $_helpOutFile = $_val
+                if ($_fmtHere -eq "auto") {
+                    $_ext = [System.IO.Path]::GetExtension($_val).ToLower()
+                    $_helpFormat = if ($_ext -eq ".json") { "json" } else { "text" }
+                } else {
+                    $_helpFormat = $_fmtHere
+                }
+            }
+        }
+        $_earlyHelpFilter = ($_kept -join ' ').Trim()
+    }
+
     # Interactive prompt: if user ran bare `help` / `--help` / `-h` with NO
     # keyword AND we have a real interactive console (not redirected / piped),
     # ask for one. Empty input -> full help. Non-TTY -> full help (old behavior).
@@ -2692,6 +2813,7 @@ if ($_isEarlyHelp) {
             Write-Host "  =======================" -ForegroundColor DarkGray
             Write-Host "  Enter one or more keywords (space/comma separated) to filter the help." -ForegroundColor DarkGray
             Write-Host "  Examples: chrome | chrome ext | vscode uninstall | conemu menu" -ForegroundColor DarkGray
+            Write-Host "  Append --out <path> / --json <path> to also save the matches." -ForegroundColor DarkGray
             Write-Host "  Press ENTER with no input to show the full help screen." -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "  keyword(s)> " -ForegroundColor Yellow -NoNewline
@@ -2704,7 +2826,12 @@ if ($_isEarlyHelp) {
         }
     }
 
-    Show-RootHelp -Filter $_earlyHelpFilter
+    $_showArgs = @{ Filter = $_earlyHelpFilter }
+    if ($_helpOutFile) {
+        $_showArgs.OutFile = $_helpOutFile
+        if ($_helpFormat)  { $_showArgs.Format = $_helpFormat }
+    }
+    Show-RootHelp @_showArgs
     exit 0
 }
 
