@@ -27,6 +27,7 @@ $sharedDir  = Join-Path (Split-Path -Parent $scriptDir) "shared"
 . (Join-Path $sharedDir "installed.ps1")
 . (Join-Path $sharedDir "choco-utils.ps1")
 . (Join-Path $sharedDir "install-paths.ps1")
+. (Join-Path $sharedDir "admin-check.ps1")
 
 . (Join-Path $scriptDir "helpers\chrome.ps1")
 . (Join-Path $scriptDir "helpers\extensions.ps1")
