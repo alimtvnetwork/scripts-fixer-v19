@@ -68,7 +68,7 @@ function Assert-Elevated {
     # helper has no hard dependency on logging.ps1.
     $hasWriteFileError = $null -ne (Get-Command -Name 'Write-FileError' -ErrorAction SilentlyContinue)
     if ($hasWriteFileError) {
-        Write-FileError -Path $ScriptPath -Reason $Reason
+        Write-FileError -FilePath $ScriptPath -Operation 'uninstall' -Reason $Reason -Module 'Assert-Elevated'
     } else {
         Write-Host ''
         Write-Host '============================================================' -ForegroundColor Red
