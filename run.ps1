@@ -3477,8 +3477,25 @@ if ($List) {
 }
 
 # ── Help ─────────────────────────────────────────────────────────────
-if ($Help) {
-    Show-RootHelp
+# Supports an optional keyword filter:
+#   .\run.ps1 help                       -> full help
+#   .\run.ps1 help chrome                -> only lines matching "chrome"
+#   .\run.ps1 -h chrome                  -> same (PowerShell binds "chrome" into $Command)
+#   .\run.ps1 --help ext-url             -> same
+$normalizedCommandLower = if ($Command) { $Command.Trim().ToLower() } else { "" }
+$isHelpCommand = $normalizedCommandLower -in @("help", "--help", "-help", "/?", "?")
+
+if ($Help -or $isHelpCommand) {
+    $helpFilter = $null
+    if ($isHelpCommand) {
+        # `.\run.ps1 help <keyword>` -- keyword(s) land in $Install
+        if ($Install -and $Install.Count -gt 0) { $helpFilter = ($Install -join ' ').Trim() }
+    } elseif ($Help) {
+        # `-h <keyword>` -- PowerShell binds the positional value into $Command
+        if ($Command -and -not $isHelpCommand) { $helpFilter = $Command.Trim() }
+        elseif ($Install -and $Install.Count -gt 0) { $helpFilter = ($Install -join ' ').Trim() }
+    }
+    Show-RootHelp -Filter $helpFilter
     exit 0
 }
 
