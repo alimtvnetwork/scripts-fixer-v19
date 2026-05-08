@@ -176,6 +176,62 @@ Aliases: `ext-url` = `ext-urls` = `ext-from-url`; batch alias `ext-url-all` does
 
 > Pre-flight validation flags duplicates and copy-paste mistakes before any registry write. On warnings, the script prompts to confirm — pass `-Yes` to skip the prompt in CI.
 
+### Copy-paste cookbook
+
+Real-world commands you can paste straight into PowerShell:
+
+```powershell
+# 1. Fresh machine: Chrome + every catalog extension in one shot
+.\run.ps1 install chrome with-ext
+
+# 2. Just the browser, no extensions
+.\run.ps1 install chrome
+
+# 3. See what's in the catalog before installing
+.\run.ps1 install chrome ext
+
+# 4. Pick a few extensions by name (comma OR space separated)
+.\run.ps1 install chrome ext vpn,tabcopy,adblocker
+.\run.ps1 install chrome ext vpn tabcopy adblocker
+
+# 5. Install everything in config.json
+.\run.ps1 install chrome ext-all
+
+# 6. Add ONE ad-hoc extension by full Web Store URL
+.\run.ps1 install chrome ext-url "https://chromewebstore.google.com/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh"
+
+# 7. Add ONE ad-hoc extension by raw 32-char ID
+.\run.ps1 install chrome ext-url ddkjiahejlhfcafbddmgiahcphecmpfh
+
+# 8. Several ad-hoc extensions in one call (mix URLs and IDs)
+.\run.ps1 install chrome ext-url ddkjiahejlhfcafbddmgiahcphecmpfh "https://chromewebstore.google.com/detail/<slug>/<id>"
+
+# 9. Bulk install from a comma-separated list (quote the whole arg if URLs contain commas)
+.\run.ps1 install chrome ext-url "url1,url2,url3"
+
+# 10. Bulk install from a .csv / .txt file (one entry per row)
+.\run.ps1 install chrome ext-url .\my-extensions.csv
+.\run.ps1 install chrome ext-url .\extensions.txt
+
+# 11. Mix file + inline URLs in the same call
+.\run.ps1 install chrome ext-url .\extensions.txt "https://chromewebstore.google.com/detail/<slug>/<id>"
+
+# 12. CI / unattended -- skip the warning prompt
+.\run.ps1 install chrome ext-url .\extensions.csv -Yes
+
+# 13. Clean removal (warns instead of failing if HKLM keys need elevation)
+.\run.ps1 uninstall chrome
+```
+
+Search the help screen for any of these inline:
+
+```powershell
+.\run.ps1 help chrome              # all Chrome lines (browser + extensions)
+.\run.ps1 help chrome ext          # only Chrome extension lines (AND filter)
+.\run.ps1 help ext-url             # ad-hoc URL / ID / file examples only
+.\run.ps1 help chrome --out chrome.txt   # export the matched lines to a file
+```
+
 ### 🔎 Filter / search the help text
 
 The root help screen is huge. Pass a keyword after `help` (or `-h`) to print only the matching lines, with original colors preserved:

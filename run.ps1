@@ -532,6 +532,18 @@ function Show-RootHelpRaw {
     Write-Host "        .\run.ps1 install chrome ext-url url1,url2,url3".PadRight(70)        -NoNewline; Write-Host "# Comma-separated list (quoted URLs with commas are handled)" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 install chrome ext-url .\my-extensions.csv".PadRight(70)   -NoNewline; Write-Host "# .csv file -- one URL/ID per row, quoted fields OK" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 install chrome ext-url list.txt https://...".PadRight(70)  -NoNewline; Write-Host "# Mix file(s) and inline URLs in one call" -ForegroundColor DarkGray
+    Write-Host "      Copy-paste cookbook (real, runnable):" -ForegroundColor DarkYellow
+    Write-Host "        .\run.ps1 install chrome with-ext".PadRight(78) -NoNewline; Write-Host "# Fresh machine -> Chrome + every catalog extension" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext vpn,tabcopy,adblocker".PadRight(78) -NoNewline; Write-Host "# 3 extensions by name" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-url ddkjiahejlhfcafbddmgiahcphecmpfh".PadRight(78) -NoNewline; Write-Host "# 1 extension by raw 32-char ID" -ForegroundColor DarkGray
+    Write-Host '        .\run.ps1 install chrome ext-url "https://chromewebstore.google.com/detail/<slug>/<id>"' -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-url .\extensions.csv -Yes".PadRight(78) -NoNewline; Write-Host "# Bulk + skip warning prompt (CI)" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 install chrome ext-url .\extensions.txt https://...".PadRight(78) -NoNewline; Write-Host "# Mix file + inline URL" -ForegroundColor DarkGray
+    Write-Host "      Discover / search inline:" -ForegroundColor DarkYellow
+    Write-Host "        .\run.ps1 help chrome".PadRight(78)             -NoNewline; Write-Host "# All Chrome lines (browser + extensions)" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 help chrome ext".PadRight(78)         -NoNewline; Write-Host "# AND filter -> only extension lines" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 help ext-url".PadRight(78)            -NoNewline; Write-Host "# Only ad-hoc URL / ID / file examples" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 help chrome --out chrome-help.txt".PadRight(78) -NoNewline; Write-Host "# Export matched lines to a file" -ForegroundColor DarkGray
     Write-Host "      Tip: extensions land under the Chrome ExtensionInstallForcelist policy registry key" -ForegroundColor DarkGray
     Write-Host "           (HKLM\\SOFTWARE\\Policies\\Google\\Chrome\\ExtensionInstallForcelist) and apply on next launch." -ForegroundColor DarkGray
     Write-Host ""
