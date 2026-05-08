@@ -254,13 +254,50 @@ function Expand-ChromePath {
     try { return [Environment]::ExpandEnvironmentVariables($Raw) } catch { return $Raw }
 }
 
+function Test-ChromeIsElevated {
+    try {
+        $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        return ([System.Security.Principal.WindowsPrincipal]$id).IsInRole(
+            [System.Security.Principal.WindowsBuiltInRole]::Administrator)
+    } catch { return $false }
+}
+
+function Invoke-ChromeRegDeleteFallback {
+    <#
+    .SYNOPSIS
+        Last-ditch registry delete: tries `reg.exe delete /f` against both
+        the 64-bit and 32-bit views. Returns $true on success.
+        reg.exe handles a few ACL edge cases that Remove-Item refuses.
+    #>
+    param([Parameter(Mandatory)] [string]$Key)
+
+    # Convert PS-drive form (HKCU:\Software\X) to reg.exe form (HKCU\Software\X)
+    $regForm = $Key -replace '^HKCU:\\?', 'HKCU\' `
+                    -replace '^HKLM:\\?', 'HKLM\' `
+                    -replace '^HKCR:\\?', 'HKCR\' `
+                    -replace '^HKU:\\?',  'HKU\'
+
+    foreach ($view in @("/reg:64", "/reg:32")) {
+        try {
+            $null = & reg.exe delete $regForm /f $view 2>&1
+            $okView = ($LASTEXITCODE -eq 0)
+            if ($okView) {
+                $isGone = -not (Test-Path -LiteralPath $Key -ErrorAction SilentlyContinue)
+                if ($isGone) { return $true }
+            }
+        } catch { }
+    }
+    return (-not (Test-Path -LiteralPath $Key -ErrorAction SilentlyContinue))
+}
+
 function Remove-ChromeRegistryKeys {
     param(
         [Parameter(Mandatory)] [string[]]$Keys,
         [Parameter(Mandatory)] $LogMessages
     )
     $msgs = $LogMessages.messages
-    $counter = @{ removed = 0; missing = 0; failed = 0 }
+    $counter   = @{ removed = 0; missing = 0; failed = 0; skippedNoElevation = 0 }
+    $isElev    = Test-ChromeIsElevated
 
     foreach ($key in $Keys) {
         if ([string]::IsNullOrWhiteSpace($key)) { continue }
@@ -270,15 +307,44 @@ function Remove-ChromeRegistryKeys {
             $counter.missing++
             continue
         }
+
+        $removed = $false
+        $firstErr = $null
         try {
             Remove-Item -LiteralPath $key -Recurse -Force -ErrorAction Stop
+            $removed = $true
+        } catch {
+            $firstErr = $_.Exception.Message
+        }
+
+        # Fallback path: reg.exe handles a few ACL edge cases Remove-Item won't.
+        if (-not $removed) {
+            $removed = Invoke-ChromeRegDeleteFallback -Key $key
+        }
+
+        if ($removed) {
             Write-Log ($msgs.cleanupRegKeyRemoved -replace '\{path\}', $key) -Level "success"
             $counter.removed++
-        } catch {
-            Write-FileError -FilePath $key -Operation "registry delete" -Reason "Remove-Item failed: $($_.Exception.Message)" -Module "Uninstall-Chrome"
-            Write-Log (($msgs.cleanupRegKeyFailed -replace '\{path\}', $key) -replace '\{error\}', $_.Exception.Message) -Level "error"
-            $counter.failed++
+            continue
         }
+
+        # Still here -- genuine failure. If we are NOT elevated, surface a
+        # clean actionable warning instead of a CODE RED. Chrome's HKLM key
+        # is owned by SYSTEM and cannot be deleted from a non-admin shell;
+        # asking the user to relaunch elevated is the real fix.
+        $isHkml = $key -match '^HKLM[:\\]'
+        if (-not $isElev -and ($isHkml -or $firstErr -match 'unauthorized|denied|access')) {
+            Write-Log ("Skipped registry key (needs Administrator): $key -- relaunch with elevated PowerShell to remove.") -Level "warn"
+            $counter.skippedNoElevation++
+            continue
+        }
+
+        Write-FileError -FilePath $key -Operation "registry delete" `
+            -Reason "Remove-Item + reg.exe both failed: $firstErr" `
+            -Module "Uninstall-Chrome" `
+            -Fallback "Run PowerShell as Administrator and re-run: .\run.ps1 uninstall chrome"
+        Write-Log (($msgs.cleanupRegKeyFailed -replace '\{path\}', $key) -replace '\{error\}', $firstErr) -Level "error"
+        $counter.failed++
     }
     return $counter
 }
