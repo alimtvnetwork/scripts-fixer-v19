@@ -551,6 +551,7 @@ switch ($normalizedAction) {
     ) } {
         & (Join-Path $scriptDir "helpers\context-menu.ps1") @Rest
         exit $LASTEXITCODE
+    }
     { $_ -in @("help", "--help", "-help", "-h", "/?", "?", "") } {
         Show-OsHelp
         exit 0
