@@ -82,29 +82,51 @@ function Test-Aria2Preflight {
     return $result
 }
 
+function Write-RatingPart {
+    <#
+    .SYNOPSIS
+        Writes "label N" with N coloured: 9-10 -> Yellow (highlight),
+        7-8 -> Green, 5-6 -> White, anything lower -> DarkGray.
+        Used inline so the rating cluster stays on a single line.
+    #>
+    param(
+        [string]$Label,
+        $Value,
+        [switch]$NoTrailingSep
+    )
+    Write-Host "$Label " -NoNewline -ForegroundColor DarkGray
+    $n = 0
+    [int]::TryParse([string]$Value, [ref]$n) | Out-Null
+    $clr = if     ($n -ge 9) { "Yellow" }
+           elseif ($n -ge 7) { "Green"  }
+           elseif ($n -ge 5) { "White"  }
+           else              { "DarkGray" }
+    Write-Host ("{0,-2}" -f $n) -NoNewline -ForegroundColor $clr
+    if (-not $NoTrailingSep) {
+        Write-Host "  " -NoNewline
+    }
+}
+
 function Show-ModelCatalog {
     <#
     .SYNOPSIS
-        Displays the model catalog as a numbered list with rich metadata.
-        Groups models by starred (recommended) first, then by size.
+        Displays the model catalog as a 2-line-per-model layout:
+          Line 1: [#] Name | <size> | <ram> RAM | code N reason N speed N overall N
+          Line 2:     Best for: ...
+        High rating numbers (9-10) are highlighted in yellow.
+        Capability tags are no longer shown -- they live in the filter step.
     #>
     param(
         [Parameter(Mandatory)]
         [array]$Models
     )
 
-    $colNum   = 5
-    $colName  = 38
-    $colParam = 10
-    $colQuant = 8
-    $colSize  = 8
-    $colRAM   = 8
-    $colSpeed = 10
-    $colCaps  = 20
+    $colNum  = 6
+    $colName = 40
 
     Write-Host ""
-    Write-Host ("  {0,-$colNum} {1,-$colName} {2,-$colParam} {3,-$colQuant} {4,-$colSize} {5,-$colRAM} {6,-$colSpeed} {7}" -f "#", "Model", "Params", "Quant", "Size", "RAM", "Speed", "Capabilities") -ForegroundColor Cyan
-    Write-Host ("  " + ("-" * ($colNum + $colName + $colParam + $colQuant + $colSize + $colRAM + $colSpeed + $colCaps))) -ForegroundColor DarkGray
+    Write-Host "  Models (size | RAM | ratings on line 1, 'Best for' on line 2; 9-10 = yellow)" -ForegroundColor Cyan
+    Write-Host ("  " + ("-" * 100)) -ForegroundColor DarkGray
 
     $prevStarred = $null
     foreach ($model in $Models) {
@@ -112,41 +134,41 @@ function Show-ModelCatalog {
 
         # Section separator between starred and non-starred
         if ($null -ne $prevStarred -and $prevStarred -and -not $isStarred) {
-            Write-Host ("  " + ("-" * ($colNum + $colName + $colParam + $colQuant + $colSize + $colRAM + $colSpeed + $colCaps))) -ForegroundColor DarkGray
+            Write-Host ("  " + ("-" * 100)) -ForegroundColor DarkGray
         }
         $prevStarred = $isStarred
 
-        # Build capabilities string
-        $caps = @()
-        if ($model.isCoding)       { $caps += "code" }
-        if ($model.isReasoning)    { $caps += "reason" }
-        if ($model.isWriting)      { $caps += "write" }
-        if ($model.isVoice)        { $caps += "voice" }
-        if ($model.isChat)         { $caps += "chat" }
-        if ($model.isMultilingual) { $caps += "multi" }
-        $capsStr = $caps -join ", "
+        $rating  = if ($model.rating.overall) { $model.rating.overall } else { 0 }
+        $nameClr = if ($rating -ge 9) { "Yellow" } elseif ($rating -ge 7) { "Green" } elseif ($rating -ge 5) { "White" } else { "DarkGray" }
 
-        # Speed tier based on fileSizeGB (proxy for parameter count at similar quant)
-        $speedTier = if ($model.fileSizeGB -lt 1)  { "instant" }
-                     elseif ($model.fileSizeGB -lt 3)  { "fast" }
-                     elseif ($model.fileSizeGB -lt 8)  { "moderate" }
-                     else { "slow" }
-
-        # Color based on rating
-        $rating = if ($model.rating.overall) { $model.rating.overall } else { 0 }
-        $color = if ($rating -ge 9) { "Green" } elseif ($rating -ge 7) { "Yellow" } elseif ($rating -ge 5) { "White" } else { "DarkGray" }
-
-        $sizeStr = "$($model.fileSizeGB) GB"
-        $ramStr  = "$($model.ramRequiredGB) GB"
         $truncName = if ($model.displayName.Length -gt ($colName - 2)) { $model.displayName.Substring(0, $colName - 4) + ".." } else { $model.displayName }
 
-        Write-Host ("  {0,-$colNum} {1,-$colName} {2,-$colParam} {3,-$colQuant} {4,-$colSize} {5,-$colRAM} {6,-$colSpeed} {7}" -f "[$($model.index)]", $truncName, $model.parameters, $model.quantization, $sizeStr, $ramStr, $speedTier, $capsStr) -ForegroundColor $color
+        # ----- Line 1: index + name | size | ram | ratings ---------------
+        Write-Host ("  {0,-$colNum}" -f "[$($model.index)]") -NoNewline -ForegroundColor Cyan
+        Write-Host ("{0,-$colName}" -f $truncName)            -NoNewline -ForegroundColor $nameClr
+        Write-Host (" {0,5} GB | {1,3} GB RAM   " -f $model.fileSizeGB, $model.ramRequiredGB) -NoNewline -ForegroundColor White
+
+        Write-RatingPart -Label "code"    -Value $model.rating.coding
+        Write-RatingPart -Label "reason"  -Value $model.rating.reasoning
+        Write-RatingPart -Label "speed"   -Value $model.rating.speed
+        Write-RatingPart -Label "overall" -Value $model.rating.overall -NoTrailingSep
+        Write-Host ""
+
+        # ----- Line 2: Best for ------------------------------------------
+        $bestFor = if ($model.PSObject.Properties.Name -contains "bestFor" -and $model.bestFor) { [string]$model.bestFor } else { "" }
+        $isBestForEmpty = [string]::IsNullOrWhiteSpace($bestFor)
+        if (-not $isBestForEmpty) {
+            $maxLen = 110
+            if ($bestFor.Length -gt $maxLen) { $bestFor = $bestFor.Substring(0, $maxLen - 1) + "..." }
+            Write-Host ("       Best for: " + $bestFor) -ForegroundColor DarkGray
+        }
     }
 
     Write-Host ""
     Write-Host "  Total: $($Models.Count) models" -ForegroundColor Cyan
     Write-Host ""
 }
+
 
 function Read-RamFilter {
     <#
