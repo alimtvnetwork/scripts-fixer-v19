@@ -3061,6 +3061,11 @@ if ($hasCommand) {
         Show-VersionHeader
         Invoke-StatusCommand -Args $Install
         exit 0
+    } elseif ($isBareReportCommand) {
+        Show-VersionHeader
+        . (Join-Path $RootDir "scripts\shared\install-report.ps1")
+        Invoke-InstallReport -Args $Install -ProjectRoot $RootDir
+        exit 0
     } elseif ($isBarePathCommand) {
         Show-VersionHeader
         Invoke-PathCommand -Args $Install
