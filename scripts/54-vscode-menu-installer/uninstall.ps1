@@ -151,6 +151,19 @@ try {
         if ($verifyResult.fail -gt 0) {
             Write-Log ("Post-uninstall verification reported " + $verifyResult.fail + " key(s) still present -- review the table above (failure path: see per-row regPath).") -Level "error"
         }
+
+        # Focused folder-entry sanity check -- single PASS/FAIL line per
+        # edition for the one verb users actually notice (right-click on
+        # a folder). Catches leftover Directory\shell\<verb> keys that
+        # the broader post-op pass might bury under file/background noise.
+        $folderCheck = Test-FolderContextMenuAbsent `
+            -Config         $config `
+            -ResolvedScope  $resolvedScope `
+            -ScopedEditions $scopedEditions
+
+        if ($folderCheck.fail -gt 0) {
+            Write-Log ("Folder context-menu entry still present for " + $folderCheck.fail + " edition(s) after cleanup -- see retry hint above.") -Level "error"
+        }
     } else {
         Write-Log "Post-uninstall verification skipped: no editions were processed this run." -Level "warn"
     }
