@@ -309,7 +309,9 @@ function Write-FileError {
         "configure-pnpm-store", "create-pnpm-store-dir", "probe-prefix-drive",
         "probe-prefix-write", "create-prefix-dir", "resolve-npm", "npm-mkdir-prefix",
         "resolve-root", "validate", "validate-goroot-layout", "set-goroot",
-        "invoke-child", "batch-prepare", "batch-verify"
+        "invoke-child", "batch-prepare", "batch-verify",
+        "registry delete", "registry read", "registry write",
+        "shortcut delete", "appdata delete", "uninstall"
     )
     $isUnknownOperation = $Operation -notin $knownOperations
     if ($isUnknownOperation) {
