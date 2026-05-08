@@ -2746,6 +2746,49 @@ if ($_cmdLow -in $_helpAliases) {
 }
 
 if ($_isEarlyHelp) {
+    # ── Strip export flags from the filter terms ─────────────────────
+    # Recognized:
+    #   --out <path> | --out=<path>     (auto-detect format from extension)
+    #   --text <path> | --text=<path>   (force plain text)
+    #   --json <path> | --json=<path>   (force JSON)
+    $_helpOutFile = $null
+    $_helpFormat  = $null
+    if ($_earlyHelpFilter) {
+        $_termsRaw = @($_earlyHelpFilter -split '[\s]+' | Where-Object { $_ })
+        $_kept = New-Object System.Collections.Generic.List[string]
+        for ($_i = 0; $_i -lt $_termsRaw.Count; $_i++) {
+            $_t = "$($_termsRaw[$_i])"
+            $_tl = $_t.ToLower()
+            $_consumeNext = $false
+            $_inlineVal = $null
+            $_fmtHere = $null
+
+            if     ($_tl -eq "--out"  -or $_tl -eq "-out")  { $_consumeNext = $true; $_fmtHere = "auto" }
+            elseif ($_tl -eq "--text" -or $_tl -eq "-text") { $_consumeNext = $true; $_fmtHere = "text" }
+            elseif ($_tl -eq "--json" -or $_tl -eq "-json") { $_consumeNext = $true; $_fmtHere = "json" }
+            elseif ($_tl -match '^--?out=(.+)$')  { $_inlineVal = $Matches[1]; $_fmtHere = "auto" }
+            elseif ($_tl -match '^--?text=(.+)$') { $_inlineVal = $Matches[1]; $_fmtHere = "text" }
+            elseif ($_tl -match '^--?json=(.+)$') { $_inlineVal = $Matches[1]; $_fmtHere = "json" }
+            else { $_kept.Add($_t); continue }
+
+            $_val = $_inlineVal
+            if ($_consumeNext -and ($_i + 1) -lt $_termsRaw.Count) {
+                $_val = "$($_termsRaw[$_i + 1])"
+                $_i++
+            }
+            if ($_val) {
+                $_helpOutFile = $_val
+                if ($_fmtHere -eq "auto") {
+                    $_ext = [System.IO.Path]::GetExtension($_val).ToLower()
+                    $_helpFormat = if ($_ext -eq ".json") { "json" } else { "text" }
+                } else {
+                    $_helpFormat = $_fmtHere
+                }
+            }
+        }
+        $_earlyHelpFilter = ($_kept -join ' ').Trim()
+    }
+
     # Interactive prompt: if user ran bare `help` / `--help` / `-h` with NO
     # keyword AND we have a real interactive console (not redirected / piped),
     # ask for one. Empty input -> full help. Non-TTY -> full help (old behavior).
@@ -2764,6 +2807,7 @@ if ($_isEarlyHelp) {
             Write-Host "  =======================" -ForegroundColor DarkGray
             Write-Host "  Enter one or more keywords (space/comma separated) to filter the help." -ForegroundColor DarkGray
             Write-Host "  Examples: chrome | chrome ext | vscode uninstall | conemu menu" -ForegroundColor DarkGray
+            Write-Host "  Append --out <path> / --json <path> to also save the matches." -ForegroundColor DarkGray
             Write-Host "  Press ENTER with no input to show the full help screen." -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "  keyword(s)> " -ForegroundColor Yellow -NoNewline
@@ -2776,7 +2820,12 @@ if ($_isEarlyHelp) {
         }
     }
 
-    Show-RootHelp -Filter $_earlyHelpFilter
+    $_showArgs = @{ Filter = $_earlyHelpFilter }
+    if ($_helpOutFile) {
+        $_showArgs.OutFile = $_helpOutFile
+        if ($_helpFormat)  { $_showArgs.Format = $_helpFormat }
+    }
+    Show-RootHelp @_showArgs
     exit 0
 }
 
