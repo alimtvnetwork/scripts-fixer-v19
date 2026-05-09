@@ -1231,7 +1231,17 @@
     ],
     "terminal-profile": [
       "profile:terminal"
-    ]
+    ],
+    "pin-taskbar": [62],
+    "taskbar-pin": [62],
+    "pin": [62],
+    "pin-vscode": [62],
+    "pin-code": [62],
+    "pin-conemu": [62],
+    "pin-notepadpp": [62],
+    "pin-npp": [62],
+    "pin-notepad": [62],
+    "pin-chrome": [62]
   },
   "modes": {
     "notepad++": {
