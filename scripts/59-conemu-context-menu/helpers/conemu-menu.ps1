@@ -103,6 +103,44 @@ function ConvertTo-ConEmuRegPath {
     return $p
 }
 
+function Get-ConEmuParentRegistryPaths {
+    param([PSCustomObject]$Config)
+
+    $parentKeyName = "$($Config.menu.parentKeyName)"
+    return @{
+        directory  = "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\$parentKeyName"
+        background = "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\$parentKeyName"
+    }
+}
+
+function Register-ConEmuParentMenu {
+    param(
+        [string]$RegistryPath,
+        [string]$Label,
+        [string]$IconValue,
+        [bool]$Runas,
+        $LogMessages
+    )
+
+    try {
+        $subKeyPath = $RegistryPath -replace '^Registry::HKEY_CLASSES_ROOT\\', ''
+        $hkcr = [Microsoft.Win32.Registry]::ClassesRoot
+        $key = $hkcr.CreateSubKey($subKeyPath)
+        $key.SetValue('', $Label)
+        $key.SetValue('MUIVerb', $Label)
+        $key.SetValue('SubCommands', '')
+        $key.SetValue('Icon', $IconValue)
+        if ($Runas) {
+            $key.SetValue('HasLUAShield', '')
+        }
+        $key.Close()
+        return $true
+    } catch {
+        Write-Log (("FAILED parent menu write at {0}: {1}" -f $RegistryPath, $_.Exception.Message)) -Level "error"
+        return $false
+    }
+}
+
 # --------------------------------------------------------------------------
 #  Register-ConEmuContextMenu -- create one registry entry
 # --------------------------------------------------------------------------
@@ -242,6 +280,26 @@ function Invoke-ConEmuMode {
     return $isAllOk
 }
 
+function Install-ConEmuParentMenus {
+    param(
+        [PSCustomObject]$Config,
+        [string]$ConEmuExe,
+        $LogMessages
+    )
+
+    $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
+    $iconValue = "`\"$ConEmuExe`\""
+    $parentLabel = "$($Config.menu.parentLabel)"
+    $isAllOk = $true
+
+    foreach ($scope in @('directory', 'background')) {
+        $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -Runas $false -LogMessages $LogMessages
+        if (-not $ok) { $isAllOk = $false }
+    }
+
+    return $isAllOk
+}
+
 # --------------------------------------------------------------------------
 #  Get-ConEmuContextMenuKeys -- enumerate every HKCR key the script writes
 #  Returns the keys in the SAME shape Set-Item / Remove-Item expects:
@@ -263,6 +321,13 @@ function Get-ConEmuContextMenuKeys {
             $psPaths  += $p
             $regPaths += ($p -replace '^Registry::', '')
         }
+    }
+    if ($Config.PSObject.Properties.Name -contains 'menu') {
+        $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
+        $psPaths += $parentPaths.directory
+        $psPaths += $parentPaths.background
+        $regPaths += ($parentPaths.directory -replace '^Registry::', '')
+        $regPaths += ($parentPaths.background -replace '^Registry::', '')
     }
     return [pscustomobject]@{
         PsPaths  = $psPaths
