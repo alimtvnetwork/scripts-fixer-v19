@@ -109,10 +109,10 @@
         { "kind": "subcommand", "path": "install chrome with-ext",   "label": "Google Chrome + curated extensions" },
         { "kind": "script",     "id": 47, "label": "Ubuntu font" },
         { "kind": "inline",     "function": "Restore-Win11ClassicContext", "label": "Win11 classic right-click menu" },
-        { "kind": "subcommand", "path": "install pin-taskbar conemu",      "label": "Pin ConEmu to taskbar" },
-        { "kind": "subcommand", "path": "install pin-taskbar notepadpp",   "label": "Pin Notepad++ to taskbar" },
-        { "kind": "subcommand", "path": "install pin-taskbar notepad",     "label": "Pin Notepad to taskbar" },
-        { "kind": "subcommand", "path": "install pin-taskbar chrome",      "label": "Pin Chrome to taskbar" }
+        { "kind": "subcommand", "path": "install pin-conemu",      "label": "Pin ConEmu to taskbar" },
+        { "kind": "subcommand", "path": "install pin-notepadpp",   "label": "Pin Notepad++ to taskbar" },
+        { "kind": "subcommand", "path": "install pin-notepad",     "label": "Pin Notepad to taskbar" },
+        { "kind": "subcommand", "path": "install pin-chrome",      "label": "Pin Chrome to taskbar" }
       ]
     }
   },
