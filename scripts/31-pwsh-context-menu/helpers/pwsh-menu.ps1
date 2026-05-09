@@ -353,6 +353,10 @@ function Install-PwshParentMenus {
         $LogMessages
     )
 
+    # Purge old flat top-level entries before installing the new submenu --
+    # otherwise the right-click menu shows duplicates from prior versions.
+    Remove-PwshLegacyEntries -LogMessages $LogMessages
+
     $parentPaths = Get-PwshParentRegistryPaths -Config $Config
     $iconValue = '"' + $PwshExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
