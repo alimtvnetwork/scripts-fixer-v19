@@ -1,12 +1,17 @@
 {
   "_comment": "Script 59 -- ConEmu right-click context menu. Adds 'Open ConEmu Here' (normal + admin) to folder + folder background menus. Mirrors script 31 (PowerShell Here).",
   "enabled": true,
+  "menu": {
+    "parentKeyName": "ConEmuMenu",
+    "parentLabel": "ConEmu",
+    "iconMode": "conemu"
+  },
   "modes": {
     "normal": {
-      "contextMenuLabel": "Open ConEmu Here",
+      "contextMenuLabel": "Open Here",
       "registryPaths": {
-        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuHere",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuHere"
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\OpenHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\OpenHere"
       },
       "commandArgs": {
         "directory":  "\"{exe}\" -Dir \"%V\"",
@@ -14,10 +19,10 @@
       }
     },
     "admin": {
-      "contextMenuLabel": "Open ConEmu Here as Admin",
+      "contextMenuLabel": "Open as Admin",
       "registryPaths": {
-        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuHereAdmin",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuHereAdmin"
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\OpenAsAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\OpenAsAdmin"
       },
       "commandArgs": {
         "directory":  "\"{exe}\" -Dir \"%V\"",
