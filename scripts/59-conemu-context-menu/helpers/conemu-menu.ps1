@@ -113,6 +113,23 @@ function Get-ConEmuParentRegistryPaths {
     }
 }
 
+function Get-ConEmuCascadeRegistryRoot {
+    param([PSCustomObject]$Config)
+
+    $parentKeyName = "$($Config.menu.parentKeyName)"
+    return "Registry::HKEY_CLASSES_ROOT\Directory\ContextMenus\$parentKeyName"
+}
+
+function Resolve-ConEmuLeafRegistryPath {
+    param(
+        [Parameter(Mandatory)][string]$RegistryPath,
+        [Parameter(Mandatory)][PSCustomObject]$Config
+    )
+
+    $leafName = Split-Path -Path $RegistryPath -Leaf
+    return ((Get-ConEmuCascadeRegistryRoot -Config $Config) + "\shell\" + $leafName)
+}
+
 function Remove-ConEmuParentRegistryTree {
     param([string]$RegistryPath)
 
@@ -144,6 +161,7 @@ function Register-ConEmuParentMenu {
         [string]$RegistryPath,
         [string]$Label,
         [string]$IconValue,
+        [string]$ExtendedSubCommandsKey,
         [bool]$Runas,
         $LogMessages
     )
@@ -155,19 +173,13 @@ function Register-ConEmuParentMenu {
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
         $key.SetValue('Icon', $IconValue)
-        # Canonical cascading-menu trick: SubCommands as an EMPTY REG_SZ tells
-        # Explorer "look in my own \shell\ subkey for child verbs". This is
-        # the most reliable pattern across Win10/11 -- ExtendedSubCommandsKey
-        # is finicky when pointed at the parent itself and has been observed
-        # to render an empty submenu. Children live at
-        # ...\ConEmuMenu\shell\OpenHere(\command) and ...\OpenAsAdmin.
-        $key.SetValue('SubCommands', '', [Microsoft.Win32.RegistryValueKind]::String)
-        # Strip any stale ExtendedSubCommandsKey from prior versions -- if
-        # both are present Explorer's behaviour is undefined and the submenu
-        # often comes up empty.
-        $existingExt = $key.GetValue('ExtendedSubCommandsKey', $null)
-        if ($null -ne $existingExt) {
-            try { $key.DeleteValue('ExtendedSubCommandsKey') } catch { }
+        # Use the shared ContextMenus reference pattern so both parent entries
+        # point at the same cascade tree. Explorer handles this more reliably
+        # for real submenus than duplicated inline child verbs.
+        $key.SetValue('ExtendedSubCommandsKey', $ExtendedSubCommandsKey, [Microsoft.Win32.RegistryValueKind]::String)
+        $existingSubCommands = $key.GetValue('SubCommands', $null)
+        if ($null -ne $existingSubCommands) {
+            try { $key.DeleteValue('SubCommands') } catch { }
         }
         # Parent must NOT have its own \command subkey -- if it does, Explorer
         # treats it as a normal verb and the cascade collapses into a single
@@ -256,6 +268,7 @@ function Register-ConEmuContextMenu {
         Write-Log ("  " + ($LogMessages.messages.settingRegistryDefault -replace '\{label\}', $Label)) -Level "info"
         $key = $hkcr.CreateSubKey($subKeyPath)
         $key.SetValue("", $Label)
+        $key.SetValue("MUIVerb", $Label)
         $key.Close()
         Write-Log ("  " + $LogMessages.messages.registryDefaultSet) -Level "success"
 
@@ -318,6 +331,7 @@ function Invoke-ConEmuMode {
         [PSCustomObject]$Mode,
         [string]$ModeName,
         [string]$ConEmuExe,
+        [PSCustomObject]$Config,
         $LogMessages
     )
 
@@ -335,12 +349,12 @@ function Invoke-ConEmuMode {
     $entries = @(
         @{
             Step   = $LogMessages.messages.regDir
-            Path   = $Mode.registryPaths.directory
+            Path   = Resolve-ConEmuLeafRegistryPath -RegistryPath $Mode.registryPaths.directory -Config $Config
             CmdArg = $Mode.commandArgs.directory -replace '\{exe\}', $ConEmuExe
         },
         @{
             Step   = $LogMessages.messages.regBg
-            Path   = $Mode.registryPaths.background
+            Path   = Resolve-ConEmuLeafRegistryPath -RegistryPath $Mode.registryPaths.background -Config $Config
             CmdArg = $Mode.commandArgs.background -replace '\{exe\}', $ConEmuExe
         }
     )
@@ -380,13 +394,16 @@ function Install-ConEmuParentMenus {
     Remove-ConEmuLegacyEntries -LogMessages $LogMessages
 
     $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
+    $cascadeRoot = Get-ConEmuCascadeRegistryRoot -Config $Config
+    $extendedSubCommandsKey = ($cascadeRoot -replace '^Registry::HKEY_CLASSES_ROOT\\', '')
+    Remove-ConEmuParentRegistryTree -RegistryPath $cascadeRoot
     $iconValue = '"' + $ConEmuExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
     $isAllOk = $true
 
     foreach ($scope in @('directory', 'background')) {
         Remove-ConEmuParentRegistryTree -RegistryPath $parentPaths[$scope]
-        $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -Runas $false -LogMessages $LogMessages
+        $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -ExtendedSubCommandsKey $extendedSubCommandsKey -Runas $false -LogMessages $LogMessages
         if (-not $ok) { $isAllOk = $false }
     }
 
@@ -405,11 +422,16 @@ function Get-ConEmuContextMenuKeys {
 
     $psPaths   = @()
     $regPaths  = @()
+    $useCascadeRoot = $Config.PSObject.Properties.Name -contains 'menu'
     foreach ($modeName in $Config.enabledModes) {
         $mode = $Config.modes.$modeName
         if ($null -eq $mode) { continue }
         foreach ($scope in @("directory", "background")) {
-            $p = $mode.registryPaths.$scope
+            $p = if ($useCascadeRoot) {
+                Resolve-ConEmuLeafRegistryPath -RegistryPath $mode.registryPaths.$scope -Config $Config
+            } else {
+                $mode.registryPaths.$scope
+            }
             if ([string]::IsNullOrWhiteSpace($p)) { continue }
             $psPaths  += $p
             $regPaths += ($p -replace '^Registry::', '')
@@ -417,10 +439,13 @@ function Get-ConEmuContextMenuKeys {
     }
     if ($Config.PSObject.Properties.Name -contains 'menu') {
         $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
+        $cascadeRoot = Get-ConEmuCascadeRegistryRoot -Config $Config
         $psPaths += $parentPaths.directory
         $psPaths += $parentPaths.background
+        $psPaths += $cascadeRoot
         $regPaths += ($parentPaths.directory -replace '^Registry::', '')
         $regPaths += ($parentPaths.background -replace '^Registry::', '')
+        $regPaths += ($cascadeRoot -replace '^Registry::', '')
     }
     return [pscustomobject]@{
         PsPaths  = $psPaths

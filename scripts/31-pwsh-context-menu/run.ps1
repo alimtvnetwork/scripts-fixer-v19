@@ -116,6 +116,7 @@ foreach ($modeName in $enabledModes) {
         -Mode        $mode `
         -ModeName    $modeName `
         -PwshExe     $pwshExe `
+        -Config      $config `
         -LogMessages $logMessages
 
     $hasFailed = -not $result

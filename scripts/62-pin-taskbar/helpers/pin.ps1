@@ -129,6 +129,27 @@ function Invoke-VerbOnShortcut {
     return $false
 }
 
+function Invoke-CanonicalTaskbarVerb {
+    param(
+        [Parameter(Mandatory)]$ShellItem,
+        [Parameter(Mandatory)][string]$ExePath
+    )
+
+    try {
+        $ShellItem.InvokeVerb('{:}')
+        Invoke-TaskbarRefresh
+        if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
+    } catch { }
+
+    try {
+        $ShellItem.InvokeVerb('taskbarpin')
+        Invoke-TaskbarRefresh
+        if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
+    } catch { }
+
+    return $false
+}
+
 function Invoke-Win11PinUnlock {
     <#
     .SYNOPSIS
@@ -196,6 +217,9 @@ function Invoke-PinViaUnlockedVerb {
             if ($folder) {
                 $item = $folder.ParseName((Split-Path $ExePath -Leaf))
                 if ($item) {
+                    if (Invoke-CanonicalTaskbarVerb -ShellItem $item -ExePath $ExePath) {
+                        return $true
+                    }
                     foreach ($v in @($item.Verbs())) {
                         $norm = (("$($v.Name)") -replace '&','').Trim().ToLowerInvariant()
                         if ($startAntiTargets -contains $norm) { continue }   # never pin to Start
@@ -222,6 +246,15 @@ function Invoke-PinViaUnlockedVerb {
             $sc.WorkingDirectory = Split-Path $ExePath -Parent
             $sc.IconLocation = "$ExePath,0"
             $sc.Save()
+
+            $shortcutFolder = $shell.Namespace((Split-Path $startLnk -Parent))
+            $shortcutItem = $null
+            if ($shortcutFolder) {
+                $shortcutItem = $shortcutFolder.ParseName((Split-Path $startLnk -Leaf))
+            }
+            if ($shortcutItem -and (Invoke-CanonicalTaskbarVerb -ShellItem $shortcutItem -ExePath $ExePath)) {
+                return $true
+            }
 
             if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets -AntiTargets $startAntiTargets) {
                 Invoke-TaskbarRefresh
