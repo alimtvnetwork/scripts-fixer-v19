@@ -244,7 +244,12 @@ function Invoke-ShortcutPinFallback {
 
 function Get-PinToTaskbarVerbLabels {
     # Load localized "Pin to taskbar" strings from shell32.dll (best effort).
+    # CRITICAL: 5386 / 51201 are "Pin to Start" -- DO NOT use them, or we end
+    # up pinning to the Start menu instead of the taskbar.
+    # 5387 / 51202 are "Pin to taskbar" (Win10 / Win11 respectively).
     $labels = New-Object System.Collections.Generic.List[string]
+    # Anti-labels: never invoke a verb that resolves to one of these.
+    $startLabels = New-Object System.Collections.Generic.List[string]
     try {
         if (-not ('Win32.PinResStr' -as [type])) {
             Add-Type -Namespace Win32 -Name PinResStr -MemberDefinition @'
@@ -256,12 +261,22 @@ public static extern System.IntPtr LoadLibrary(string lpFileName);
         }
         $shell32Path = Join-Path $env:SystemRoot "System32\shell32.dll"
         $h = [Win32.PinResStr]::LoadLibrary($shell32Path)
-        foreach ($id in @(5386, 51201)) {
+        # Taskbar pin string IDs.
+        foreach ($id in @(5387, 51202)) {
             $sb = New-Object System.Text.StringBuilder 1024
             $n = [Win32.PinResStr]::LoadString($h, [uint32]$id, $sb, $sb.Capacity)
             if ($n -gt 0) {
                 $s = $sb.ToString()
                 if (-not [string]::IsNullOrWhiteSpace($s)) { $labels.Add($s) }
+            }
+        }
+        # Start pin string IDs (used purely to *exclude* matching).
+        foreach ($id in @(5386, 51201)) {
+            $sb = New-Object System.Text.StringBuilder 1024
+            $n = [Win32.PinResStr]::LoadString($h, [uint32]$id, $sb, $sb.Capacity)
+            if ($n -gt 0) {
+                $s = $sb.ToString()
+                if (-not [string]::IsNullOrWhiteSpace($s)) { $startLabels.Add($s) }
             }
         }
     } catch {
@@ -270,6 +285,10 @@ public static extern System.IntPtr LoadLibrary(string lpFileName);
     # Hardcoded fallbacks (English).
     $labels.Add("Pin to taskbar")
     $labels.Add("Pin to Tas&kbar")
+    $startLabels.Add("Pin to Start")
+    $startLabels.Add("Pin to &Start")
+    # Stash anti-labels on a script-scoped var so callers can avoid them.
+    $script:_PinStartLabels = @($startLabels | ForEach-Object { ($_ -replace '&','').Trim().ToLowerInvariant() } | Where-Object { $_ } | Select-Object -Unique)
     return $labels
 }
 
