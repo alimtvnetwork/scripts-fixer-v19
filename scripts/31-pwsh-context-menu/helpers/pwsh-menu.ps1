@@ -348,6 +348,7 @@ function Invoke-PwshMode {
         [PSCustomObject]$Mode,
         [string]$ModeName,
         [string]$PwshExe,
+        [PSCustomObject]$Config,
         $LogMessages
     )
 
@@ -365,12 +366,12 @@ function Invoke-PwshMode {
     $entries = @(
         @{
             Step   = $LogMessages.messages.regDir
-            Path   = $Mode.registryPaths.directory
+            Path   = Resolve-PwshLeafRegistryPath -RegistryPath $Mode.registryPaths.directory -Config $Config
             CmdArg = $Mode.commandArgs.directory -replace '\{exe\}', $PwshExe
         },
         @{
             Step   = $LogMessages.messages.regBg
-            Path   = $Mode.registryPaths.background
+            Path   = Resolve-PwshLeafRegistryPath -RegistryPath $Mode.registryPaths.background -Config $Config
             CmdArg = $Mode.commandArgs.background -replace '\{exe\}', $PwshExe
         }
     )
