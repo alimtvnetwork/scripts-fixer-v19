@@ -212,6 +212,8 @@ foreach ($modeName in $enabledModes) {
     if (-not $result) { $isAllSuccessful = $false }
 }
 
+Invoke-ConEmuExplorerRefresh
+
 # -- Summary -------------------------------------------------------------------
 if ($isAllSuccessful) {
     Write-Log $logMessages.messages.done -Level "success"

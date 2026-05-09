@@ -122,6 +122,8 @@ foreach ($modeName in $enabledModes) {
     if ($hasFailed) { $isAllSuccessful = $false }
 }
 
+Invoke-PwshExplorerRefresh
+
 # -- Summary -------------------------------------------------------------------
 if ($isAllSuccessful) {
     Write-Log $logMessages.messages.done -Level "success"

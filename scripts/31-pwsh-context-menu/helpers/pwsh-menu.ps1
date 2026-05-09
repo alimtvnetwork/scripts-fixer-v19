@@ -113,6 +113,32 @@ function Get-PwshParentRegistryPaths {
     }
 }
 
+function Remove-PwshParentRegistryTree {
+    param([string]$RegistryPath)
+
+    try {
+        $subKeyPath = $RegistryPath -replace '^Registry::HKEY_CLASSES_ROOT\\', ''
+        $hkcr = [Microsoft.Win32.Registry]::ClassesRoot
+        $probe = $hkcr.OpenSubKey($subKeyPath)
+        if ($null -ne $probe) {
+            $probe.Close()
+            $hkcr.DeleteSubKeyTree($subKeyPath, $false)
+        }
+    } catch { }
+}
+
+function Invoke-PwshExplorerRefresh {
+    try {
+        if (-not ('Win32.PwshMenuRefresh' -as [type])) {
+            Add-Type -Namespace Win32 -Name PwshMenuRefresh -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll")]
+public static extern void SHChangeNotify(int wEventId, uint uFlags, System.IntPtr dwItem1, System.IntPtr dwItem2);
+'@ -ErrorAction Stop
+        }
+        [Win32.PwshMenuRefresh]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero)
+    } catch { }
+}
+
 function Get-PwshParentLeafLabel {
     param([string]$ContextMenuLabel)
 
@@ -378,6 +404,7 @@ function Install-PwshParentMenus {
     $isAllOk = $true
 
     foreach ($scope in @('directory', 'background')) {
+        Remove-PwshParentRegistryTree -RegistryPath $parentPaths[$scope]
         $ok = Register-PwshParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -Runas $false -LogMessages $LogMessages
         if (-not $ok) { $isAllOk = $false }
     }

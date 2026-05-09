@@ -4416,6 +4416,10 @@ if ($hasInstallKeywords) {
             Write-Host ""
             Write-Host "  ----- Subcommand: $($entry.Dispatcher) $($entry.Action) -----" -ForegroundColor Cyan
             $actionParts = @($entry.Action -split '\s+' | Where-Object { $_.Length -gt 0 })
+            $canForwardYes = (Get-Command Add-YesFlagToArgs -ErrorAction SilentlyContinue) -and (Get-Command Test-YesActive -ErrorAction SilentlyContinue)
+            if ($canForwardYes -and (Test-YesActive)) {
+                $actionParts = Add-YesFlagToArgs -Args $actionParts
+            }
             & $dispatcherScript @actionParts
             $code = $LASTEXITCODE
             if ($code -eq 0 -or $null -eq $code) { $successCount++ } else { $failCount++ }
