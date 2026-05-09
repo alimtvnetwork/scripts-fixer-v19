@@ -416,6 +416,46 @@ options" submenu hiding VS Code, 7-Zip, etc.).
 
 ---
 
+### 🟤 Profile: terminal
+
+**Foundational shell + editor + browser bundle.** Everything you'd reach
+for on a fresh Windows box: a real terminal (ConEmu), modern PowerShell
+with a right-click "Open here", a proper editor (Notepad++ with our
+settings), the two archivers everyone needs (7-Zip and WinRAR), Chrome
+with the curated extension pack, the Ubuntu Mono font, and the Win11
+classic right-click menu shim so all of the above actually appear on
+first click.
+
+**Copy-paste one-liners — every form below is equivalent:**
+
+```powershell
+.\run.ps1 profile terminal -y          # canonical
+.\run.ps1 install profile-terminal     # install + prefix
+.\run.ps1 install terminal-profile     # install + suffix
+.\run.ps1 install terminal             # bare profile name
+```
+
+**What gets installed and where:**
+
+| # | Tool | Source | Install location | Drive |
+|:-:|------|--------|------------------|:-----:|
+| 1 | Chocolatey package manager | bootstrap | `C:\ProgramData\chocolatey\` | C:\ |
+| 2 | Notepad++ + curated settings | script #33 (`install+settings`) | `C:\Program Files\Notepad++\` + `%APPDATA%\Notepad++\` | C:\ + user |
+| 3 | ConEmu + curated settings | script #48 (`install+settings`) | `C:\Program Files\ConEmu\` + `%APPDATA%\ConEmu.xml` | C:\ + user |
+| 4 | PowerShell 7 (pwsh) | script #17 | `C:\Program Files\PowerShell\7\` | C:\ |
+| 5 | pwsh right-click context menu | script #31 | HKCU `Software\Classes\Directory\shell\pwsh` | (registry) |
+| 6 | 7-Zip archiver | choco `7zip.install` | `C:\Program Files\7-Zip\` | C:\ |
+| 7 | WinRAR archiver | choco `winrar` | `C:\Program Files\WinRAR\` | C:\ |
+| 8 | Google Chrome + curated extensions | subcommand `install chrome with-ext` | `C:\Program Files\Google\Chrome\` + HKLM `ExtensionInstallForcelist` policy | C:\ + (registry) |
+| 9 | Ubuntu Mono font | script #47 | `%LOCALAPPDATA%\Microsoft\Windows\Fonts\` | user |
+| 10 | Win11 classic right-click menu | inline `Restore-Win11ClassicContext` | HKCU `Software\Classes\CLSID\{86ca1aa0-...}` | (registry) |
+
+> 💡 The Chrome step pushes extensions via the
+> `ExtensionInstallForcelist` policy registry key, so they apply on next
+> Chrome launch — no per-profile clicking required.
+
+---
+
 ### 🔵 Profile: base
 
 **Daily-driver Windows.** Package managers, media playback, archivers,
