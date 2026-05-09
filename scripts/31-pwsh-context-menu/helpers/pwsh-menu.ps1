@@ -138,16 +138,6 @@ function Register-PwshParentMenu {
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
         $key.SetValue('Icon', $IconValue)
-        # Explorer needs ONE of: SubCommands (string verb list from
-        # HKLM\...\CommandStore\shell) or ExtendedSubCommandsKey (relative
-        # HKCR path whose own \shell\ subkey holds the child verbs). Without
-        # either, the parent is treated as a normal verb missing \command and
-        # the cascading items never render. We point ExtendedSubCommandsKey
-        # at THIS same key so Explorer cascades children from
-        # ...\PowerShellMenu\shell\OpenHere and ...\OpenAsAdmin.
-        $key.SetValue('', $Label)
-        $key.SetValue('MUIVerb', $Label)
-        $key.SetValue('Icon', $IconValue)
         # Canonical cascading-menu trick: SubCommands as an EMPTY REG_SZ tells
         # Explorer "look in my own \shell\ subkey for child verbs". This is
         # the most reliable pattern across Win10/11 -- ExtendedSubCommandsKey
