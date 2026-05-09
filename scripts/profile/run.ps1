@@ -648,8 +648,8 @@ if ($grouped["ok"].Count -gt 0) {
     foreach ($n in $grouped["ok"]) { Write-Host "        + $n" -ForegroundColor Green }
 }
 if ($grouped["already-installed"].Count -gt 0) {
-    Write-Host ("    {0} Already installed ({1}):" -f (_MarkFor "already-installed"), $grouped["already-installed"].Count) -ForegroundColor Cyan
-    foreach ($n in $grouped["already-installed"]) { Write-Host "        = $n" -ForegroundColor Cyan }
+    Write-Host ("    {0} Skipped -- already installed ({1}):" -f (_MarkFor "already-installed"), $grouped["already-installed"].Count) -ForegroundColor Yellow
+    foreach ($n in $grouped["already-installed"]) { Write-Host "        = $n  (skipped: already installed)" -ForegroundColor Yellow }
 }
 if ($grouped["skip"].Count -gt 0) {
     Write-Host ("    {0} Skipped ({1}):" -f (_MarkFor "skip"), $grouped["skip"].Count) -ForegroundColor DarkGray
