@@ -129,6 +129,9 @@ Audit mode, health checks, settings sync, context-menu repair, and CI-tested ver
 | `status` | Dashboard of every tool currently recorded in `.installed/`. | `list-installed`, `installed` |
 | `report [--since=24h\|7d\|all] [--open]` | Timestamped JSON + HTML report of install / uninstall / reinstall actions, cross-referenced with `.installed/` records. Output goes to `.reports/`. | `install-report`, `reports` |
 | `vscode-context-menu install` / `uninstall` | Thin wrapper around script 52 — adds/removes the Windows folder right-click "Open with Code" entry. | `vscode-menu`, `vscode-contextmenu` |
+| `install pin-taskbar` | Pin every supported app (ConEmu, Notepad++, Notepad, Chrome, VS Code) to the Windows taskbar. Aliases: `taskbar-pin`, `pin-all`. | script #62 |
+| `install pin-terminal` | Pin only the terminal-profile apps (ConEmu, Notepad++, Notepad, Chrome). | — |
+| `install pin-vscode` / `pin-chrome` / `pin-conemu` / `pin-notepadpp` / `pin-notepad` | Pin a single app to the taskbar. | `pin-code` = `pin-vscode`, `pin-npp` = `pin-notepadpp` |
 
 > Every install/uninstall now persists state under `.installed/<tool>.json` (gitignored). `status` and `report` read from that folder, so you always know what's on the box.
 
