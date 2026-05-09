@@ -1677,7 +1677,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 |----|--------|--------------|-------|
 | 10 | **VSCode Context Menu Fix** | Add/repair VS Code right-click context menu entries | Yes |
 | 11 | **VSCode Settings Sync** | Sync VS Code settings, keybindings, and extensions | No |
-| 31 | **PowerShell Context Menu** | Add "Open PowerShell Here" (normal + admin) to right-click menu | Yes |
+| 31 | **PowerShell Context Menu** | Add a **PowerShell** submenu with **Open Here** + **Open as Admin** | Yes |
 
 ### Databases (18-29)
 
@@ -1727,7 +1727,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 | 50 | **[OneNote](scripts/50-install-onenote/)** | Install OneNote — pure (default) or `+rm-onedrive` combo | Yes |
 | 51 | **[Lightshot](scripts/51-install-lightshot/)** | Install Lightshot + opinionated registry tweaks | Yes |
 | 52 | **[VSCode Folder Repair](scripts/52-vscode-folder-repair/)** | Repair VSCode folder context-menu (subcommands: dry-run, restore, refresh, ...) | Yes |
-| 59 | **[ConEmu Context Menu](scripts/59-conemu-context-menu/)** | Add "Open ConEmu Here" + admin variant to folder & background right-click menus | Yes |
+| 59 | **[ConEmu Context Menu](scripts/59-conemu-context-menu/)** | Add a **ConEmu** submenu with **Open Here** + **Open as Admin** to folder & background right-click menus | Yes |
 
 ---
 
@@ -1851,8 +1851,8 @@ them when you want to grab a specific batch.
 .\run.ps1 install vscode,git,nodejs,pnpm,python
 .\run.ps1 install npp,obs,wt,dbeaver,conemu       # all desktop tools at once
 .\run.ps1 install whatsapp,onenote,lightshot      # 2025-batch desktop apps
-.\run.ps1 install ubuntu-font,conemu              # font + terminal pair (also wires "Open ConEmu Here" right-click menu)
-.\run.ps1 install conemu-menu                     # ConEmu + right-click "Open ConEmu Here" (script 48 + 59)
+.\run.ps1 install ubuntu-font,conemu              # font + terminal pair (also wires the ConEmu submenu right-click menu)
+.\run.ps1 install conemu-menu                     # ConEmu + submenu right-click menu (script 48 + 59)
 .\run.ps1 install all-settings                    # batch settings sync incl. ConEmu menu (1, 11, 32, 33, 36, 37, 48, 59)
 .\run.ps1 install go,rust,cpp,dotnet,java         # all systems-language runtimes
 
