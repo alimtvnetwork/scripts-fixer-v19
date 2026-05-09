@@ -207,6 +207,7 @@ foreach ($modeName in $enabledModes) {
         -Mode        $mode `
         -ModeName    $modeName `
         -ConEmuExe   $conemuExe `
+        -Config      $config `
         -LogMessages $logMessages
 
     if (-not $result) { $isAllSuccessful = $false }
