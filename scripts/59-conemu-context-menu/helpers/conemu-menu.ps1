@@ -331,6 +331,7 @@ function Invoke-ConEmuMode {
         [PSCustomObject]$Mode,
         [string]$ModeName,
         [string]$ConEmuExe,
+        [PSCustomObject]$Config,
         $LogMessages
     )
 
@@ -348,12 +349,12 @@ function Invoke-ConEmuMode {
     $entries = @(
         @{
             Step   = $LogMessages.messages.regDir
-            Path   = $Mode.registryPaths.directory
+            Path   = Resolve-ConEmuLeafRegistryPath -RegistryPath $Mode.registryPaths.directory -Config $Config
             CmdArg = $Mode.commandArgs.directory -replace '\{exe\}', $ConEmuExe
         },
         @{
             Step   = $LogMessages.messages.regBg
-            Path   = $Mode.registryPaths.background
+            Path   = Resolve-ConEmuLeafRegistryPath -RegistryPath $Mode.registryPaths.background -Config $Config
             CmdArg = $Mode.commandArgs.background -replace '\{exe\}', $ConEmuExe
         }
     )
@@ -393,13 +394,15 @@ function Install-ConEmuParentMenus {
     Remove-ConEmuLegacyEntries -LogMessages $LogMessages
 
     $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
+    $cascadeRoot = Get-ConEmuCascadeRegistryRoot -Config $Config
+    Remove-ConEmuParentRegistryTree -RegistryPath $cascadeRoot
     $iconValue = '"' + $ConEmuExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
     $isAllOk = $true
 
     foreach ($scope in @('directory', 'background')) {
         Remove-ConEmuParentRegistryTree -RegistryPath $parentPaths[$scope]
-        $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -Runas $false -LogMessages $LogMessages
+        $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -ExtendedSubCommandsKey 'Directory\ContextMenus\ConEmuMenu' -Runas $false -LogMessages $LogMessages
         if (-not $ok) { $isAllOk = $false }
     }
 
