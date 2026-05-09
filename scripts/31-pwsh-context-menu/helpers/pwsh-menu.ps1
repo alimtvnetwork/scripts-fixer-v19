@@ -309,7 +309,7 @@ function Install-PwshParentMenus {
     )
 
     $parentPaths = Get-PwshParentRegistryPaths -Config $Config
-    $iconValue = "`\"$PwshExe`\""
+    $iconValue = '"' + $PwshExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
     $isAllOk = $true
 
