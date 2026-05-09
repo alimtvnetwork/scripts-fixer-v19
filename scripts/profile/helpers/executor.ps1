@@ -189,6 +189,8 @@ function Invoke-ProfileSteps {
 
     return $results
 }
+
+function Invoke-ScriptByIdSafe {
     param(
         [Parameter(Mandatory)][string]$RootDir,
         [Parameter(Mandatory)][int]$ScriptId
