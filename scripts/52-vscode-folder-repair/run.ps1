@@ -570,7 +570,8 @@ try {
         -Tool         'VS Code' `
         -EntryLabel   $vscLabel `
         -RetryCommand $retryHint `
-        -NonInteractive:$NonInteractive
+        -NonInteractive:$NonInteractive `
+        -AssumeYes:$AssumeYes
 
     # -- Save resolved state --------------------------------------------------
     Save-ResolvedData -ScriptFolder "52-vscode-folder-repair" -Data @{
