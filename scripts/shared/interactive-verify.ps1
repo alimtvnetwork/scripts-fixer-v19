@@ -43,6 +43,10 @@ Set-StrictMode -Version Latest
 function Test-IsInteractiveSession {
     if ($env:CI) { return $false }
     if ($env:SCRIPTS_FIXER_NONINTERACTIVE -eq '1') { return $false }
+    # -y / --yes auto-skips: user said "assume yes to everything", which for a
+    # *manual* right-click verification means "skip it, I trust the registry
+    # writes". Treated identically to non-interactive.
+    if ($env:SCRIPTS_FIXER_YES -eq '1' -or $env:SCRIPTS_FIXER_ASSUME_YES -eq '1') { return $false }
     try {
         if ([Console]::IsInputRedirected) { return $false }
     } catch { } # older hosts may not expose IsInputRedirected -- fall through
