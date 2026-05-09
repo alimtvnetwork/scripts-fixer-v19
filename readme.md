@@ -461,7 +461,17 @@ first click.
 
 > 📌 **Auto-pin:** any time you install ConEmu (#48), Notepad++ (#33),
 > Chrome (#58), or VS Code (#01) — standalone or via a profile — that app
-> is automatically pinned to the taskbar. To pin manually at any time:
+> is automatically pinned to the taskbar. The `terminal` profile also
+> runs **Step 11: Pin to taskbar** as a *separate, dedicated step* in the
+> install summary, so you can see exactly which apps were pinned, already
+> pinned, or skipped (Win11 22H2+ may hide the "Pin to taskbar" verb on
+> some apps — those are reported as warnings, not failures).
+>
+> Re-runs always re-verify the actual pin state (the tracker no longer
+> short-circuits when a previous attempt only got as far as invoking the
+> verb), so a missed Notepad++ pin will be retried on the next run.
+>
+> To pin manually at any time:
 > `.\run.ps1 install pin-vscode` (or `pin-chrome`, `pin-conemu`,
 > `pin-notepadpp`, `pin-notepad`, `pin-terminal`, `pin-taskbar` for all).
 

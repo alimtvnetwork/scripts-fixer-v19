@@ -156,11 +156,15 @@ function Invoke-PinToTaskbar {
         return "already"
     }
 
-    # Tracker fast-path: we previously handled this exe (pinned or verb-hidden on Win11).
-    # Treat as already so we don't spam errors on every run.
-    if (Test-IsPinTracked -ExePath $ExePath) {
-        return "already"
-    }
+    # NOTE: We deliberately do NOT short-circuit on the tracker here. A prior
+    # run may have stored "verb-invoked-no-lnk" / "verb-hidden" -- those are
+    # *recoverable* states (Explorer might cooperate this time, or the user
+    # restarted Explorer). We always re-attempt the pin and only suppress the
+    # repeat warning at the end if the tracker shows we've seen it before.
+    $previousState = $null
+    $tracker = Get-PinTracker
+    $key = $ExePath.ToLowerInvariant()
+    if ($tracker.ContainsKey($key)) { $previousState = "$($tracker[$key].state)" }
 
     $verbLabels = Get-PinToTaskbarVerbLabels
     $normalizedTargets = @($verbLabels | ForEach-Object { ($_ -replace '&','').Trim().ToLowerInvariant() } | Where-Object { $_ })
