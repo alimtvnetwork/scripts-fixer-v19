@@ -3893,6 +3893,13 @@ if ($hasCommand) {
             }
             # Forward the canonical (stripped) profile name + remaining args
             $forwardArgs = @($strippedToken) + @($Install | Select-Object -Skip 1)
+            # Root-level -Y / -Yes is bound to $Y by PowerShell's parameter
+            # binder BEFORE it can land in $Install, so the profile dispatcher
+            # never sees it. Re-inject it so `.\run install <profile> -y`
+            # actually skips confirmation prompts inside every step.
+            if ($Y -and -not ($forwardArgs | Where-Object { "$_".Trim().ToLower() -in @('-y','--yes','-yes') })) {
+                $forwardArgs += '-y'
+            }
             Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
             Write-Host "Routing 'install $firstToken' to profile dispatcher (profile '$strippedToken')" -ForegroundColor DarkGray
             & $profileScript @forwardArgs

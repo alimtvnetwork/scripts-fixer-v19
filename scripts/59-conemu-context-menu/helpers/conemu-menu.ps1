@@ -129,18 +129,30 @@ function Register-ConEmuParentMenu {
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
         $key.SetValue('Icon', $IconValue)
-        # Explorer needs ExtendedSubCommandsKey (relative HKCR path whose
-        # \shell\ subkey holds child verbs) OR a non-empty SubCommands list
-        # to render a cascading parent. Pointing it at THIS same key makes
-        # Explorer cascade children registered under
-        # ...\ConEmuMenu\shell\OpenHere and ...\OpenAsAdmin.
-        $key.SetValue('ExtendedSubCommandsKey', $subKeyPath)
-        # Strip any stale empty SubCommands -- if present (even empty) it
-        # overrides ExtendedSubCommandsKey and re-empties the submenu.
-        $existingSub = $key.GetValue('SubCommands', $null)
-        if ($null -ne $existingSub) {
-            try { $key.DeleteValue('SubCommands') } catch { }
+        # Canonical cascading-menu trick: SubCommands as an EMPTY REG_SZ tells
+        # Explorer "look in my own \shell\ subkey for child verbs". This is
+        # the most reliable pattern across Win10/11 -- ExtendedSubCommandsKey
+        # is finicky when pointed at the parent itself and has been observed
+        # to render an empty submenu. Children live at
+        # ...\ConEmuMenu\shell\OpenHere(\command) and ...\OpenAsAdmin.
+        $key.SetValue('SubCommands', '', [Microsoft.Win32.RegistryValueKind]::String)
+        # Strip any stale ExtendedSubCommandsKey from prior versions -- if
+        # both are present Explorer's behaviour is undefined and the submenu
+        # often comes up empty.
+        $existingExt = $key.GetValue('ExtendedSubCommandsKey', $null)
+        if ($null -ne $existingExt) {
+            try { $key.DeleteValue('ExtendedSubCommandsKey') } catch { }
         }
+        # Parent must NOT have its own \command subkey -- if it does, Explorer
+        # treats it as a normal verb and the cascade collapses into a single
+        # click that runs the parent command.
+        try {
+            $cmdProbe = $hkcr.OpenSubKey("$subKeyPath\command")
+            if ($null -ne $cmdProbe) {
+                $cmdProbe.Close()
+                $hkcr.DeleteSubKeyTree("$subKeyPath\command", $false)
+            }
+        } catch { }
         if ($Runas) {
             $key.SetValue('HasLUAShield', '')
         }
