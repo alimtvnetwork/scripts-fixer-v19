@@ -6,13 +6,11 @@
       "id": "pwsh-context-menu",
       "scriptId": "31",
       "folder": "31-pwsh-context-menu",
-      "title": "PowerShell Here (normal + admin)",
-      "description": "Adds 'Open PowerShell Here' and 'Open PowerShell Here (Admin)' to folder + folder background right-click menus.",
+      "title": "PowerShell submenu (Open Here + Open as Admin)",
+      "description": "Adds a 'PowerShell' submenu with 'Open Here' and 'Open as Admin' to folder + folder background right-click menus.",
       "registryTargets": [
-        "HKCR\\Directory\\shell\\PowerShellHere",
-        "HKCR\\Directory\\shell\\PowerShellHereAdmin",
-        "HKCR\\Directory\\Background\\shell\\PowerShellHere",
-        "HKCR\\Directory\\Background\\shell\\PowerShellHereAdmin"
+        "HKCR\\Directory\\shell\\PowerShellMenu",
+        "HKCR\\Directory\\Background\\shell\\PowerShellMenu"
       ],
       "installArgs": [],
       "uninstallArgs": [
@@ -41,13 +39,11 @@
       "id": "conemu-context-menu",
       "scriptId": "59",
       "folder": "59-conemu-context-menu",
-      "title": "ConEmu Here (normal + admin)",
-      "description": "Adds 'Open ConEmu Here' and 'Open ConEmu Here as Admin' to folder + folder background right-click menus.",
+      "title": "ConEmu submenu (Open Here + Open as Admin)",
+      "description": "Adds a 'ConEmu' submenu with 'Open Here' and 'Open as Admin' to folder + folder background right-click menus.",
       "registryTargets": [
-        "HKCR\\Directory\\shell\\ConEmuHere",
-        "HKCR\\Directory\\shell\\ConEmuHereAdmin",
-        "HKCR\\Directory\\Background\\shell\\ConEmuHere",
-        "HKCR\\Directory\\Background\\shell\\ConEmuHereAdmin"
+        "HKCR\\Directory\\shell\\ConEmuMenu",
+        "HKCR\\Directory\\Background\\shell\\ConEmuMenu"
       ],
       "installArgs": [],
       "uninstallArgs": [
