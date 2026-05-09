@@ -1225,6 +1225,12 @@
     ],
     "profile-dev-advanced": [
       "profile:dev-advance"
+    ],
+    "profile-terminal": [
+      "profile:terminal"
+    ],
+    "terminal-profile": [
+      "profile:terminal"
     ]
   },
   "modes": {
