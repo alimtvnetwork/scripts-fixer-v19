@@ -192,7 +192,8 @@ if (-not $conemuExe) {
 
 # -- Process modes (normal + admin) -------------------------------------------
 $enabledModes    = $config.enabledModes
-$isAllSuccessful = $true
+$parentMenusOk   = Install-ConEmuParentMenus -Config $config -ConEmuExe $conemuExe -LogMessages $logMessages
+$isAllSuccessful = $parentMenusOk
 
 foreach ($modeName in $enabledModes) {
     $mode = $config.modes.$modeName
