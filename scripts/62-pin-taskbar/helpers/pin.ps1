@@ -66,10 +66,52 @@ public static extern System.IntPtr LoadLibrary(string lpFileName);
     return $labels
 }
 
+function Get-PinTrackerPath {
+    $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSCommandPath))
+    $dir = Join-Path $repoRoot ".installed"
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    return (Join-Path $dir "pin-taskbar.json")
+}
+
+function Get-PinTracker {
+    $path = Get-PinTrackerPath
+    if (-not (Test-Path $path)) { return @{} }
+    try {
+        $raw = Get-Content $path -Raw -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace($raw)) { return @{} }
+        $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+        $h = @{}
+        foreach ($p in $obj.PSObject.Properties) { $h[$p.Name] = $p.Value }
+        return $h
+    } catch { return @{} }
+}
+
+function Save-PinTrackerEntry {
+    param([Parameter(Mandatory)][string]$ExePath,
+          [Parameter(Mandatory)][string]$State)
+    try {
+        $tracker = Get-PinTracker
+        $tracker[$ExePath.ToLowerInvariant()] = @{
+            state     = $State
+            timestamp = (Get-Date).ToString("o")
+        }
+        ($tracker | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath (Get-PinTrackerPath) -Encoding UTF8
+    } catch {
+        # Non-fatal -- tracker is best-effort.
+    }
+}
+
+function Test-IsPinTracked {
+    param([Parameter(Mandatory)][string]$ExePath)
+    $tracker = Get-PinTracker
+    return $tracker.ContainsKey($ExePath.ToLowerInvariant())
+}
+
 function Invoke-PinToTaskbar {
     <#
     .SYNOPSIS
-        Pin a single exe to the taskbar. Returns "ok" | "already" | "fail".
+        Pin a single exe to the taskbar.
+        Returns "ok" | "already" | "verb-unavailable" | "fail".
     #>
     param([Parameter(Mandatory)][string]$ExePath)
 
@@ -77,6 +119,13 @@ function Invoke-PinToTaskbar {
     if ($isMissingExe) { return "fail" }
 
     if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+        Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
+        return "already"
+    }
+
+    # Tracker fast-path: we previously handled this exe (pinned or verb-hidden on Win11).
+    # Treat as already so we don't spam errors on every run.
+    if (Test-IsPinTracked -ExePath $ExePath) {
         return "already"
     }
 
@@ -94,18 +143,32 @@ function Invoke-PinToTaskbar {
         if ($isItemMissing) { return "fail" }
 
         $verbs = @($item.Verbs())
+        $foundVerb = $false
         foreach ($v in $verbs) {
             $name = "$($v.Name)" -replace '&',''
             $norm = $name.Trim().ToLowerInvariant()
             if ($normalizedTargets -contains $norm) {
+                $foundVerb = $true
                 $v.DoIt()
                 Start-Sleep -Milliseconds 600
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) { return "ok" }
+                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+                    Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
+                    return "ok"
+                }
                 # Some Explorer builds need a moment to materialize the .lnk
                 Start-Sleep -Milliseconds 1200
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) { return "ok" }
+                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+                    Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
+                    return "ok"
+                }
                 return "fail"
             }
+        }
+        if (-not $foundVerb) {
+            # Win11 22H2+ hides the "Pin to taskbar" verb. We cannot pin
+            # programmatically -- record it so we skip cleanly next time.
+            Save-PinTrackerEntry -ExePath $ExePath -State "verb-hidden"
+            return "verb-unavailable"
         }
         return "fail"
     } catch {
