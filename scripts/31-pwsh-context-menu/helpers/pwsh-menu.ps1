@@ -113,6 +113,23 @@ function Get-PwshParentRegistryPaths {
     }
 }
 
+function Get-PwshCascadeRegistryRoot {
+    param([PSCustomObject]$Config)
+
+    $parentKeyName = "$($Config.menu.parentKeyName)"
+    return "Registry::HKEY_CLASSES_ROOT\Directory\ContextMenus\$parentKeyName"
+}
+
+function Resolve-PwshLeafRegistryPath {
+    param(
+        [Parameter(Mandatory)][string]$RegistryPath,
+        [Parameter(Mandatory)][PSCustomObject]$Config
+    )
+
+    $leafName = Split-Path -Path $RegistryPath -Leaf
+    return ((Get-PwshCascadeRegistryRoot -Config $Config) + "\shell\" + $leafName)
+}
+
 function Remove-PwshParentRegistryTree {
     param([string]$RegistryPath)
 
@@ -153,6 +170,7 @@ function Register-PwshParentMenu {
         [string]$RegistryPath,
         [string]$Label,
         [string]$IconValue,
+        [string]$ExtendedSubCommandsKey,
         [bool]$Runas,
         $LogMessages
     )
@@ -164,19 +182,15 @@ function Register-PwshParentMenu {
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
         $key.SetValue('Icon', $IconValue)
-        # Canonical cascading-menu trick: SubCommands as an EMPTY REG_SZ tells
-        # Explorer "look in my own \shell\ subkey for child verbs". This is
-        # the most reliable pattern across Win10/11 -- ExtendedSubCommandsKey
-        # is finicky when pointed at the parent itself and has been observed
-        # to render an empty submenu. Children live at
-        # ...\PowerShellMenu\shell\OpenHere(\command) and ...\OpenAsAdmin.
-        $key.SetValue('SubCommands', '', [Microsoft.Win32.RegistryValueKind]::String)
-        # Strip any stale ExtendedSubCommandsKey from prior versions -- if
-        # both are present Explorer's behaviour is undefined and the submenu
-        # often comes up empty.
-        $existingExt = $key.GetValue('ExtendedSubCommandsKey', $null)
-        if ($null -ne $existingExt) {
-            try { $key.DeleteValue('ExtendedSubCommandsKey') } catch { }
+        # Use the Microsoft-documented shared ContextMenus reference pattern.
+        # Both Directory\shell and Directory\Background\shell parents point at
+        # the SAME Directory\ContextMenus\<Menu> tree, which Explorer renders
+        # more reliably for cascading menus than duplicating child verbs under
+        # each parent key.
+        $key.SetValue('ExtendedSubCommandsKey', $ExtendedSubCommandsKey, [Microsoft.Win32.RegistryValueKind]::String)
+        $existingSubCommands = $key.GetValue('SubCommands', $null)
+        if ($null -ne $existingSubCommands) {
+            try { $key.DeleteValue('SubCommands') } catch { }
         }
         # Parent must NOT have its own \command subkey -- if it does, Explorer
         # treats it as a normal verb and the cascade collapses into a single
@@ -267,6 +281,7 @@ function Register-PwshContextMenu {
         Write-Log ("  " + ($LogMessages.messages.settingRegistryDefault -replace '\{label\}', $Label)) -Level "info"
         $key = $hkcr.CreateSubKey($subKeyPath)
         $key.SetValue("", $Label)
+        $key.SetValue("MUIVerb", $Label)
         $key.Close()
         Write-Log ("  " + $LogMessages.messages.registryDefaultSet) -Level "success"
 
