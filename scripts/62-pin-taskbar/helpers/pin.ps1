@@ -379,6 +379,8 @@ function Invoke-PinToTaskbar {
 
     $verbLabels = Get-PinToTaskbarVerbLabels
     $normalizedTargets = @($verbLabels | ForEach-Object { ($_ -replace '&','').Trim().ToLowerInvariant() } | Where-Object { $_ })
+    $antiTargets = @()
+    if ($script:_PinStartLabels) { $antiTargets = @($script:_PinStartLabels) }
 
     try {
         $shell  = New-Object -ComObject Shell.Application
@@ -395,6 +397,7 @@ function Invoke-PinToTaskbar {
         foreach ($v in $verbs) {
             $name = "$($v.Name)" -replace '&',''
             $norm = $name.Trim().ToLowerInvariant()
+            if ($antiTargets -contains $norm) { continue }   # never pin to Start
             if ($normalizedTargets -contains $norm) {
                 $foundVerb = $true
                 $v.DoIt()
