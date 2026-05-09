@@ -107,7 +107,8 @@ function Invoke-VerbOnShortcut {
     # shortcuts. Returns $true if a matching verb was invoked.
     param(
         [Parameter(Mandatory)][string]$ShortcutPath,
-        [Parameter(Mandatory)][string[]]$NormalizedTargets
+        [Parameter(Mandatory)][string[]]$NormalizedTargets,
+        [string[]]$AntiTargets = @()
     )
     try {
         $shell  = New-Object -ComObject Shell.Application
@@ -118,6 +119,7 @@ function Invoke-VerbOnShortcut {
         foreach ($v in @($item.Verbs())) {
             $name = "$($v.Name)" -replace '&',''
             $norm = $name.Trim().ToLowerInvariant()
+            if ($AntiTargets -contains $norm) { continue }   # never pin to Start
             if ($NormalizedTargets -contains $norm) {
                 $v.DoIt()
                 return $true
@@ -182,7 +184,12 @@ function Invoke-PinViaUnlockedVerb {
         [Parameter(Mandatory)][string[]]$NormalizedVerbTargets
     )
 
+    # Snapshot anti-targets (Start-pin verbs) so we never invoke them by accident.
+    $startAntiTargets = @()
+    if ($script:_PinStartLabels) { $startAntiTargets = @($script:_PinStartLabels) }
+
     return (Invoke-Win11PinUnlock -Action {
+        $startLnk = $null
         try {
             $shell  = New-Object -ComObject Shell.Application
             $folder = $shell.Namespace((Split-Path $ExePath -Parent))
@@ -191,6 +198,7 @@ function Invoke-PinViaUnlockedVerb {
                 if ($item) {
                     foreach ($v in @($item.Verbs())) {
                         $norm = (("$($v.Name)") -replace '&','').Trim().ToLowerInvariant()
+                        if ($startAntiTargets -contains $norm) { continue }   # never pin to Start
                         if ($NormalizedVerbTargets -contains $norm) {
                             $v.DoIt()
                             if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
@@ -200,7 +208,8 @@ function Invoke-PinViaUnlockedVerb {
                 }
             }
 
-            # Fallback: invoke the now-unlocked verb on a Start-menu .lnk.
+            # Fallback: invoke the now-unlocked verb on a Start-menu .lnk, then
+            # delete that .lnk so we don't pollute the user's Start menu.
             $shortcutPath = Get-TaskbarShortcutPath -ExePath $ExePath -AppLabel $AppLabel
             $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
             if (-not (Test-Path $startMenuDir)) { New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null }
@@ -212,12 +221,18 @@ function Invoke-PinViaUnlockedVerb {
             $sc.IconLocation = "$ExePath,0"
             $sc.Save()
 
-            if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets) {
+            if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets -AntiTargets $startAntiTargets) {
                 if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
             }
             return $false
         } catch {
             return $false
+        } finally {
+            # Always remove the temp Start-menu .lnk so we don't leave a stray
+            # entry under "Recently added" / alphabetical Start groups.
+            if ($startLnk -and (Test-Path -LiteralPath $startLnk)) {
+                try { Remove-Item -LiteralPath $startLnk -Force -ErrorAction SilentlyContinue } catch { }
+            }
         }
     })
 }
@@ -244,7 +259,12 @@ function Invoke-ShortcutPinFallback {
 
 function Get-PinToTaskbarVerbLabels {
     # Load localized "Pin to taskbar" strings from shell32.dll (best effort).
+    # CRITICAL: 5386 / 51201 are "Pin to Start" -- DO NOT use them, or we end
+    # up pinning to the Start menu instead of the taskbar.
+    # 5387 / 51202 are "Pin to taskbar" (Win10 / Win11 respectively).
     $labels = New-Object System.Collections.Generic.List[string]
+    # Anti-labels: never invoke a verb that resolves to one of these.
+    $startLabels = New-Object System.Collections.Generic.List[string]
     try {
         if (-not ('Win32.PinResStr' -as [type])) {
             Add-Type -Namespace Win32 -Name PinResStr -MemberDefinition @'
@@ -256,12 +276,22 @@ public static extern System.IntPtr LoadLibrary(string lpFileName);
         }
         $shell32Path = Join-Path $env:SystemRoot "System32\shell32.dll"
         $h = [Win32.PinResStr]::LoadLibrary($shell32Path)
-        foreach ($id in @(5386, 51201)) {
+        # Taskbar pin string IDs.
+        foreach ($id in @(5387, 51202)) {
             $sb = New-Object System.Text.StringBuilder 1024
             $n = [Win32.PinResStr]::LoadString($h, [uint32]$id, $sb, $sb.Capacity)
             if ($n -gt 0) {
                 $s = $sb.ToString()
                 if (-not [string]::IsNullOrWhiteSpace($s)) { $labels.Add($s) }
+            }
+        }
+        # Start pin string IDs (used purely to *exclude* matching).
+        foreach ($id in @(5386, 51201)) {
+            $sb = New-Object System.Text.StringBuilder 1024
+            $n = [Win32.PinResStr]::LoadString($h, [uint32]$id, $sb, $sb.Capacity)
+            if ($n -gt 0) {
+                $s = $sb.ToString()
+                if (-not [string]::IsNullOrWhiteSpace($s)) { $startLabels.Add($s) }
             }
         }
     } catch {
@@ -270,6 +300,10 @@ public static extern System.IntPtr LoadLibrary(string lpFileName);
     # Hardcoded fallbacks (English).
     $labels.Add("Pin to taskbar")
     $labels.Add("Pin to Tas&kbar")
+    $startLabels.Add("Pin to Start")
+    $startLabels.Add("Pin to &Start")
+    # Stash anti-labels on a script-scoped var so callers can avoid them.
+    $script:_PinStartLabels = @($startLabels | ForEach-Object { ($_ -replace '&','').Trim().ToLowerInvariant() } | Where-Object { $_ } | Select-Object -Unique)
     return $labels
 }
 
@@ -345,6 +379,8 @@ function Invoke-PinToTaskbar {
 
     $verbLabels = Get-PinToTaskbarVerbLabels
     $normalizedTargets = @($verbLabels | ForEach-Object { ($_ -replace '&','').Trim().ToLowerInvariant() } | Where-Object { $_ })
+    $antiTargets = @()
+    if ($script:_PinStartLabels) { $antiTargets = @($script:_PinStartLabels) }
 
     try {
         $shell  = New-Object -ComObject Shell.Application
@@ -361,6 +397,7 @@ function Invoke-PinToTaskbar {
         foreach ($v in $verbs) {
             $name = "$($v.Name)" -replace '&',''
             $norm = $name.Trim().ToLowerInvariant()
+            if ($antiTargets -contains $norm) { continue }   # never pin to Start
             if ($normalizedTargets -contains $norm) {
                 $foundVerb = $true
                 $v.DoIt()
