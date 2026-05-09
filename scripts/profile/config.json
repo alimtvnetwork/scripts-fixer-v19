@@ -19,7 +19,7 @@
       "steps": [
         { "kind": "script",     "id": 2,  "label": "Chocolatey package manager" },
         { "kind": "script",     "id": 7,  "label": "Git + LFS" },
-        { "kind": "choco",      "package": "vlc",                    "label": "VLC media player" },
+        { "kind": "script",     "id": 63, "label": "VLC media player + association repair" },
         { "kind": "choco",      "package": "7zip.install",           "label": "7-Zip archiver" },
         { "kind": "choco",      "package": "winrar",                 "label": "WinRAR archiver" },
         { "kind": "script",     "id": 47, "label": "Ubuntu font" },
