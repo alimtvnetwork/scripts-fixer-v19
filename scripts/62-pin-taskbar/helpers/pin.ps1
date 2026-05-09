@@ -66,10 +66,52 @@ public static extern System.IntPtr LoadLibrary(string lpFileName);
     return $labels
 }
 
+function Get-PinTrackerPath {
+    $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSCommandPath))
+    $dir = Join-Path $repoRoot ".installed"
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    return (Join-Path $dir "pin-taskbar.json")
+}
+
+function Get-PinTracker {
+    $path = Get-PinTrackerPath
+    if (-not (Test-Path $path)) { return @{} }
+    try {
+        $raw = Get-Content $path -Raw -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace($raw)) { return @{} }
+        $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+        $h = @{}
+        foreach ($p in $obj.PSObject.Properties) { $h[$p.Name] = $p.Value }
+        return $h
+    } catch { return @{} }
+}
+
+function Save-PinTrackerEntry {
+    param([Parameter(Mandatory)][string]$ExePath,
+          [Parameter(Mandatory)][string]$State)
+    try {
+        $tracker = Get-PinTracker
+        $tracker[$ExePath.ToLowerInvariant()] = @{
+            state     = $State
+            timestamp = (Get-Date).ToString("o")
+        }
+        ($tracker | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath (Get-PinTrackerPath) -Encoding UTF8
+    } catch {
+        # Non-fatal -- tracker is best-effort.
+    }
+}
+
+function Test-IsPinTracked {
+    param([Parameter(Mandatory)][string]$ExePath)
+    $tracker = Get-PinTracker
+    return $tracker.ContainsKey($ExePath.ToLowerInvariant())
+}
+
 function Invoke-PinToTaskbar {
     <#
     .SYNOPSIS
-        Pin a single exe to the taskbar. Returns "ok" | "already" | "fail".
+        Pin a single exe to the taskbar.
+        Returns "ok" | "already" | "verb-unavailable" | "fail".
     #>
     param([Parameter(Mandatory)][string]$ExePath)
 
@@ -77,6 +119,13 @@ function Invoke-PinToTaskbar {
     if ($isMissingExe) { return "fail" }
 
     if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+        Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
+        return "already"
+    }
+
+    # Tracker fast-path: we previously handled this exe (pinned or verb-hidden on Win11).
+    # Treat as already so we don't spam errors on every run.
+    if (Test-IsPinTracked -ExePath $ExePath) {
         return "already"
     }
 
@@ -94,18 +143,32 @@ function Invoke-PinToTaskbar {
         if ($isItemMissing) { return "fail" }
 
         $verbs = @($item.Verbs())
+        $foundVerb = $false
         foreach ($v in $verbs) {
             $name = "$($v.Name)" -replace '&',''
             $norm = $name.Trim().ToLowerInvariant()
             if ($normalizedTargets -contains $norm) {
+                $foundVerb = $true
                 $v.DoIt()
                 Start-Sleep -Milliseconds 600
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) { return "ok" }
+                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+                    Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
+                    return "ok"
+                }
                 # Some Explorer builds need a moment to materialize the .lnk
                 Start-Sleep -Milliseconds 1200
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) { return "ok" }
+                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+                    Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
+                    return "ok"
+                }
                 return "fail"
             }
+        }
+        if (-not $foundVerb) {
+            # Win11 22H2+ hides the "Pin to taskbar" verb. We cannot pin
+            # programmatically -- record it so we skip cleanly next time.
+            Save-PinTrackerEntry -ExePath $ExePath -State "verb-hidden"
+            return "verb-unavailable"
         }
         return "fail"
     } catch {
@@ -158,7 +221,7 @@ function Invoke-PinTaskbarApps {
     }
 
     $resolved = @($resolved | Select-Object -Unique)
-    $okCount = 0; $alreadyCount = 0; $failCount = 0; $missingCount = 0
+    $okCount = 0; $alreadyCount = 0; $failCount = 0; $missingCount = 0; $verbHiddenCount = 0
 
     foreach ($key in $resolved) {
         $app = $AppsConfig.apps.$key
@@ -187,11 +250,24 @@ function Invoke-PinTaskbarApps {
                 Write-Log ($LogMessages.messages.pinAlready -replace '\{label\}', $label) -Level "warn"
                 $alreadyCount++
             }
+            "verb-unavailable" {
+                # Win11 22H2+ hides the "Pin to taskbar" shell verb. We cannot
+                # pin programmatically. Treat as already-installed (skip, warn,
+                # not a CODE RED) so the parent install doesn't fail.
+                $template = $LogMessages.messages.pinVerbHidden
+                if ([string]::IsNullOrWhiteSpace($template)) {
+                    $template = "{label} skipped: Windows 11 hides the 'Pin to taskbar' verb -- exe: {exe} -- treating as already-installed (pin manually if needed)."
+                }
+                $msg = ($template -replace '\{label\}', $label) -replace '\{exe\}', $exe
+                Write-Log $msg -Level "warn"
+                $alreadyCount++
+                $verbHiddenCount++
+            }
             default {
                 $msg = ($LogMessages.messages.pinFailed `
                     -replace '\{label\}', $label `
                     -replace '\{exe\}', $exe `
-                    -replace '\{reason\}', "Pin verb unavailable (Win11 may hide it) or Explorer rejected the request")
+                    -replace '\{reason\}', "Explorer rejected the pin request (verb invoked but no shortcut materialized)")
                 Write-Log $msg -Level "error"
                 $failCount++
             }
