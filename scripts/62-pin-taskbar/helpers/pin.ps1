@@ -101,29 +101,72 @@ function Get-TaskbarShortcutPath {
     return (Join-Path $userPinDir ("{0}.lnk" -f $safeName))
 }
 
+function Invoke-VerbOnShortcut {
+    # Try to invoke the "Pin to taskbar" verb on a .lnk file. On Win11 22H2+
+    # the verb is hidden on .exe items but is often still exposed on .lnk
+    # shortcuts. Returns $true if a matching verb was invoked.
+    param(
+        [Parameter(Mandatory)][string]$ShortcutPath,
+        [Parameter(Mandatory)][string[]]$NormalizedTargets
+    )
+    try {
+        $shell  = New-Object -ComObject Shell.Application
+        $folder = $shell.Namespace((Split-Path $ShortcutPath -Parent))
+        if (-not $folder) { return $false }
+        $item = $folder.ParseName((Split-Path $ShortcutPath -Leaf))
+        if (-not $item) { return $false }
+        foreach ($v in @($item.Verbs())) {
+            $name = "$($v.Name)" -replace '&',''
+            $norm = $name.Trim().ToLowerInvariant()
+            if ($NormalizedTargets -contains $norm) {
+                $v.DoIt()
+                return $true
+            }
+        }
+    } catch { }
+    return $false
+}
+
 function Invoke-ShortcutPinFallback {
     param(
         [Parameter(Mandatory)][string]$ExePath,
-        [Parameter(Mandatory)][string]$AppLabel
+        [Parameter(Mandatory)][string]$AppLabel,
+        [string[]]$NormalizedVerbTargets = @('pin to taskbar')
     )
 
     try {
         $shortcutPath = Get-TaskbarShortcutPath -ExePath $ExePath -AppLabel $AppLabel
+
+        # 1. Create a Start-menu .lnk first so we can invoke the verb on it.
+        $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+        if (-not (Test-Path $startMenuDir)) {
+            New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null
+        }
+        $startLnk = Join-Path $startMenuDir ("{0}.lnk" -f ([System.IO.Path]::GetFileNameWithoutExtension($shortcutPath)))
+
         $shell = New-Object -ComObject WScript.Shell
-        $shortcut = $shell.CreateShortcut($shortcutPath)
-        $shortcut.TargetPath = $ExePath
-        $shortcut.WorkingDirectory = Split-Path $ExePath -Parent
-        $shortcut.IconLocation = "$ExePath,0"
-        $shortcut.Save()
+        $sc = $shell.CreateShortcut($startLnk)
+        $sc.TargetPath = $ExePath
+        $sc.WorkingDirectory = Split-Path $ExePath -Parent
+        $sc.IconLocation = "$ExePath,0"
+        $sc.Save()
+
+        # 2. Try invoking "Pin to taskbar" on the start-menu .lnk (Win11 trick).
+        if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets) {
+            if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
+        }
+
+        # 3. Manual drop into User Pinned\TaskBar (legacy path; not always honored).
+        $sc2 = $shell.CreateShortcut($shortcutPath)
+        $sc2.TargetPath = $ExePath
+        $sc2.WorkingDirectory = Split-Path $ExePath -Parent
+        $sc2.IconLocation = "$ExePath,0"
+        $sc2.Save()
 
         Invoke-TaskbarRefresh
-        if (Wait-ForTaskbarPin -ExePath $ExePath) {
-            return $true
-        }
+        if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
 
-        if (Test-Path -LiteralPath $shortcutPath) {
-            return $true
-        }
+        if (Test-Path -LiteralPath $shortcutPath) { return $true }
     } catch {
         return $false
     }
@@ -257,7 +300,7 @@ function Invoke-PinToTaskbar {
                     Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
                     return "ok"
                 }
-                if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel) {
+                if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel -NormalizedVerbTargets $normalizedTargets) {
                     Save-PinTrackerEntry -ExePath $ExePath -State "pinned-shortcut"
                     return "ok"
                 }
@@ -270,7 +313,7 @@ function Invoke-PinToTaskbar {
             }
         }
         if (-not $foundVerb) {
-            if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel) {
+            if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel -NormalizedVerbTargets $normalizedTargets) {
                 Save-PinTrackerEntry -ExePath $ExePath -State "pinned-shortcut"
                 return "ok"
             }
