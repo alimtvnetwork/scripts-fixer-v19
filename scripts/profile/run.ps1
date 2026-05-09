@@ -675,8 +675,8 @@ Write-Host ""
 if ($failedCount -eq 0) {
     $isAllAlready = ($alreadyInstalled -gt 0) -and ($freshlyInstalled -eq 0)
     if ($isAllAlready) {
-        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
-        Write-Host ("All {0} step(s) were already installed -- nothing to do ({1}s)." -f $totalSteps, $totalElapsedRounded)
+        Write-Host "  [ WARN ] " -ForegroundColor Yellow -NoNewline
+        Write-Host ("All {0} step(s) were already installed -- skipped, nothing to do ({1}s)." -f $totalSteps, $totalElapsedRounded) -ForegroundColor Yellow
         Set-LogAlreadyInstalled -Value $true
         Save-LogFile -Status "ok"   # promoted to "already-installed" by Save-LogFile
         exit 0
