@@ -1,0 +1,48 @@
+{
+  "_comment": "Pin selected apps to the Windows taskbar. Each app entry lists candidate exe paths (env vars expanded) -- the first existing path wins. Use 'all' or comma-separated keys to pin multiple in one run.",
+  "enabled": true,
+  "apps": {
+    "vscode": {
+      "label": "Visual Studio Code",
+      "candidates": [
+        "%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe",
+        "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+        "C:\\Program Files (x86)\\Microsoft VS Code\\Code.exe"
+      ]
+    },
+    "conemu": {
+      "label": "ConEmu",
+      "candidates": [
+        "C:\\Program Files\\ConEmu\\ConEmu64.exe",
+        "C:\\Program Files (x86)\\ConEmu\\ConEmu64.exe",
+        "C:\\Program Files\\ConEmu\\ConEmu.exe"
+      ]
+    },
+    "notepadpp": {
+      "label": "Notepad++",
+      "candidates": [
+        "C:\\Program Files\\Notepad++\\notepad++.exe",
+        "C:\\Program Files (x86)\\Notepad++\\notepad++.exe"
+      ]
+    },
+    "notepad": {
+      "label": "Windows Notepad",
+      "candidates": [
+        "%SystemRoot%\\System32\\notepad.exe",
+        "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\notepad.exe"
+      ]
+    },
+    "chrome": {
+      "label": "Google Chrome",
+      "candidates": [
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+        "%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe"
+      ]
+    }
+  },
+  "groups": {
+    "all":      ["conemu", "notepadpp", "notepad", "chrome", "vscode"],
+    "terminal": ["conemu", "notepadpp", "notepad", "chrome"]
+  }
+}

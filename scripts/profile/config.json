@@ -107,7 +107,8 @@
         { "kind": "choco",      "package": "winrar",                 "label": "WinRAR archiver" },
         { "kind": "subcommand", "path": "install chrome with-ext",   "label": "Google Chrome + curated extensions" },
         { "kind": "script",     "id": 47, "label": "Ubuntu font" },
-        { "kind": "inline",     "function": "Restore-Win11ClassicContext", "label": "Win11 classic right-click menu" }
+        { "kind": "inline",     "function": "Restore-Win11ClassicContext", "label": "Win11 classic right-click menu" },
+        { "kind": "subcommand", "path": "install pin-terminal",            "label": "Pin terminal apps to taskbar (ConEmu, Notepad++, Notepad, Chrome)" }
       ]
     }
   },

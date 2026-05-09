@@ -1,0 +1,30 @@
+{
+  "scriptName": "Pin to Taskbar",
+  "description": "Pins selected apps (VS Code, ConEmu, Notepad++, Windows Notepad, Chrome) to the Windows taskbar.",
+  "messages": {
+    "scriptDisabled": "Pin-to-taskbar script is disabled in config.",
+    "noApps": "No apps requested. Use: pin-taskbar all  |  pin-taskbar vscode,chrome  |  pin-taskbar terminal",
+    "unknownApp": "Unknown app key '{name}' -- skipping. Known: {known}",
+    "resolving": "Resolving executable for {label}...",
+    "exeMissing": "[CODE RED] No installed exe found for {label}. Tried: {paths}",
+    "pinning": "Pinning {label} to taskbar -- exe: {exe}",
+    "pinOk": "Pinned {label} to taskbar.",
+    "pinAlready": "{label} already pinned to taskbar (skipped, no action taken).",
+    "pinFailed": "[CODE RED] Failed to pin {label} to taskbar -- exe: {exe} -- Reason: {reason}",
+    "summary": "Pin summary: {ok} pinned, {already} already-pinned, {fail} failed, {missing} missing.",
+    "doneOk": "Taskbar pin step complete.",
+    "doneWarn": "Taskbar pin step finished with warnings -- see above."
+  },
+  "help": {
+    "commands": {
+      "<apps>": "Comma-separated keys: all | terminal | vscode | conemu | notepadpp | notepad | chrome"
+    },
+    "examples": [
+      ".\\run.ps1 install pin-taskbar all",
+      ".\\run.ps1 install pin-taskbar terminal",
+      ".\\run.ps1 install pin-taskbar vscode",
+      ".\\run.ps1 install pin-vscode",
+      ".\\run.ps1 install pin-chrome,pin-conemu"
+    ]
+  }
+}

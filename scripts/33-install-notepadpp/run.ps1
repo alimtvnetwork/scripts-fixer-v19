@@ -91,6 +91,9 @@ $ok = Install-NotepadPP -NppConfig $config.notepadpp -LogMessages $logMessages -
 $isSuccess = $ok -eq $true
 if ($isSuccess) {
     Write-Log $logMessages.messages.setupComplete -Level "success"
+    # -- Auto-pin Notepad++ to taskbar (best-effort, non-fatal) -------------
+    . (Join-Path $sharedDir "auto-pin.ps1")
+    Invoke-AutoPin -App "notepadpp"
 } else {
     Write-Log ($logMessages.messages.installFailed -replace '\{error\}', "See errors above") -Level "error"
 }

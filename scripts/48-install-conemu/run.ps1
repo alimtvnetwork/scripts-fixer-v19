@@ -80,6 +80,9 @@ try {
     $isSuccess = $ok -eq $true
     if ($isSuccess) {
         Write-Log $logMessages.messages.setupComplete -Level "success"
+        # -- Auto-pin ConEmu to taskbar (best-effort, non-fatal) -----------
+        . (Join-Path $sharedDir "auto-pin.ps1")
+        Invoke-AutoPin -App "conemu"
     } else {
         Write-Log ($logMessages.messages.installFailed -replace '\{error\}', "See errors above") -Level "error"
     }
