@@ -967,7 +967,7 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 | `os email <name>` | Set default mail (`mailto:`) client. Same cross-OS strategy. Names: `outlook`, `outlook-new`, `thunderbird`, `mailbird`, `em-client`, `windows-mail` (+ `evolution`/`geary`/`kmail`/`mailspring`/`apple-mail`/`outlook-mac`/`spark`/`airmail` on POSIX) | 👤 No | [Examples](#default-apps-browser--mail-client) |
 | **Windows context-menu repair** | | | |
 | `os fix-vscode-context-menu` | One-shot repair of the Windows folder right-click "Open with VS Code" entries. Thin wrapper that delegates to script 52 (`scripts/52-vscode-folder-repair/`): backs up `HKCR\Directory\shell\VSCode` + Background + Drive variants, rewrites entries, runs PASS/FAIL handler verification, and refreshes Explorer. Flags: `--dry-run`, `--verify`, `--verify-handlers`, `--no-restart`, `--trace`, `--restore`, `--rollback`, `--refresh`, `--edition stable\|insiders` | 🛡️ Yes | [Examples](#fix-vscode-context-menu-windows-folder-right-click) |
-| `os conemu-context-menu` | Manage the "Open ConEmu Here" folder right-click entries (normal + admin). Thin wrapper that delegates to script 59 (`scripts/59-conemu-context-menu/`). Uninstall snapshots affected `HKCR\Directory\(Background\)shell\ConEmuHere(Admin)` keys to a `.reg` file under `.logs/registry-backups/` BEFORE deletion and prints a copy-paste `reg import` rollback hint. Destructive ops (`uninstall`, `restore`) prompt by default -- pass `--yes`/`-y` to auto-approve, `--non-interactive` for headless mode. Flags: `install`, `--uninstall`, `--dry-run-uninstall`, `--restore` (newest snapshot), `--restore --dry-run`, `--list-snapshots`, `--snapshot-file <p>`, `--yes`/`-y`, `--non-interactive` | 🛡️ Yes | [Examples](#conemu-context-menu-installuninstallrestore) |
+| `os conemu-context-menu` | Manage the **ConEmu** submenu right-click entries (**Open Here** + **Open as Admin**). Thin wrapper that delegates to script 59 (`scripts/59-conemu-context-menu/`). Uninstall snapshots affected `HKCR\Directory\(Background\)shell\ConEmuMenu` keys to a `.reg` file under `.logs/registry-backups/` BEFORE deletion and prints a copy-paste `reg import` rollback hint. Destructive ops (`uninstall`, `restore`) prompt by default -- pass `--yes`/`-y` to auto-approve, `--non-interactive` for headless mode. Flags: `install`, `--uninstall`, `--dry-run-uninstall`, `--restore` (newest snapshot), `--restore --dry-run`, `--list-snapshots`, `--snapshot-file <p>`, `--yes`/`-y`, `--non-interactive` | 🛡️ Yes | [Examples](#conemu-context-menu-installuninstallrestore) |
 | **macOS** | | | |
 | `os clean-vscode-mac` | macOS-only: surgical removal of VS Code Services, `code` CLI symlink, LaunchServices entries, login items, LaunchAgents | 👤 No | [Examples](#os-commands) |
 
@@ -2138,7 +2138,7 @@ scripts/
   28-install-duckdb/           # DuckDB
   29-install-litedb/           # LiteDB
   databases/                   # Database orchestrator menu
-  31-pwsh-context-menu/        # PowerShell context menu
+  31-pwsh-context-menu/        # PowerShell submenu context menu
   32-install-dbeaver/          # DBeaver Community
   33-install-notepadpp/        # Notepad++
   34-install-sticky-notes/     # Simple Sticky Notes
@@ -2154,7 +2154,7 @@ scripts/
   44-install-rust/             # Rust toolchain via rustup
   45-install-docker/           # Docker Desktop + Compose
   46-install-kubernetes/       # kubectl + minikube + Helm
-  59-conemu-context-menu/      # "Open ConEmu Here" right-click menu
+  59-conemu-context-menu/      # ConEmu submenu right-click menu
   audit/                       # Audit scanner
 spec/                          # Specifications per script
 suggestions/                   # Improvement ideas
