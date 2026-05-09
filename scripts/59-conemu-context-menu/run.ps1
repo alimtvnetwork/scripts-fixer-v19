@@ -225,7 +225,7 @@ if ($isAllSuccessful) {
 # 'empty-folder' test to that registry path too.)
 $null = Invoke-RightClickVerification `
     -Tool         'ConEmu' `
-    -EntryLabel   'ConEmu Here' `
+    -EntryLabel   'ConEmu' `
     -RetryCommand ".\run.ps1 -I 59 install"
 
 # -- Save resolved state -------------------------------------------------------
