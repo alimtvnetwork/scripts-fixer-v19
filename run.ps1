@@ -4389,7 +4389,7 @@ if ($hasInstallKeywords) {
             }
             Write-Host ""
             Write-Host "  ----- Subcommand: $($entry.Dispatcher) $($entry.Action) -----" -ForegroundColor Cyan
-            $actionParts = $entry.Action -split '\s+' | Where-Object { $_.Length -gt 0 }
+            $actionParts = @($entry.Action -split '\s+' | Where-Object { $_.Length -gt 0 })
             & $dispatcherScript @actionParts
             $code = $LASTEXITCODE
             if ($code -eq 0 -or $null -eq $code) { $successCount++ } else { $failCount++ }
