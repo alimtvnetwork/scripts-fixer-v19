@@ -36,6 +36,8 @@ param(
     [string]$RestoreFromFile,
     [switch]$RequireSignature,
     [switch]$NonInteractive,
+    [Alias('Yes','y')]
+    [switch]$AssumeYes,
 
     [switch]$Help,
 
