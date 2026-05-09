@@ -138,11 +138,17 @@ function Register-PwshParentMenu {
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
         $key.SetValue('Icon', $IconValue)
-        # NOTE: We deliberately do NOT set 'SubCommands' here.  When SubCommands
-        # is present (even empty) Explorer treats it as the authoritative verb
-        # list and ignores the local '\shell\' children -- which is exactly why
-        # the cascading submenu showed up empty.  Without SubCommands and with
-        # a child '\shell\' subkey present, Explorer auto-cascades the children.
+        # Explorer needs ONE of: SubCommands (string verb list from
+        # HKLM\...\CommandStore\shell) or ExtendedSubCommandsKey (relative
+        # HKCR path whose own \shell\ subkey holds the child verbs). Without
+        # either, the parent is treated as a normal verb missing \command and
+        # the cascading items never render. We point ExtendedSubCommandsKey
+        # at THIS same key so Explorer cascades children from
+        # ...\PowerShellMenu\shell\OpenHere and ...\OpenAsAdmin.
+        $key.SetValue('ExtendedSubCommandsKey', $subKeyPath)
+        # Make sure no stale empty SubCommands lingers from prior versions --
+        # if present (even empty) it would override ExtendedSubCommandsKey
+        # and re-empty the submenu.
         $existingSub = $key.GetValue('SubCommands', $null)
         if ($null -ne $existingSub) {
             try { $key.DeleteValue('SubCommands') } catch { }
