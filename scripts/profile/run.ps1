@@ -286,6 +286,12 @@ if ($normalizedAction -in @("list", "ls", "--list", "-l", "show", "all")) {
     Show-ProfileList -Config $config
     exit 0
 }
+if ($normalizedAction -in @("search", "find", "filter", "grep", "?")) {
+    $needle = ""
+    if ($residual.Count -gt 0) { $needle = "$($residual[0])".Trim().ToLower() }
+    Show-ProfileList -Config $config -Filter $needle
+    exit 0
+}
 
 # ── Profile alias resolution ────────────────────────────────────────
 # Two kinds of aliases (see scripts/profile/profile-aliases.json):
