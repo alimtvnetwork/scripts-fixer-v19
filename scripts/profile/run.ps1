@@ -160,6 +160,25 @@ function Show-ProfileList {
         }
     }
 
+    # Optional keyword filter (matches name / label / description / step labels)
+    $hasFilter = -not [string]::IsNullOrWhiteSpace($Filter)
+    if ($hasFilter) {
+        $needle = $Filter.Trim().ToLower()
+        $filtered = @()
+        foreach ($e in $entries) {
+            $hay = ("{0} {1} {2}" -f $e.Name, $e.Label, $e.Description).ToLower()
+            $matched = $hay.Contains($needle)
+            if (-not $matched -and $Config.profiles.($e.Name).steps) {
+                foreach ($s in $Config.profiles.($e.Name).steps) {
+                    $stepLabel = "$($s.label) $($s.package) $($s.path) $($s.function)".ToLower()
+                    if ($stepLabel.Contains($needle)) { $matched = $true; break }
+                }
+            }
+            if ($matched) { $filtered += $e }
+        }
+        $entries = $filtered
+    }
+
     # Build "target -> aliases[]" map (used to group aliases under their profile)
     $aliasesByTarget = @{}
     if ($hasValidator -and (Get-Command Get-ProfileAliasesByTarget -ErrorAction SilentlyContinue)) {
