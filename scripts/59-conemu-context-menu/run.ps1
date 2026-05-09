@@ -226,7 +226,9 @@ if ($isAllSuccessful) {
 $null = Invoke-RightClickVerification `
     -Tool         'ConEmu' `
     -EntryLabel   'ConEmu' `
-    -RetryCommand ".\run.ps1 -I 59 install"
+    -RetryCommand ".\run.ps1 -I 59 install" `
+    -NonInteractive:$NonInteractive `
+    -AssumeYes:$AssumeYes
 
 # -- Save resolved state -------------------------------------------------------
 Save-ResolvedData -ScriptFolder "59-conemu-context-menu" -Data @{
