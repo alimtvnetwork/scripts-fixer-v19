@@ -1,0 +1,35 @@
+{
+  "_comment": "VLC media player install + post-install association repair. Fixes the common Windows error 'failed to launch player' caused by stale 32-bit registry pointers + the --one-instance flag choking on UNC/network paths.",
+  "vlc": {
+    "enabled": true,
+    "chocoPackage": "vlc",
+    "name": "VLC",
+    "desc": "VLC media player (Chocolatey, 64-bit)",
+    "skipDevDirPrompt": true,
+    "associationRepair": {
+      "enabled": true,
+      "stripOneInstance": true,
+      "preferred64BitPath": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
+      "candidatePaths": [
+        "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
+        "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"
+      ],
+      "registryTargets": [
+        "HKCU:\\Software\\Classes\\Applications\\vlc.exe\\shell\\Open\\command",
+        "HKCU:\\Software\\Classes\\VLC.AssocFile.AVI\\shell\\Open\\command",
+        "HKCU:\\Software\\Classes\\VLC.AssocFile.MKV\\shell\\Open\\command",
+        "HKCU:\\Software\\Classes\\VLC.AssocFile.MP3\\shell\\Open\\command",
+        "HKCU:\\Software\\Classes\\VLC.AssocFile.MP4\\shell\\Open\\command",
+        "HKCU:\\Software\\Classes\\VLC.AssocFile.WAV\\shell\\Open\\command",
+        "HKCU:\\Software\\Classes\\VLC.AssocFile.WMV\\shell\\Open\\command",
+        "HKLM:\\SOFTWARE\\Classes\\Applications\\vlc.exe\\shell\\Open\\command",
+        "HKLM:\\SOFTWARE\\Classes\\VLC.AssocFile.AVI\\shell\\Open\\command",
+        "HKLM:\\SOFTWARE\\Classes\\VLC.AssocFile.MKV\\shell\\Open\\command",
+        "HKLM:\\SOFTWARE\\Classes\\VLC.AssocFile.MP3\\shell\\Open\\command",
+        "HKLM:\\SOFTWARE\\Classes\\VLC.AssocFile.MP4\\shell\\Open\\command",
+        "HKLM:\\SOFTWARE\\Classes\\VLC.AssocFile.WAV\\shell\\Open\\command",
+        "HKLM:\\SOFTWARE\\Classes\\VLC.AssocFile.WMV\\shell\\Open\\command"
+      ]
+    }
+  }
+}
