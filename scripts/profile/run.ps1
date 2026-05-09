@@ -109,9 +109,12 @@ function Show-ProfileHelp {
     Write-Host ""
     Write-Host "  Examples:" -ForegroundColor Yellow
     Write-Host "    .\run.ps1 profile list"               -ForegroundColor Gray
+    Write-Host "    .\run.ps1 profile search <keyword>"   -ForegroundColor Gray
     Write-Host "    .\run.ps1 profile minimal"            -ForegroundColor Gray
+    Write-Host "    .\run.ps1 profile terminal"           -ForegroundColor Gray
     Write-Host "    .\run.ps1 profile advance --dry-run"  -ForegroundColor Gray
     Write-Host "    .\run.ps1 install profile-minimal"    -ForegroundColor Gray
+    Write-Host "    .\run.ps1 install terminal-profile"   -ForegroundColor Gray
     Write-Host ""
 }
 
@@ -124,7 +127,7 @@ function Show-ProfileList {
         Mirrors the Profiles section of '.\run.ps1 --help' so both views
         stay in sync.
     #>
-    param([PSObject]$Config)
+    param([PSObject]$Config, [string]$Filter = "")
 
     $cfgPath     = Join-Path $scriptDir "config.json"
     $aliasesPath = Join-Path $scriptDir "profile-aliases.json"
@@ -160,6 +163,25 @@ function Show-ProfileList {
         }
     }
 
+    # Optional keyword filter (matches name / label / description / step labels)
+    $hasFilter = -not [string]::IsNullOrWhiteSpace($Filter)
+    if ($hasFilter) {
+        $needle = $Filter.Trim().ToLower()
+        $filtered = @()
+        foreach ($e in $entries) {
+            $hay = ("{0} {1} {2}" -f $e.Name, $e.Label, $e.Description).ToLower()
+            $matched = $hay.Contains($needle)
+            if (-not $matched -and $Config.profiles.($e.Name).steps) {
+                foreach ($s in $Config.profiles.($e.Name).steps) {
+                    $stepLabel = "$($s.label) $($s.package) $($s.path) $($s.function)".ToLower()
+                    if ($stepLabel.Contains($needle)) { $matched = $true; break }
+                }
+            }
+            if ($matched) { $filtered += $e }
+        }
+        $entries = $filtered
+    }
+
     # Build "target -> aliases[]" map (used to group aliases under their profile)
     $aliasesByTarget = @{}
     if ($hasValidator -and (Get-Command Get-ProfileAliasesByTarget -ErrorAction SilentlyContinue)) {
@@ -169,7 +191,11 @@ function Show-ProfileList {
     }
 
     Write-Host ""
-    Write-Host ("  Available Profiles ({0})" -f $entries.Count) -ForegroundColor Cyan
+    if ($hasFilter) {
+        Write-Host ("  Profile search results for '{0}' ({1} match{2})" -f $Filter, $entries.Count, $(if ($entries.Count -eq 1) {""} else {"es"})) -ForegroundColor Cyan
+    } else {
+        Write-Host ("  Available Profiles ({0})" -f $entries.Count) -ForegroundColor Cyan
+    }
     Write-Host "  ========================" -ForegroundColor DarkGray
     Write-Host ("  source: {0}" -f $cfgPath) -ForegroundColor DarkGray
     if ($aliasesByTarget.Count -gt 0) {
@@ -284,6 +310,12 @@ if ($normalizedAction -in @("", "help", "--help", "-h")) {
 }
 if ($normalizedAction -in @("list", "ls", "--list", "-l", "show", "all")) {
     Show-ProfileList -Config $config
+    exit 0
+}
+if ($normalizedAction -in @("search", "find", "filter", "grep", "?")) {
+    $needle = ""
+    if ($residual.Count -gt 0) { $needle = "$($residual[0])".Trim().ToLower() }
+    Show-ProfileList -Config $config -Filter $needle
     exit 0
 }
 

@@ -93,6 +93,22 @@
         { "kind": "script",     "id": 39, "label": ".NET SDK (C#)" },
         { "kind": "profile",    "name": "cpp-dx" }
       ]
+    },
+    "terminal": {
+      "label": "Terminal Essentials",
+      "description": "Foundational terminal + editor + browser bundle: Notepad++ (with settings), ConEmu (with settings), PowerShell + pwsh right-click context menu, 7-Zip, WinRAR, Google Chrome with curated extensions, Ubuntu font, and the Win11 classic right-click menu restore.",
+      "steps": [
+        { "kind": "script",     "id": 2,  "label": "Chocolatey package manager" },
+        { "kind": "script",     "id": 33, "mode": "install+settings", "label": "Notepad++ + settings" },
+        { "kind": "script",     "id": 48, "mode": "install+settings", "label": "ConEmu + settings" },
+        { "kind": "script",     "id": 17, "label": "PowerShell 7 (pwsh)" },
+        { "kind": "script",     "id": 31, "label": "pwsh right-click context menu" },
+        { "kind": "choco",      "package": "7zip.install",           "label": "7-Zip archiver" },
+        { "kind": "choco",      "package": "winrar",                 "label": "WinRAR archiver" },
+        { "kind": "subcommand", "path": "install chrome with-ext",   "label": "Google Chrome + curated extensions" },
+        { "kind": "script",     "id": 47, "label": "Ubuntu font" },
+        { "kind": "inline",     "function": "Restore-Win11ClassicContext", "label": "Win11 classic right-click menu" }
+      ]
     }
   },
   "modeEnvVars": {
