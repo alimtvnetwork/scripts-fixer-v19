@@ -96,6 +96,10 @@ Save-ResolvedData -ScriptFolder "01-install-vscode" -Data @{
 
 Write-Log $logMessages.messages.vscodeSetupComplete -Level "success"
 
+# -- Auto-pin VS Code to taskbar (best-effort, non-fatal) --------------------
+. (Join-Path $sharedDir "auto-pin.ps1")
+Invoke-AutoPin -App "vscode"
+
 # -- Save log ------------------------------------------------------------------
 
 } catch {
