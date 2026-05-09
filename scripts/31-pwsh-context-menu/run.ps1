@@ -95,9 +95,12 @@ if ($isPwshMissing) {
     return
 }
 
+# -- Create submenu parents (folder + background) ------------------------------
+$parentMenusOk = Install-PwshParentMenus -Config $config -PwshExe $pwshExe -LogMessages $logMessages
+
 # -- Process modes (normal + admin) --------------------------------------------
 $enabledModes    = $config.enabledModes
-$isAllSuccessful = $true
+$isAllSuccessful = $parentMenusOk
 
 foreach ($modeName in $enabledModes) {
     $mode = $config.modes.$modeName
