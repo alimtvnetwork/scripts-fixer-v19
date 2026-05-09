@@ -395,6 +395,7 @@ function Install-ConEmuParentMenus {
 
     $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
     $cascadeRoot = Get-ConEmuCascadeRegistryRoot -Config $Config
+    $extendedSubCommandsKey = ($cascadeRoot -replace '^Registry::HKEY_CLASSES_ROOT\\', '')
     Remove-ConEmuParentRegistryTree -RegistryPath $cascadeRoot
     $iconValue = '"' + $ConEmuExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
@@ -402,7 +403,7 @@ function Install-ConEmuParentMenus {
 
     foreach ($scope in @('directory', 'background')) {
         Remove-ConEmuParentRegistryTree -RegistryPath $parentPaths[$scope]
-        $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -ExtendedSubCommandsKey 'Directory\ContextMenus\ConEmuMenu' -Runas $false -LogMessages $LogMessages
+        $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -ExtendedSubCommandsKey $extendedSubCommandsKey -Runas $false -LogMessages $LogMessages
         if (-not $ok) { $isAllOk = $false }
     }
 
