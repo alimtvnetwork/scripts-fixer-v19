@@ -221,7 +221,7 @@ function Invoke-PinTaskbarApps {
     }
 
     $resolved = @($resolved | Select-Object -Unique)
-    $okCount = 0; $alreadyCount = 0; $failCount = 0; $missingCount = 0
+    $okCount = 0; $alreadyCount = 0; $failCount = 0; $missingCount = 0; $verbHiddenCount = 0
 
     foreach ($key in $resolved) {
         $app = $AppsConfig.apps.$key
@@ -250,11 +250,24 @@ function Invoke-PinTaskbarApps {
                 Write-Log ($LogMessages.messages.pinAlready -replace '\{label\}', $label) -Level "warn"
                 $alreadyCount++
             }
+            "verb-unavailable" {
+                # Win11 22H2+ hides the "Pin to taskbar" shell verb. We cannot
+                # pin programmatically. Treat as already-installed (skip, warn,
+                # not a CODE RED) so the parent install doesn't fail.
+                $template = $LogMessages.messages.pinVerbHidden
+                if ([string]::IsNullOrWhiteSpace($template)) {
+                    $template = "{label} skipped: Windows 11 hides the 'Pin to taskbar' verb -- exe: {exe} -- treating as already-installed (pin manually if needed)."
+                }
+                $msg = ($template -replace '\{label\}', $label) -replace '\{exe\}', $exe
+                Write-Log $msg -Level "warn"
+                $alreadyCount++
+                $verbHiddenCount++
+            }
             default {
                 $msg = ($LogMessages.messages.pinFailed `
                     -replace '\{label\}', $label `
                     -replace '\{exe\}', $exe `
-                    -replace '\{reason\}', "Pin verb unavailable (Win11 may hide it) or Explorer rejected the request")
+                    -replace '\{reason\}', "Explorer rejected the pin request (verb invoked but no shortcut materialized)")
                 Write-Log $msg -Level "error"
                 $failCount++
             }
