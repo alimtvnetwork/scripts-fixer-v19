@@ -416,6 +416,7 @@ function Install-PwshParentMenus {
 
     $parentPaths = Get-PwshParentRegistryPaths -Config $Config
     $cascadeRoot = Get-PwshCascadeRegistryRoot -Config $Config
+    $extendedSubCommandsKey = ($cascadeRoot -replace '^Registry::HKEY_CLASSES_ROOT\\', '')
     Remove-PwshParentRegistryTree -RegistryPath $cascadeRoot
     $iconValue = '"' + $PwshExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
@@ -423,7 +424,7 @@ function Install-PwshParentMenus {
 
     foreach ($scope in @('directory', 'background')) {
         Remove-PwshParentRegistryTree -RegistryPath $parentPaths[$scope]
-        $ok = Register-PwshParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -ExtendedSubCommandsKey 'Directory\ContextMenus\PowerShellMenu' -Runas $false -LogMessages $LogMessages
+        $ok = Register-PwshParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -ExtendedSubCommandsKey $extendedSubCommandsKey -Runas $false -LogMessages $LogMessages
         if (-not $ok) { $isAllOk = $false }
     }
 
