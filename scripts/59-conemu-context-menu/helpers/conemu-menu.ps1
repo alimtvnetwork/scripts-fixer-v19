@@ -113,6 +113,32 @@ function Get-ConEmuParentRegistryPaths {
     }
 }
 
+function Remove-ConEmuParentRegistryTree {
+    param([string]$RegistryPath)
+
+    try {
+        $subKeyPath = $RegistryPath -replace '^Registry::HKEY_CLASSES_ROOT\\', ''
+        $hkcr = [Microsoft.Win32.Registry]::ClassesRoot
+        $probe = $hkcr.OpenSubKey($subKeyPath)
+        if ($null -ne $probe) {
+            $probe.Close()
+            $hkcr.DeleteSubKeyTree($subKeyPath, $false)
+        }
+    } catch { }
+}
+
+function Invoke-ConEmuExplorerRefresh {
+    try {
+        if (-not ('Win32.ConEmuMenuRefresh' -as [type])) {
+            Add-Type -Namespace Win32 -Name ConEmuMenuRefresh -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll")]
+public static extern void SHChangeNotify(int wEventId, uint uFlags, System.IntPtr dwItem1, System.IntPtr dwItem2);
+'@ -ErrorAction Stop
+        }
+        [Win32.ConEmuMenuRefresh]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero)
+    } catch { }
+}
+
 function Register-ConEmuParentMenu {
     param(
         [string]$RegistryPath,
@@ -359,6 +385,7 @@ function Install-ConEmuParentMenus {
     $isAllOk = $true
 
     foreach ($scope in @('directory', 'background')) {
+        Remove-ConEmuParentRegistryTree -RegistryPath $parentPaths[$scope]
         $ok = Register-ConEmuParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -Runas $false -LogMessages $LogMessages
         if (-not $ok) { $isAllOk = $false }
     }
