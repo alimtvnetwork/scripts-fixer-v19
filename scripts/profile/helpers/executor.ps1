@@ -12,9 +12,18 @@ function Invoke-ProfileSteps {
         [bool]$AutoYes = $false
     )
 
+    # When the profile was launched with -y / --yes, propagate that intent to
+    # every child script via SCRIPTS_FIXER_YES=1. Shared helpers (currently
+    # scripts/shared/interactive-verify.ps1; future opt-in helpers) read this
+    # env var and auto-skip their interactive prompts. We snapshot+restore
+    # whatever the env var was so we never leak state out of the profile run.
+    $previousYesEnv = $env:SCRIPTS_FIXER_YES
+    if ($AutoYes) { $env:SCRIPTS_FIXER_YES = '1' }
+
     $results = [System.Collections.Generic.List[hashtable]]::new()
     $total   = $Steps.Count
 
+    try {
     for ($i = 0; $i -lt $total; $i++) {
         $step = $Steps[$i]
         $n    = $i + 1
@@ -166,6 +175,16 @@ function Invoke-ProfileSteps {
             $userPath    = [Environment]::GetEnvironmentVariable("Path", "User")
             $env:Path = "$machinePath;$userPath"
         } catch {}
+    }
+
+    } finally {
+        # Restore previous SCRIPTS_FIXER_YES so we don't leak the auto-yes
+        # signal into the rest of the user's PowerShell session.
+        if ($null -eq $previousYesEnv) {
+            Remove-Item Env:\SCRIPTS_FIXER_YES -ErrorAction SilentlyContinue
+        } else {
+            $env:SCRIPTS_FIXER_YES = $previousYesEnv
+        }
     }
 
     return $results
