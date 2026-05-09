@@ -188,7 +188,11 @@ function Show-ProfileList {
     }
 
     Write-Host ""
-    Write-Host ("  Available Profiles ({0})" -f $entries.Count) -ForegroundColor Cyan
+    if ($hasFilter) {
+        Write-Host ("  Profile search results for '{0}' ({1} match{2})" -f $Filter, $entries.Count, $(if ($entries.Count -eq 1) {""} else {"es"})) -ForegroundColor Cyan
+    } else {
+        Write-Host ("  Available Profiles ({0})" -f $entries.Count) -ForegroundColor Cyan
+    }
     Write-Host "  ========================" -ForegroundColor DarkGray
     Write-Host ("  source: {0}" -f $cfgPath) -ForegroundColor DarkGray
     if ($aliasesByTarget.Count -gt 0) {
