@@ -1516,7 +1516,7 @@ function Resolve-InstallKeywords {
             # ── String entry (subcommand or remote convention) ─────────
             # e.g. "os:clean", "profile:base"  -- routes to scripts/<dispatcher>/run.ps1 <action> <args>
             # e.g. "remote:clean-code"         -- streams a remote URL via 'irm | iex'
-            $isStringEntry = ($id -is [string]) -and ($id -match '^([a-z]+):(.+)$')
+            $isStringEntry = ($id -is [string]) -and ($id -match '^([a-z0-9][a-z0-9_-]*):(.+)$')
             if ($isStringEntry) {
                 $dispatcher = $Matches[1]
                 $action     = $Matches[2]
