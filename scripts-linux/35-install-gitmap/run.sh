@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 35-install-gitmap -- gitmap CLI (curl one-liner from gitmap-v9 release)
+# 35-install-gitmap -- gitmap CLI (curl one-liner from gitmap-v19 main branch)
 set -u
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -13,10 +13,11 @@ CONFIG="$SCRIPT_DIR/config.json"
 [ -f "$CONFIG" ] || { log_file_error "$CONFIG" "config.json missing for 35-install-gitmap"; exit 1; }
 
 # ---------------------------------------------------------------------------
-# Resolve effective release tag
+# Resolve effective git ref (branch / tag / commit)
 # Precedence:  --tag flag  >  $GITMAP_TAG env  >  config install.releaseTag
-#              >  hard default "v3.180".
-# Anywhere {tag} appears in install.installUrl is substituted.
+#              >  hard default "main".
+# Anywhere {tag} appears in install.installUrl is substituted. The ref now
+# points at a path inside the gitmap-v19 repo (default: main branch).
 # ---------------------------------------------------------------------------
 TAG_FLAG=""
 ARGS=()
@@ -32,10 +33,13 @@ set -- "${ARGS[@]+"${ARGS[@]}"}"
 CONFIG_TAG="$(grep -oE '"releaseTag"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG" 2>/dev/null | sed -E 's/.*"([^"]+)"$/\1/' | head -n1)"
 CONFIG_URL_TEMPLATE="$(grep -oE '"installUrl"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG" 2>/dev/null | sed -E 's/.*"([^"]+)"$/\1/' | head -n1)"
 
-EFFECTIVE_TAG="${TAG_FLAG:-${GITMAP_TAG:-${CONFIG_TAG:-v3.180}}}"
-case "$EFFECTIVE_TAG" in v*) ;; *) EFFECTIVE_TAG="v${EFFECTIVE_TAG}" ;; esac
+EFFECTIVE_TAG="${TAG_FLAG:-${GITMAP_TAG:-${CONFIG_TAG:-main}}}"
+# Numeric versions like "3.181" -> "v3.181"; branch names + explicit tags pass through.
+case "$EFFECTIVE_TAG" in
+  [0-9]*) EFFECTIVE_TAG="v${EFFECTIVE_TAG}" ;;
+esac
 
-URL_TEMPLATE="${CONFIG_URL_TEMPLATE:-https://github.com/alimtvnetwork/gitmap-v9/releases/download/{tag}/install.sh}"
+URL_TEMPLATE="${CONFIG_URL_TEMPLATE:-https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/{tag}/gitmap/scripts/install.sh}"
 INSTALL_URL="${URL_TEMPLATE//\{tag\}/$EFFECTIVE_TAG}"
 
 log_info "[35] gitmap release tag: $EFFECTIVE_TAG"

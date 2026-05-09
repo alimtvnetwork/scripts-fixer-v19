@@ -48,9 +48,11 @@ if ($Help -or $Command -eq "--help") {
 # -- Banner --------------------------------------------------------------------
 Write-Banner -Title $logMessages.scriptName
 
-# -- Resolve effective release tag --------------------------------------------
+# -- Resolve effective git ref (branch / tag / commit) ------------------------
 # Precedence:  -Tag/-Version flag  >  config.gitmap.releaseTag  >
-#              config.gitmap.fallbackTag  >  hard default "v3.180".
+#              config.gitmap.fallbackTag  >  hard default "main".
+# The ref is substituted into both the raw install.ps1 URL and the
+# release ZIP URL. Default points at the gitmap-v19 main branch.
 $effectiveTag = $null
 if (-not [string]::IsNullOrWhiteSpace($Tag)) {
     $effectiveTag = $Tag.Trim()
@@ -59,11 +61,12 @@ if (-not [string]::IsNullOrWhiteSpace($Tag)) {
 } elseif (-not [string]::IsNullOrWhiteSpace($config.gitmap.fallbackTag)) {
     $effectiveTag = "$($config.gitmap.fallbackTag)".Trim()
 } else {
-    $effectiveTag = "v3.180"
+    $effectiveTag = "main"
 }
 
-# Normalise: accept "3.180" and turn it into "v3.180"
-if ($effectiveTag -notmatch '^v') { $effectiveTag = "v$effectiveTag" }
+# Normalise: numeric versions like "3.181" -> "v3.181"; branch names
+# (main, master, dev, ...) and explicit tags pass through untouched.
+if ($effectiveTag -match '^\d') { $effectiveTag = "v$effectiveTag" }
 
 # Substitute {tag} placeholders in install + zip URLs.
 $config.gitmap.releaseTag    = $effectiveTag

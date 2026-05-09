@@ -1,6 +1,6 @@
 {
   "scriptName": "install-gitmap",
-  "description": "Installs gitmap CLI -- a Git repository navigator tool for Windows.",
+  "description": "Installs gitmap CLI -- a Git repository navigator tool for Windows. Sourced from https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.ps1 (UNIX equivalent: .../install.sh).",
   "messages": {
     "notAdmin": "This script requires admin privileges. Please run as Administrator.",
     "checking": "Checking for gitmap...",
@@ -44,14 +44,15 @@
       "uninstall": "Uninstall completely, remove tracking, clean up"
     },
     "flags": {
-      "-Tag <tag>":     "Pin a specific release tag (e.g. v3.180, v3.181, v4.0.0). Substituted into installUrl/releaseZipUrl.",
-      "-Version <tag>": "Back-compat alias for -Tag."
+      "-Tag <ref>":     "Pin a git ref (branch / tag / commit) on alimtvnetwork/gitmap-v19 (e.g. main, dev, v3.181). Substituted into installUrl/releaseZipUrl. Default: main.",
+      "-Version <ref>": "Back-compat alias for -Tag."
     },
     "examples": [
       ".\\run.ps1 -I 35",
+      ".\\run.ps1 -I 35 -Tag main",
       ".\\run.ps1 -I 35 -Tag v3.181",
       ".\\run.ps1 install gitmap",
-      ".\\run.ps1 install gitmap -Tag v4.0.0",
+      ".\\run.ps1 install gitmap -Tag dev",
       ".\\run.ps1 -I 35 -- -Help",
       ".\\run.ps1 uninstall"
     ]
