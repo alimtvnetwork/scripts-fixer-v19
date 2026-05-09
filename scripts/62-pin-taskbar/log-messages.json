@@ -10,6 +10,7 @@
     "pinning": "Pinning {label} to taskbar -- exe: {exe}",
     "pinOk": "Pinned {label} to taskbar.",
     "pinAlready": "{label} already pinned to taskbar (skipped, no action taken).",
+    "pinVerbHidden": "{label} skipped -- Windows 11 hides the 'Pin to taskbar' verb -- exe: {exe} -- treating as already-installed (pin manually via right-click if needed).",
     "pinFailed": "[CODE RED] Failed to pin {label} to taskbar -- exe: {exe} -- Reason: {reason}",
     "summary": "Pin summary: {ok} pinned, {already} already-pinned, {fail} failed, {missing} missing.",
     "doneOk": "Taskbar pin step complete.",
