@@ -1232,16 +1232,17 @@
     "terminal-profile": [
       "profile:terminal"
     ],
-    "pin-taskbar": [62],
-    "taskbar-pin": [62],
-    "pin": [62],
-    "pin-vscode": [62],
-    "pin-code": [62],
-    "pin-conemu": [62],
-    "pin-notepadpp": [62],
-    "pin-npp": [62],
-    "pin-notepad": [62],
-    "pin-chrome": [62]
+    "pin-taskbar": ["62-pin-taskbar:all"],
+    "taskbar-pin": ["62-pin-taskbar:all"],
+    "pin-all": ["62-pin-taskbar:all"],
+    "pin-terminal": ["62-pin-taskbar:terminal"],
+    "pin-vscode": ["62-pin-taskbar:vscode"],
+    "pin-code": ["62-pin-taskbar:vscode"],
+    "pin-conemu": ["62-pin-taskbar:conemu"],
+    "pin-notepadpp": ["62-pin-taskbar:notepadpp"],
+    "pin-npp": ["62-pin-taskbar:notepadpp"],
+    "pin-notepad": ["62-pin-taskbar:notepad"],
+    "pin-chrome": ["62-pin-taskbar:chrome"]
   },
   "modes": {
     "notepad++": {
