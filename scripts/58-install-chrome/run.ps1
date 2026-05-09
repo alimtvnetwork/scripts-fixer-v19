@@ -176,6 +176,10 @@ try {
             Write-Log "with-ext flag set -- installing all configured extensions..." -Level "info"
             Install-ChromeExtensions -ExtConfig $config.extensions -Names @("all") -Method $Method | Out-Null
         }
+
+        # -- Auto-pin Chrome to taskbar (best-effort, non-fatal) -----------
+        . (Join-Path $sharedDir "auto-pin.ps1")
+        Invoke-AutoPin -App "chrome"
     } else {
         Write-Log ($logMessages.messages.installFailed -replace '\{error\}', "See errors above") -Level "error"
     }
