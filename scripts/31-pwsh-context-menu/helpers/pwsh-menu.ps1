@@ -108,8 +108,8 @@ function Get-PwshParentRegistryPaths {
 
     $parentKeyName = "$($Config.menu.parentKeyName)"
     return @{
-        directory  = "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\$parentKeyName"
-        background = "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\$parentKeyName"
+        directory  = "Registry::HKEY_CLASSES_ROOT\Directory\shell\$parentKeyName"
+        background = "Registry::HKEY_CLASSES_ROOT\Directory\Background\shell\$parentKeyName"
     }
 }
 
