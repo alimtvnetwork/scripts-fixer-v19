@@ -111,6 +111,25 @@ if (Test-Path $_dispatcherArgsHelper) {
     }
 }
 
+# ── Global -y / --yes detection ──────────────────────────────────────
+# Single source of truth for auto-confirm intent. Sets
+# $env:SCRIPTS_FIXER_YES=1 if the user passed -y / --yes (or PowerShell
+# already bound -Y to $Y). The env var is inherited by every child process
+# so even deeply nested helpers (interactive-verify, confirm-prompt,
+# os/clean-categories, profile steps, ...) skip their prompts uniformly.
+$_yesFlagHelper = Join-Path $RootDir "scripts\shared\yes-flag.ps1"
+if (Test-Path $_yesFlagHelper) {
+    . $_yesFlagHelper
+    $_yesParsed = Initialize-YesFlag -Args $Install -Bound:$Y -Source "run.ps1"
+    # Strip yes tokens from $Install so child scripts that don't recognise
+    # them don't fail "Unknown keyword '-y'". $Y stays set for downstream
+    # branches that explicitly check it.
+    if ($_yesParsed.IsYes -and $_yesParsed.FromToken) {
+        $Install = $_yesParsed.FilteredArgs
+        $Y = $true
+    }
+}
+
 # ── Read project version ─────────────────────────────────────────────
 function Get-ScriptVersion {
     $vf = Join-Path (Join-Path $RootDir "scripts") "version.json"

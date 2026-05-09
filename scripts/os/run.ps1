@@ -33,6 +33,17 @@ $categoriesDir = Join-Path $scriptDir "helpers\clean-categories"
 . (Join-Path $sharedDir "json-utils.ps1")
 . (Join-Path $sharedDir "registry-trace.ps1")
 
+# Global -y / --yes detection. Sets $env:SCRIPTS_FIXER_YES=1 so deeply
+# nested confirm prompts (interactive-verify, confirm-prompt, etc.) skip
+# uniformly. We deliberately do NOT strip the tokens from $Rest here --
+# os subcommands (clean-*, browser, email, remove-user, ...) consume
+# --yes themselves, so the token must reach them intact.
+$_yesFlagHelper = Join-Path $sharedDir "yes-flag.ps1"
+if (Test-Path $_yesFlagHelper) {
+    . $_yesFlagHelper
+    [void](Initialize-YesFlag -Args $Rest -Source "os/run.ps1")
+}
+
 # --summary-json is a global os-level flag: strip it from $Rest before
 # splatting (child helpers reject unknown args) and propagate to children
 # via env so Close-RegistryTrace emits a JSON summary line at run end.

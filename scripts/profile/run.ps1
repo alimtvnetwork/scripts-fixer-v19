@@ -287,17 +287,31 @@ function Show-ProfileList {
     Write-Host ""
 }
 
-# Parse Rest args -- look for --dry-run / -Yes
+# Parse Rest args -- look for --dry-run; defer -y / --yes to the shared
+# yes-flag helper so every dispatcher recognises the SAME token list and
+# sets the SAME env var ($env:SCRIPTS_FIXER_YES) consumed by every child.
+$_yesFlagHelper = Join-Path (Split-Path -Parent $scriptDir) "shared\yes-flag.ps1"
+if (Test-Path $_yesFlagHelper) { . $_yesFlagHelper }
+
 $isDryRun  = $false
-$isAutoYes = $false
 $residual  = @()
 if ($Rest) {
     foreach ($a in $Rest) {
         $low = "$a".Trim().ToLower()
         if ($low -in @("--dry-run", "-dryrun", "-dry-run", "/dryrun")) { $isDryRun  = $true; continue }
-        if ($low -in @("-y", "--yes", "-yes"))                         { $isAutoYes = $true; continue }
         $residual += $a
     }
+}
+
+# Now run the shared yes-flag parser on the residual (post-dryrun) args.
+# It strips yes-tokens, sets the env var, and returns IsYes for the
+# executor's $AutoYes parameter. Honours an env var inherited from a
+# parent dispatcher (e.g. when run.ps1 routed `install <profile> -y` here).
+$isAutoYes = Test-YesActive
+if (Get-Command Initialize-YesFlag -ErrorAction SilentlyContinue) {
+    $_profYes  = Initialize-YesFlag -Args $residual -Source "profile/run.ps1"
+    $isAutoYes = $_profYes.IsYes
+    $residual  = $_profYes.FilteredArgs
 }
 
 $normalizedAction = ""
