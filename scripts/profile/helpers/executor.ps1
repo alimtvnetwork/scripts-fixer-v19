@@ -52,7 +52,10 @@ function Invoke-ProfileSteps {
                         # Detect "already installed" reruns by sniffing the
                         # freshest .logs/<name>.json the child just wrote.
                         $childStatus = Get-LastChildLogStatus -RootDir $RootDir -SinceUtc $stepStart.ToUniversalTime()
-                        if ($childStatus -eq "already-installed") { $status = "already-installed" }
+                        if ($childStatus -eq "already-installed") {
+                            $status = "already-installed"
+                            Write-Log "Skipped '$label' -- already installed (no action taken)" -Level "warn"
+                        }
                     }
                 }
                 "choco" {
@@ -146,12 +149,13 @@ function Invoke-ProfileSteps {
 
         $color = switch ($status) {
             "ok"                { "Green" }
-            "already-installed" { "Cyan" }
+            "already-installed" { "Yellow" }
             "fail"              { "Red" }
             "skip"              { "DarkGray" }
             default             { "Yellow" }
         }
-        Write-Host ("  >>> Step {0}/{1} {2} ({3}s)" -f $n, $total, $status.ToUpper(), [Math]::Round($elapsed, 1)) -ForegroundColor $color
+        $displayStatus = if ($status -eq "already-installed") { "SKIPPED (already installed)" } else { $status.ToUpper() }
+        Write-Host ("  >>> Step {0}/{1} {2} ({3}s)" -f $n, $total, $displayStatus, [Math]::Round($elapsed, 1)) -ForegroundColor $color
         if ($status -eq "fail" -and $errorMsg) {
             Write-Host ("      reason: $errorMsg") -ForegroundColor DarkRed
         }

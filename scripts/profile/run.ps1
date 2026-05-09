@@ -590,7 +590,7 @@ function _MarkFor($s) { if ($statusMark.ContainsKey($s)) { $statusMark[$s] } els
 function _ColorFor($s) {
     switch ($s) {
         "ok"                { "Green" }
-        "already-installed" { "Cyan" }
+        "already-installed" { "Yellow" }
         "fail"              { "Red" }
         "skip"              { "DarkGray" }
         "warn"              { "Yellow" }
@@ -648,8 +648,8 @@ if ($grouped["ok"].Count -gt 0) {
     foreach ($n in $grouped["ok"]) { Write-Host "        + $n" -ForegroundColor Green }
 }
 if ($grouped["already-installed"].Count -gt 0) {
-    Write-Host ("    {0} Already installed ({1}):" -f (_MarkFor "already-installed"), $grouped["already-installed"].Count) -ForegroundColor Cyan
-    foreach ($n in $grouped["already-installed"]) { Write-Host "        = $n" -ForegroundColor Cyan }
+    Write-Host ("    {0} Skipped -- already installed ({1}):" -f (_MarkFor "already-installed"), $grouped["already-installed"].Count) -ForegroundColor Yellow
+    foreach ($n in $grouped["already-installed"]) { Write-Host "        = $n  (skipped: already installed)" -ForegroundColor Yellow }
 }
 if ($grouped["skip"].Count -gt 0) {
     Write-Host ("    {0} Skipped ({1}):" -f (_MarkFor "skip"), $grouped["skip"].Count) -ForegroundColor DarkGray
@@ -675,8 +675,8 @@ Write-Host ""
 if ($failedCount -eq 0) {
     $isAllAlready = ($alreadyInstalled -gt 0) -and ($freshlyInstalled -eq 0)
     if ($isAllAlready) {
-        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
-        Write-Host ("All {0} step(s) were already installed -- nothing to do ({1}s)." -f $totalSteps, $totalElapsedRounded)
+        Write-Host "  [ WARN ] " -ForegroundColor Yellow -NoNewline
+        Write-Host ("All {0} step(s) were already installed -- skipped, nothing to do ({1}s)." -f $totalSteps, $totalElapsedRounded) -ForegroundColor Yellow
         Set-LogAlreadyInstalled -Value $true
         Save-LogFile -Status "ok"   # promoted to "already-installed" by Save-LogFile
         exit 0
