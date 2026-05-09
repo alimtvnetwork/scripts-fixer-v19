@@ -124,7 +124,7 @@ function Show-ProfileList {
         Mirrors the Profiles section of '.\run.ps1 --help' so both views
         stay in sync.
     #>
-    param([PSObject]$Config)
+    param([PSObject]$Config, [string]$Filter = "")
 
     $cfgPath     = Join-Path $scriptDir "config.json"
     $aliasesPath = Join-Path $scriptDir "profile-aliases.json"
