@@ -36,6 +36,8 @@ param(
     [string]$RestoreFromFile,
     [switch]$RequireSignature,
     [switch]$NonInteractive,
+    [Alias('Yes','y')]
+    [switch]$AssumeYes,
 
     [switch]$Help,
 
@@ -81,6 +83,20 @@ if ($Help -or $Command -eq "--help") {
 $readOnlySubcommands = @('help','dry-run','whatif','verify','verify-handlers')
 $normalizedCommand   = $Command.ToLower()
 $isReadOnlyCommand   = $readOnlySubcommands -contains $normalizedCommand
+
+# Allow -y / --yes / --non-interactive to appear anywhere in $Rest, not just
+# as named parameters. Mirrors script 59's token parser so the auto-skip in
+# Invoke-RightClickVerification fires consistently.
+if ($null -ne $Rest -and $Rest.Count -gt 0) {
+    foreach ($tok in $Rest) {
+        switch -Regex ("$tok".Trim().ToLower()) {
+            '^(--?yes|-y|yes|--?assume-yes|assume-yes|--?force|force)$'        { $AssumeYes      = $true }
+            '^(--?non-interactive|non-interactive|--?headless|headless)$'      { $NonInteractive = $true }
+            default { }
+        }
+    }
+}
+
 if (-not $isReadOnlyCommand) {
     # Rebuild the original argv as a single string for the retry hint so
     # users can copy-paste exactly what they ran. PSBoundParameters covers
@@ -568,7 +584,8 @@ try {
         -Tool         'VS Code' `
         -EntryLabel   $vscLabel `
         -RetryCommand $retryHint `
-        -NonInteractive:$NonInteractive
+        -NonInteractive:$NonInteractive `
+        -AssumeYes:$AssumeYes
 
     # -- Save resolved state --------------------------------------------------
     Save-ResolvedData -ScriptFolder "52-vscode-folder-repair" -Data @{

@@ -43,6 +43,10 @@ Set-StrictMode -Version Latest
 function Test-IsInteractiveSession {
     if ($env:CI) { return $false }
     if ($env:SCRIPTS_FIXER_NONINTERACTIVE -eq '1') { return $false }
+    # -y / --yes auto-skips: user said "assume yes to everything", which for a
+    # *manual* right-click verification means "skip it, I trust the registry
+    # writes". Treated identically to non-interactive.
+    if ($env:SCRIPTS_FIXER_YES -eq '1' -or $env:SCRIPTS_FIXER_ASSUME_YES -eq '1') { return $false }
     try {
         if ([Console]::IsInputRedirected) { return $false }
     } catch { } # older hosts may not expose IsInputRedirected -- fall through
@@ -78,7 +82,9 @@ function Invoke-RightClickVerification {
         [Parameter(Mandatory)][string]$EntryLabel,
         [string[]]$Contexts = @('folder','empty-folder','background'),
         [string]$RetryCommand = '',
-        [switch]$NonInteractive
+        [switch]$NonInteractive,
+        [Alias('Yes','y')]
+        [switch]$AssumeYes
     )
 
     $result = [pscustomobject]@{
@@ -88,8 +94,10 @@ function Invoke-RightClickVerification {
     }
 
     $isInteractive = Test-IsInteractiveSession
-    if ($NonInteractive -or -not $isInteractive) {
-        $reason = if ($NonInteractive) { '-NonInteractive flag' } else { 'non-interactive shell / CI' }
+    if ($NonInteractive -or $AssumeYes -or -not $isInteractive) {
+        $reason = if ($AssumeYes) { '-y / --yes flag' }
+                  elseif ($NonInteractive) { '-NonInteractive flag' }
+                  else { 'non-interactive shell / CI' }
         Write-Host ""
         Write-Host "  [skip] Right-click verification skipped ($reason)." -ForegroundColor DarkGray
         $result.Skipped = $true
