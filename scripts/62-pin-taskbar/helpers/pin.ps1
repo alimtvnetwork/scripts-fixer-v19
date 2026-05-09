@@ -183,18 +183,16 @@ function Invoke-PinToTaskbar {
             if ($normalizedTargets -contains $norm) {
                 $foundVerb = $true
                 $v.DoIt()
-                Start-Sleep -Milliseconds 600
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+                if (Wait-ForTaskbarPin -ExePath $ExePath) {
                     Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
                     return "ok"
                 }
-                # Some Explorer builds need a moment to materialize the .lnk
-                Start-Sleep -Milliseconds 1200
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
-                    Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
-                    return "ok"
-                }
-                return "fail"
+                # Verb invoked but no .lnk materialized -- usually means the
+                # exe is a Store/UWP-redirected stub (Win11 Notepad) where the
+                # real pinned shortcut points to an AppX target. Record + skip
+                # cleanly so we don't fail the parent install.
+                Save-PinTrackerEntry -ExePath $ExePath -State "verb-invoked-no-lnk"
+                return "verb-unavailable"
             }
         }
         if (-not $foundVerb) {
