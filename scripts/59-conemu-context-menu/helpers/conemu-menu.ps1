@@ -129,10 +129,14 @@ function Register-ConEmuParentMenu {
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
         $key.SetValue('Icon', $IconValue)
-        # NOTE: Do NOT set 'SubCommands' here. With SubCommands present (even
-        # empty) Explorer ignores the local '\shell\' children and the
-        # cascading menu shows up empty. Leaving it absent makes Explorer
-        # auto-cascade the children registered under '<parent>\shell\'.
+        # Explorer needs ExtendedSubCommandsKey (relative HKCR path whose
+        # \shell\ subkey holds child verbs) OR a non-empty SubCommands list
+        # to render a cascading parent. Pointing it at THIS same key makes
+        # Explorer cascade children registered under
+        # ...\ConEmuMenu\shell\OpenHere and ...\OpenAsAdmin.
+        $key.SetValue('ExtendedSubCommandsKey', $subKeyPath)
+        # Strip any stale empty SubCommands -- if present (even empty) it
+        # overrides ExtendedSubCommandsKey and re-empties the submenu.
         $existingSub = $key.GetValue('SubCommands', $null)
         if ($null -ne $existingSub) {
             try { $key.DeleteValue('SubCommands') } catch { }
