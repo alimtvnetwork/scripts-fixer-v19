@@ -3876,7 +3876,12 @@ if ($hasCommand) {
                 }
             } catch { }
         }
-        $isProfileToken = $profileNameSet.ContainsKey($firstToken)
+        # Strip optional 'profile-' prefix or '-profile' suffix so all forms work:
+        #   install minimal           install profile-minimal           install minimal-profile
+        $strippedToken = $firstToken
+        if ($strippedToken -like 'profile-*') { $strippedToken = $strippedToken.Substring(8) }
+        if ($strippedToken -like '*-profile') { $strippedToken = $strippedToken.Substring(0, $strippedToken.Length - 8) }
+        $isProfileToken = $profileNameSet.ContainsKey($firstToken) -or $profileNameSet.ContainsKey($strippedToken)
         if ($isProfileToken) {
             Show-VersionHeader
             $profileScript = Join-Path $RootDir "scripts\profile\run.ps1"
@@ -3886,9 +3891,11 @@ if ($hasCommand) {
                 Write-Host "Profile dispatcher missing at: $profileScript"
                 exit 1
             }
+            # Forward the canonical (stripped) profile name + remaining args
+            $forwardArgs = @($strippedToken) + @($Install | Select-Object -Skip 1)
             Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
-            Write-Host "Routing 'install $firstToken' to profile dispatcher (matched profile name)" -ForegroundColor DarkGray
-            & $profileScript @Install
+            Write-Host "Routing 'install $firstToken' to profile dispatcher (profile '$strippedToken')" -ForegroundColor DarkGray
+            & $profileScript @forwardArgs
             exit $LASTEXITCODE
         }
 
