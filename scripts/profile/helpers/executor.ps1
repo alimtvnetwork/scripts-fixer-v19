@@ -177,10 +177,18 @@ function Invoke-ProfileSteps {
         } catch {}
     }
 
+    } finally {
+        # Restore previous SCRIPTS_FIXER_YES so we don't leak the auto-yes
+        # signal into the rest of the user's PowerShell session.
+        if ($null -eq $previousYesEnv) {
+            Remove-Item Env:\SCRIPTS_FIXER_YES -ErrorAction SilentlyContinue
+        } else {
+            $env:SCRIPTS_FIXER_YES = $previousYesEnv
+        }
+    }
+
     return $results
 }
-
-function Invoke-ScriptByIdSafe {
     param(
         [Parameter(Mandatory)][string]$RootDir,
         [Parameter(Mandatory)][int]$ScriptId
