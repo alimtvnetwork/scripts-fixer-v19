@@ -440,13 +440,22 @@ function Uninstall-PwshContextMenu {
         $LogMessages
     )
 
+    $cascadeRoot = $null
+    if ($Config.PSObject.Properties.Name -contains 'menu') {
+        $cascadeRoot = Get-PwshCascadeRegistryRoot -Config $Config
+    }
+
     # 1. Remove registry entries for each mode
     foreach ($modeName in $Config.enabledModes) {
         $mode = $Config.modes.$modeName
         $isModeValid = $null -ne $mode
         if ($isModeValid) {
             foreach ($scope in @("directory", "background")) {
-                $regPath = $mode.registryPaths.$scope
+                $regPath = if ($cascadeRoot) {
+                    Resolve-PwshLeafRegistryPath -RegistryPath $mode.registryPaths.$scope -Config $Config
+                } else {
+                    $mode.registryPaths.$scope
+                }
                 $isPathValid = -not [string]::IsNullOrWhiteSpace($regPath)
                 if ($isPathValid) {
                     $isPresent = Test-Path $regPath
@@ -467,6 +476,10 @@ function Uninstall-PwshContextMenu {
                 Remove-Item -Path $regPath -Recurse -Force
                 Write-Log "Removed registry key: $regPath" -Level "success"
             }
+        }
+        if ($cascadeRoot -and (Test-Path $cascadeRoot)) {
+            Remove-Item -Path $cascadeRoot -Recurse -Force
+            Write-Log "Removed registry key: $cascadeRoot" -Level "success"
         }
     }
 
