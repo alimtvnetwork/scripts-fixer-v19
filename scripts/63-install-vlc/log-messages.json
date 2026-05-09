@@ -27,12 +27,14 @@
     "commands": {
       "install": "Install VLC + repair file associations (default)",
       "repair": "Repair VLC file associations only (no install)",
+      "reinstall": "Full reinstall: uninstall + fresh install + association repair",
       "uninstall": "Uninstall VLC via Chocolatey"
     },
     "examples": [
       ".\\run.ps1 install vlc",
       ".\\run.ps1 -I 63",
       ".\\run.ps1 -I 63 repair",
+      ".\\run.ps1 -I 63 reinstall",
       ".\\run.ps1 -I 63 uninstall"
     ]
   }
