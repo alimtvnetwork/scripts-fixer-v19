@@ -1,11 +1,16 @@
 {
   "enabled": true,
+  "menu": {
+    "parentKeyName": "PowerShellMenu",
+    "parentLabel": "PowerShell",
+    "iconMode": "pwsh"
+  },
   "modes": {
     "normal": {
       "contextMenuLabel": "Open PowerShell Here",
       "registryPaths": {
-        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellHere",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellHere"
+        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellMenu\\shell\\OpenHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellMenu\\shell\\OpenHere"
       },
       "commandArgs": {
         "directory": "\"{exe}\" -NoExit -Command \"Set-Location -LiteralPath '%V'\"",
@@ -13,10 +18,10 @@
       }
     },
     "admin": {
-      "contextMenuLabel": "Open PowerShell Here as Admin",
+      "contextMenuLabel": "Open as Admin",
       "registryPaths": {
-        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellHereAdmin",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellHereAdmin"
+        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellMenu\\shell\\OpenAsAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellMenu\\shell\\OpenAsAdmin"
       },
       "commandArgs": {
         "directory": "\"{exe}\" -NoExit -Command \"Set-Location -LiteralPath '%V'\"",
