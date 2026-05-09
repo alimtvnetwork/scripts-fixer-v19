@@ -1718,7 +1718,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 | 32 | **[DBeaver Community](scripts/32-install-dbeaver/)** | Universal database visualization and management tool | Yes |
 | 33 | **[Notepad++ (NPP)](scripts/33-install-notepadpp/)** | Install NPP, NPP Settings, or NPP + Settings | Yes |
 | 34 | **[Simple Sticky Notes](scripts/34-install-sticky-notes/)** | Install Simple Sticky Notes via Chocolatey | Yes |
-| 35 | **[GitMap](scripts/35-install-gitmap/)** | Git repository navigator CLI tool | Yes |
+| 35 | **[GitMap](scripts/35-install-gitmap/)** | Git repository navigator CLI tool — wraps the upstream `gitmap-v19` one-liner (`irm .../gitmap-v19/main/gitmap/scripts/install.ps1 \| iex` on Windows, `curl -fsSL .../install.sh \| sh` on UNIX) | Yes |
 | 36 | **[OBS Studio](scripts/36-install-obs/)** | Install OBS, OBS Settings, or OBS + Settings | Yes |
 | 37 | **[Windows Terminal](scripts/37-install-windows-terminal/)** | Install WT, WT Settings, or WT + Settings | Yes |
 | 47 | **[Ubuntu Font](scripts/47-install-ubuntu-font/)** | Install Ubuntu font family system-wide | Yes |
