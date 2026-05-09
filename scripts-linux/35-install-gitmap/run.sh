@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 35-install-gitmap -- gitmap CLI (curl one-liner from gitmap-v9 release)
+# 35-install-gitmap -- gitmap CLI (curl one-liner from gitmap-v19 main branch)
 set -u
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
