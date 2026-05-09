@@ -36,6 +36,15 @@ function Confirm-DestructiveAction {
         [string]$ConfirmWord = 'YES'
     )
 
+    # Honour the global yes-flag env var ($env:SCRIPTS_FIXER_YES) set by
+    # scripts/shared/yes-flag.ps1::Initialize-YesFlag. This lets a single
+    # `-y` at the root dispatcher cascade into every nested destructive
+    # confirm without each caller needing to thread -AssumeYes through.
+    $isEnvYes = ($env:SCRIPTS_FIXER_YES -eq '1') -or ($env:SCRIPTS_FIXER_ASSUME_YES -eq '1')
+    $isEnvNonInteractive = ($env:SCRIPTS_FIXER_NONINTERACTIVE -eq '1')
+    if ($isEnvYes) { $AssumeYes = $true }
+    if ($isEnvNonInteractive) { $NonInteractive = $true }
+
     Write-Host ""
     Write-Host "  [ CONFIRM ] " -ForegroundColor Yellow -NoNewline
     Write-Host $Title -ForegroundColor White
