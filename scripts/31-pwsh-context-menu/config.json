@@ -7,7 +7,7 @@
   },
   "modes": {
     "normal": {
-      "contextMenuLabel": "Open PowerShell Here",
+      "contextMenuLabel": "Open Here",
       "registryPaths": {
         "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellMenu\\shell\\OpenHere",
         "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellMenu\\shell\\OpenHere"
