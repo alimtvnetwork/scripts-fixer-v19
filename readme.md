@@ -376,7 +376,7 @@ spec: [`spec/2025-batch/12-profiles.md`](spec/2025-batch/12-profiles.md).
 |---------|:-----------:|------------------------|-----------------------|---------------------|---------------------------|
 | `minimal` | 5 | Chocolatey, Git, 7-Zip, Chrome | — | — | Win11 classic context menu shim |
 | `terminal` | 10 | Chocolatey, Notepad++, ConEmu, PowerShell 7, 7-Zip, WinRAR, Chrome (+ extensions), Ubuntu font | — | `%APPDATA%\Notepad++`, `%APPDATA%\ConEmu.xml`, `%LOCALAPPDATA%\Microsoft\Windows\Fonts` | pwsh right-click menu, Win11 classic menu, Chrome `ExtensionInstallForcelist` |
-| `base` | 12 | Chocolatey, Git, VLC, 7-Zip, WinRAR, fonts, XMind, Notepad++, Chrome, ConEmu, PSReadLine | — | `%APPDATA%\Notepad++`, `%APPDATA%\ConEmu.xml`, `%USERPROFILE%\Documents\WindowsPowerShell\Modules\PSReadLine\` | Hibernation off |
+| `base` | 12 | Chocolatey, Git, VLC (+ assoc repair), 7-Zip, WinRAR, fonts, XMind, Notepad++, Chrome, ConEmu, PSReadLine | — | `%APPDATA%\Notepad++`, `%APPDATA%\ConEmu.xml`, `%USERPROFILE%\Documents\WindowsPowerShell\Modules\PSReadLine\` | Hibernation off, VLC file-association registry rewrite (drops `--one-instance`, retargets stale 32-bit `vlc.exe`) |
 | `git-compact` | 5 | Git | — | `%LOCALAPPDATA%\GitHubDesktop`, `%USERPROFILE%\.ssh`, `%USERPROFILE%\.gitconfig`, `%USERPROFILE%\GitHub\` | — |
 | `advance` | 23 | Everything in `base` + WordWeb, Beyond Compare, OBS (**no langs**) | — | Everything in `git-compact` + `%LOCALAPPDATA%\WhatsApp`, `%LOCALAPPDATA%\Programs\Microsoft VS Code`, `%APPDATA%\Code\User`, `%APPDATA%\obs-studio\` | Inherits `base` system changes |
 | `cpp-dx` | 3 | VC++ runtimes, DirectX runtime, DirectX SDK | — | — | System runtime DLL registration |

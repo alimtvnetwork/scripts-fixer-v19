@@ -1,0 +1,37 @@
+{
+  "scriptName": "install-vlc",
+  "scriptTitle": "Install VLC",
+  "scriptDesc": "Install VLC media player via Chocolatey and repair file associations (drops --one-instance, retargets stale 32-bit registry pointers).",
+  "messages": {
+    "checking": "Checking for existing VLC install...",
+    "alreadyInstalled": "VLC already installed at: {path}",
+    "notFound": "VLC not found -- installing via Chocolatey",
+    "installing": "Installing vlc via Chocolatey...",
+    "installSuccess": "VLC installed at: {path}",
+    "installFailed": "VLC installation failed: {error}",
+    "verifyFailed": "Install completed but vlc.exe was not found in expected locations",
+    "repairStart": "Repairing VLC file associations (target: {path})...",
+    "repairKeyMissing": "No association key (clean): {key}",
+    "repairKeyRewritten": "Rewrote {key} -> '{value}'",
+    "repairKeyFailed": "Could not rewrite {key}: {error}",
+    "repairSummary": "Association repair -- rewritten: {rewritten} / clean: {clean} / failed: {failed}",
+    "repairDisabled": "Association repair disabled in config -- skipping",
+    "setupComplete": "VLC setup complete",
+    "uninstalling": "Uninstalling VLC...",
+    "uninstallSuccess": "VLC uninstalled successfully.",
+    "uninstallFailed": "VLC uninstall failed: {error}"
+  },
+  "help": {
+    "commands": {
+      "install": "Install VLC + repair file associations (default)",
+      "repair": "Repair VLC file associations only (no install)",
+      "uninstall": "Uninstall VLC via Chocolatey"
+    },
+    "examples": [
+      ".\\run.ps1 install vlc",
+      ".\\run.ps1 -I 63",
+      ".\\run.ps1 -I 63 repair",
+      ".\\run.ps1 -I 63 uninstall"
+    ]
+  }
+}
