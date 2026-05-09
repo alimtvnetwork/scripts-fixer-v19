@@ -288,7 +288,7 @@ function Install-ConEmuParentMenus {
     )
 
     $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
-    $iconValue = "`\"$ConEmuExe`\""
+    $iconValue = '"' + $ConEmuExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
     $isAllOk = $true
 
