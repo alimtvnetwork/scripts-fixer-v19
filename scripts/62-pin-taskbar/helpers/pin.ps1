@@ -14,25 +14,58 @@
 # --------------------------------------------------------------------------
 
 function Test-IsAlreadyPinnedToTaskbar {
+    <#
+    .SYNOPSIS
+        Detect whether a given .exe is already pinned to the current user's
+        taskbar. Robust against UWP-wrapped apps (e.g. Win11 Notepad) where
+        the .lnk filename or target may not exactly match the source exe.
+        Match priority:
+          1. .lnk TargetPath equals exe full path (case-insensitive)
+          2. .lnk TargetPath leaf basename equals exe leaf basename
+          3. .lnk display name (file basename) equals exe leaf basename
+          4. .lnk Arguments / IconLocation contains the exe leaf basename
+    #>
     param([Parameter(Mandatory)][string]$ExePath)
 
     $userPinDir = Join-Path $env:APPDATA "Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
-    $isDirMissing = -not (Test-Path $userPinDir)
-    if ($isDirMissing) { return $false }
+    if (-not (Test-Path $userPinDir)) { return $false }
 
     $exeLeaf = [System.IO.Path]::GetFileNameWithoutExtension($ExePath)
-    $matches = Get-ChildItem -Path $userPinDir -Filter "*.lnk" -ErrorAction SilentlyContinue | Where-Object {
+    try {
+        $resolved = (Resolve-Path -LiteralPath $ExePath -ErrorAction Stop).Path
+    } catch { $resolved = $ExePath }
+    $exeFullLower = $resolved.ToLowerInvariant()
+    $exeLeafLower = $exeLeaf.ToLowerInvariant()
+
+    $sh = New-Object -ComObject WScript.Shell
+    $lnks = Get-ChildItem -LiteralPath $userPinDir -Filter "*.lnk" -ErrorAction SilentlyContinue
+    foreach ($l in $lnks) {
         try {
-            $sh = New-Object -ComObject WScript.Shell
-            $lnk = $sh.CreateShortcut($_.FullName)
-            $target = $lnk.TargetPath
-            ($target -and (
-                ($target -ieq $ExePath) -or
-                ([System.IO.Path]::GetFileNameWithoutExtension($target) -ieq $exeLeaf)
-            ))
-        } catch { $false }
+            $sc = $sh.CreateShortcut($l.FullName)
+            $tgt = "$($sc.TargetPath)"
+            if ($tgt) {
+                if ($tgt.ToLowerInvariant() -eq $exeFullLower) { return $true }
+                $tgtLeaf = [System.IO.Path]::GetFileNameWithoutExtension($tgt)
+                if ($tgtLeaf -ieq $exeLeaf) { return $true }
+            }
+            $lnkLeaf = [System.IO.Path]::GetFileNameWithoutExtension($l.Name)
+            if ($lnkLeaf -ieq $exeLeaf) { return $true }
+            $argStr  = "$($sc.Arguments)".ToLowerInvariant()
+            $iconStr = "$($sc.IconLocation)".ToLowerInvariant()
+            if ($argStr -like "*$exeLeafLower*" -or $iconStr -like "*$exeLeafLower*") { return $true }
+        } catch { }
     }
-    return ($null -ne $matches -and @($matches).Count -gt 0)
+    return $false
+}
+
+function Wait-ForTaskbarPin {
+    # Poll up to ~3s for the .lnk to materialize after invoking the verb.
+    param([Parameter(Mandatory)][string]$ExePath)
+    for ($i = 0; $i -lt 6; $i++) {
+        if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) { return $true }
+        Start-Sleep -Milliseconds 500
+    }
+    return $false
 }
 
 function Get-PinToTaskbarVerbLabels {
@@ -150,18 +183,16 @@ function Invoke-PinToTaskbar {
             if ($normalizedTargets -contains $norm) {
                 $foundVerb = $true
                 $v.DoIt()
-                Start-Sleep -Milliseconds 600
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
+                if (Wait-ForTaskbarPin -ExePath $ExePath) {
                     Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
                     return "ok"
                 }
-                # Some Explorer builds need a moment to materialize the .lnk
-                Start-Sleep -Milliseconds 1200
-                if (Test-IsAlreadyPinnedToTaskbar -ExePath $ExePath) {
-                    Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
-                    return "ok"
-                }
-                return "fail"
+                # Verb invoked but no .lnk materialized -- usually means the
+                # exe is a Store/UWP-redirected stub (Win11 Notepad) where the
+                # real pinned shortcut points to an AppX target. Record + skip
+                # cleanly so we don't fail the parent install.
+                Save-PinTrackerEntry -ExePath $ExePath -State "verb-invoked-no-lnk"
+                return "verb-unavailable"
             }
         }
         if (-not $foundVerb) {
