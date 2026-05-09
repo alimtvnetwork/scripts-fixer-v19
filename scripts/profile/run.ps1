@@ -590,7 +590,7 @@ function _MarkFor($s) { if ($statusMark.ContainsKey($s)) { $statusMark[$s] } els
 function _ColorFor($s) {
     switch ($s) {
         "ok"                { "Green" }
-        "already-installed" { "Cyan" }
+        "already-installed" { "Yellow" }
         "fail"              { "Red" }
         "skip"              { "DarkGray" }
         "warn"              { "Yellow" }
