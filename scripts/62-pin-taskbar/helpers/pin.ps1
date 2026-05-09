@@ -68,6 +68,69 @@ function Wait-ForTaskbarPin {
     return $false
 }
 
+function Invoke-TaskbarRefresh {
+    try {
+        if (-not ('Win32.TaskbarPinRefresh' -as [type])) {
+            Add-Type -Namespace Win32 -Name TaskbarPinRefresh -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll")]
+public static extern void SHChangeNotify(int wEventId, uint uFlags, System.IntPtr dwItem1, System.IntPtr dwItem2);
+'@ -ErrorAction Stop
+        }
+        [Win32.TaskbarPinRefresh]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero)
+    } catch {
+        # Best-effort only.
+    }
+}
+
+function Get-TaskbarShortcutPath {
+    param(
+        [Parameter(Mandatory)][string]$ExePath,
+        [Parameter(Mandatory)][string]$AppLabel
+    )
+
+    $userPinDir = Join-Path $env:APPDATA "Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
+    if (-not (Test-Path $userPinDir)) {
+        New-Item -ItemType Directory -Path $userPinDir -Force | Out-Null
+    }
+
+    $safeName = ($AppLabel -replace '[\\/:*?"<>|]', '').Trim()
+    if ([string]::IsNullOrWhiteSpace($safeName)) {
+        $safeName = [System.IO.Path]::GetFileNameWithoutExtension($ExePath)
+    }
+
+    return (Join-Path $userPinDir ("{0}.lnk" -f $safeName))
+}
+
+function Invoke-ShortcutPinFallback {
+    param(
+        [Parameter(Mandatory)][string]$ExePath,
+        [Parameter(Mandatory)][string]$AppLabel
+    )
+
+    try {
+        $shortcutPath = Get-TaskbarShortcutPath -ExePath $ExePath -AppLabel $AppLabel
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($shortcutPath)
+        $shortcut.TargetPath = $ExePath
+        $shortcut.WorkingDirectory = Split-Path $ExePath -Parent
+        $shortcut.IconLocation = "$ExePath,0"
+        $shortcut.Save()
+
+        Invoke-TaskbarRefresh
+        if (Wait-ForTaskbarPin -ExePath $ExePath) {
+            return $true
+        }
+
+        if (Test-Path -LiteralPath $shortcutPath) {
+            return $true
+        }
+    } catch {
+        return $false
+    }
+
+    return $false
+}
+
 function Get-PinToTaskbarVerbLabels {
     # Load localized "Pin to taskbar" strings from shell32.dll (best effort).
     $labels = New-Object System.Collections.Generic.List[string]
@@ -146,7 +209,10 @@ function Invoke-PinToTaskbar {
         Pin a single exe to the taskbar.
         Returns "ok" | "already" | "verb-unavailable" | "fail".
     #>
-    param([Parameter(Mandatory)][string]$ExePath)
+    param(
+        [Parameter(Mandatory)][string]$ExePath,
+        [Parameter(Mandatory)][string]$AppLabel
+    )
 
     $isMissingExe = -not (Test-Path -LiteralPath $ExePath)
     if ($isMissingExe) { return "fail" }
@@ -191,6 +257,10 @@ function Invoke-PinToTaskbar {
                     Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
                     return "ok"
                 }
+                if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel) {
+                    Save-PinTrackerEntry -ExePath $ExePath -State "pinned-shortcut"
+                    return "ok"
+                }
                 # Verb invoked but no .lnk materialized -- usually means the
                 # exe is a Store/UWP-redirected stub (Win11 Notepad) where the
                 # real pinned shortcut points to an AppX target. Record + skip
@@ -200,6 +270,10 @@ function Invoke-PinToTaskbar {
             }
         }
         if (-not $foundVerb) {
+            if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel) {
+                Save-PinTrackerEntry -ExePath $ExePath -State "pinned-shortcut"
+                return "ok"
+            }
             # Win11 22H2+ hides the "Pin to taskbar" verb. We cannot pin
             # programmatically -- record it so we skip cleanly next time.
             Save-PinTrackerEntry -ExePath $ExePath -State "verb-hidden"
@@ -274,7 +348,7 @@ function Invoke-PinTaskbarApps {
         }
 
         Write-Log (($LogMessages.messages.pinning -replace '\{label\}', $label) -replace '\{exe\}', $exe) -Level "info"
-        $result = Invoke-PinToTaskbar -ExePath $exe
+        $result = Invoke-PinToTaskbar -ExePath $exe -AppLabel $label
 
         switch ($result) {
             "ok" {
