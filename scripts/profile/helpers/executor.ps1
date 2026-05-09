@@ -52,7 +52,10 @@ function Invoke-ProfileSteps {
                         # Detect "already installed" reruns by sniffing the
                         # freshest .logs/<name>.json the child just wrote.
                         $childStatus = Get-LastChildLogStatus -RootDir $RootDir -SinceUtc $stepStart.ToUniversalTime()
-                        if ($childStatus -eq "already-installed") { $status = "already-installed" }
+                        if ($childStatus -eq "already-installed") {
+                            $status = "already-installed"
+                            Write-Log "Skipped '$label' -- already installed (no action taken)" -Level "warn"
+                        }
                     }
                 }
                 "choco" {
