@@ -137,8 +137,16 @@ function Register-PwshParentMenu {
         $key = $hkcr.CreateSubKey($subKeyPath)
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
-        $key.SetValue('SubCommands', '')
         $key.SetValue('Icon', $IconValue)
+        # NOTE: We deliberately do NOT set 'SubCommands' here.  When SubCommands
+        # is present (even empty) Explorer treats it as the authoritative verb
+        # list and ignores the local '\shell\' children -- which is exactly why
+        # the cascading submenu showed up empty.  Without SubCommands and with
+        # a child '\shell\' subkey present, Explorer auto-cascades the children.
+        $existingSub = $key.GetValue('SubCommands', $null)
+        if ($null -ne $existingSub) {
+            try { $key.DeleteValue('SubCommands') } catch { }
+        }
         if ($Runas) {
             $key.SetValue('HasLUAShield', '')
         }
@@ -147,6 +155,43 @@ function Register-PwshParentMenu {
     } catch {
         Write-Log (("FAILED parent menu write at {0}: {1}" -f $RegistryPath, $_.Exception.Message)) -Level "error"
         return $false
+    }
+}
+
+function Remove-PwshLegacyEntries {
+    <#
+    .SYNOPSIS
+        Purge old flat top-level PowerShell context-menu entries left by the
+        previous (pre-submenu) implementation so they don't duplicate the new
+        cascading "PowerShell" parent.
+    #>
+    param($LogMessages)
+
+    $legacyKeys = @(
+        'Directory\shell\OpenPowerShellHere',
+        'Directory\shell\OpenPowerShellAdmin',
+        'Directory\shell\OpenPowerShellAsAdmin',
+        'Directory\shell\PowerShell',
+        'Directory\shell\PowerShellAdmin',
+        'Directory\Background\shell\OpenPowerShellHere',
+        'Directory\Background\shell\OpenPowerShellAdmin',
+        'Directory\Background\shell\OpenPowerShellAsAdmin',
+        'Directory\Background\shell\PowerShell',
+        'Directory\Background\shell\PowerShellAdmin'
+    )
+
+    $hkcr = [Microsoft.Win32.Registry]::ClassesRoot
+    foreach ($k in $legacyKeys) {
+        try {
+            $probe = $hkcr.OpenSubKey($k)
+            if ($null -ne $probe) {
+                $probe.Close()
+                $hkcr.DeleteSubKeyTree($k, $false)
+                Write-Log ("Removed legacy entry: HKCR\{0}" -f $k) -Level "success"
+            }
+        } catch {
+            Write-Log ("Could not remove legacy entry HKCR\{0}: {1}" -f $k, $_.Exception.Message) -Level "warn"
+        }
     }
 }
 
@@ -307,6 +352,10 @@ function Install-PwshParentMenus {
         [string]$PwshExe,
         $LogMessages
     )
+
+    # Purge old flat top-level entries before installing the new submenu --
+    # otherwise the right-click menu shows duplicates from prior versions.
+    Remove-PwshLegacyEntries -LogMessages $LogMessages
 
     $parentPaths = Get-PwshParentRegistryPaths -Config $Config
     $iconValue = '"' + $PwshExe + '"'

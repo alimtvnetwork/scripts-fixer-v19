@@ -128,8 +128,15 @@ function Register-ConEmuParentMenu {
         $key = $hkcr.CreateSubKey($subKeyPath)
         $key.SetValue('', $Label)
         $key.SetValue('MUIVerb', $Label)
-        $key.SetValue('SubCommands', '')
         $key.SetValue('Icon', $IconValue)
+        # NOTE: Do NOT set 'SubCommands' here. With SubCommands present (even
+        # empty) Explorer ignores the local '\shell\' children and the
+        # cascading menu shows up empty. Leaving it absent makes Explorer
+        # auto-cascade the children registered under '<parent>\shell\'.
+        $existingSub = $key.GetValue('SubCommands', $null)
+        if ($null -ne $existingSub) {
+            try { $key.DeleteValue('SubCommands') } catch { }
+        }
         if ($Runas) {
             $key.SetValue('HasLUAShield', '')
         }
@@ -138,6 +145,45 @@ function Register-ConEmuParentMenu {
     } catch {
         Write-Log (("FAILED parent menu write at {0}: {1}" -f $RegistryPath, $_.Exception.Message)) -Level "error"
         return $false
+    }
+}
+
+function Remove-ConEmuLegacyEntries {
+    <#
+    .SYNOPSIS
+        Purge old flat top-level ConEmu context-menu entries left by the
+        previous (pre-submenu) implementation so they don't duplicate the new
+        cascading "ConEmu" parent.
+    #>
+    param($LogMessages)
+
+    $legacyKeys = @(
+        'Directory\shell\OpenConEmuHere',
+        'Directory\shell\OpenConEmuAdmin',
+        'Directory\shell\OpenConEmuAsAdmin',
+        'Directory\shell\ConEmu',
+        'Directory\shell\ConEmuAdmin',
+        'Directory\shell\ConEmu64',
+        'Directory\Background\shell\OpenConEmuHere',
+        'Directory\Background\shell\OpenConEmuAdmin',
+        'Directory\Background\shell\OpenConEmuAsAdmin',
+        'Directory\Background\shell\ConEmu',
+        'Directory\Background\shell\ConEmuAdmin',
+        'Directory\Background\shell\ConEmu64'
+    )
+
+    $hkcr = [Microsoft.Win32.Registry]::ClassesRoot
+    foreach ($k in $legacyKeys) {
+        try {
+            $probe = $hkcr.OpenSubKey($k)
+            if ($null -ne $probe) {
+                $probe.Close()
+                $hkcr.DeleteSubKeyTree($k, $false)
+                Write-Log ("Removed legacy entry: HKCR\{0}" -f $k) -Level "success"
+            }
+        } catch {
+            Write-Log ("Could not remove legacy entry HKCR\{0}: {1}" -f $k, $_.Exception.Message) -Level "warn"
+        }
     }
 }
 
@@ -286,6 +332,10 @@ function Install-ConEmuParentMenus {
         [string]$ConEmuExe,
         $LogMessages
     )
+
+    # Purge old flat top-level entries before installing the new submenu --
+    # otherwise the right-click menu shows duplicates from prior versions.
+    Remove-ConEmuLegacyEntries -LogMessages $LogMessages
 
     $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
     $iconValue = '"' + $ConEmuExe + '"'
