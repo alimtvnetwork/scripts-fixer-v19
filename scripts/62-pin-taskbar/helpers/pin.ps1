@@ -107,7 +107,8 @@ function Invoke-VerbOnShortcut {
     # shortcuts. Returns $true if a matching verb was invoked.
     param(
         [Parameter(Mandatory)][string]$ShortcutPath,
-        [Parameter(Mandatory)][string[]]$NormalizedTargets
+        [Parameter(Mandatory)][string[]]$NormalizedTargets,
+        [string[]]$AntiTargets = @()
     )
     try {
         $shell  = New-Object -ComObject Shell.Application
@@ -118,6 +119,7 @@ function Invoke-VerbOnShortcut {
         foreach ($v in @($item.Verbs())) {
             $name = "$($v.Name)" -replace '&',''
             $norm = $name.Trim().ToLowerInvariant()
+            if ($AntiTargets -contains $norm) { continue }   # never pin to Start
             if ($NormalizedTargets -contains $norm) {
                 $v.DoIt()
                 return $true
