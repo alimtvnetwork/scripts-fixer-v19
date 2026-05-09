@@ -300,7 +300,7 @@ function Invoke-PinToTaskbar {
                     Save-PinTrackerEntry -ExePath $ExePath -State "pinned"
                     return "ok"
                 }
-                if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel) {
+                if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel -NormalizedVerbTargets $normalizedTargets) {
                     Save-PinTrackerEntry -ExePath $ExePath -State "pinned-shortcut"
                     return "ok"
                 }
@@ -313,7 +313,7 @@ function Invoke-PinToTaskbar {
             }
         }
         if (-not $foundVerb) {
-            if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel) {
+            if (Invoke-ShortcutPinFallback -ExePath $ExePath -AppLabel $AppLabel -NormalizedVerbTargets $normalizedTargets) {
                 Save-PinTrackerEntry -ExePath $ExePath -State "pinned-shortcut"
                 return "ok"
             }
