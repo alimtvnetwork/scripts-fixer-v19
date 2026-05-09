@@ -44,14 +44,6 @@ key to point at the real on-disk `vlc.exe` with a clean
 .\run.ps1 -I 63 uninstall
 ```
 
-## Examples
-
-```powershell
-.\run.ps1 install vlc
-.\run.ps1 -I 63
-.\run.ps1 -I 63 repair
-.\run.ps1 -I 63 uninstall
-```
 
 ## Registry targets rewritten
 
