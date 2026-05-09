@@ -447,13 +447,14 @@ first click.
 | 2 | Notepad++ + curated settings | script #33 (`install+settings`) | `C:\Program Files\Notepad++\` + `%APPDATA%\Notepad++\` | C:\ + user |
 | 3 | ConEmu + curated settings | script #48 (`install+settings`) | `C:\Program Files\ConEmu\` + `%APPDATA%\ConEmu.xml` | C:\ + user |
 | 4 | PowerShell 7 (pwsh) | script #17 | `C:\Program Files\PowerShell\7\` | C:\ |
-| 5 | pwsh right-click context menu | script #31 | HKCU `Software\Classes\Directory\shell\pwsh` | (registry) |
-| 6 | 7-Zip archiver | choco `7zip.install` | `C:\Program Files\7-Zip\` | C:\ |
-| 7 | WinRAR archiver | choco `winrar` | `C:\Program Files\WinRAR\` | C:\ |
-| 8 | Google Chrome + curated extensions | subcommand `install chrome with-ext` | `C:\Program Files\Google\Chrome\` + HKLM `ExtensionInstallForcelist` policy | C:\ + (registry) |
-| 9 | Ubuntu Mono font | script #47 | `%LOCALAPPDATA%\Microsoft\Windows\Fonts\` | user |
-| 10 | Win11 classic right-click menu | inline `Restore-Win11ClassicContext` | HKCU `Software\Classes\CLSID\{86ca1aa0-...}` | (registry) |
-| 11 | Pin to taskbar (ConEmu, Notepad++, Notepad, Chrome) | script #62 (`install pin-terminal`) | `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` | user |
+| 5 | PowerShell submenu right-click menu | script #31 | HKCR `Directory\(Background)\shell\PowerShellMenu` | (registry) |
+| 6 | ConEmu submenu right-click menu | script #59 | HKCR `Directory\(Background)\shell\ConEmuMenu` | (registry) |
+| 7 | 7-Zip archiver | choco `7zip.install` | `C:\Program Files\7-Zip\` | C:\ |
+| 8 | WinRAR archiver | choco `winrar` | `C:\Program Files\WinRAR\` | C:\ |
+| 9 | Google Chrome + curated extensions | subcommand `install chrome with-ext` | `C:\Program Files\Google\Chrome\` + HKLM `ExtensionInstallForcelist` policy | C:\ + (registry) |
+| 10 | Ubuntu Mono font | script #47 | `%LOCALAPPDATA%\Microsoft\Windows\Fonts\` | user |
+| 11 | Win11 classic right-click menu | inline `Restore-Win11ClassicContext` | HKCU `Software\Classes\CLSID\{86ca1aa0-...}` | (registry) |
+| 12 | Pin to taskbar (ConEmu, Notepad++, Notepad, Chrome) | script #62 (`install pin-terminal`) | `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` | user |
 
 > 💡 The Chrome step pushes extensions via the
 > `ExtensionInstallForcelist` policy registry key, so they apply on next
@@ -462,10 +463,12 @@ first click.
 > 📌 **Auto-pin:** any time you install ConEmu (#48), Notepad++ (#33),
 > Chrome (#58), or VS Code (#01) — standalone or via a profile — that app
 > is automatically pinned to the taskbar. The `terminal` profile also
-> runs **Step 11: Pin to taskbar** as a *separate, dedicated step* in the
+> runs **Step 12: Pin to taskbar** as a *separate, dedicated step* in the
 > install summary, so you can see exactly which apps were pinned, already
 > pinned, or skipped (Win11 22H2+ may hide the "Pin to taskbar" verb on
-> some apps — those are reported as warnings, not failures).
+> some apps — those are reported as warnings, not failures). Notepad++ now
+> also retries through a shortcut-based fallback when the shell verb does
+> not materialize a taskbar pin directly.
 >
 > Re-runs always re-verify the actual pin state (the tracker no longer
 > short-circuits when a previous attempt only got as far as invoking the
