@@ -182,7 +182,12 @@ function Invoke-PinViaUnlockedVerb {
         [Parameter(Mandatory)][string[]]$NormalizedVerbTargets
     )
 
+    # Snapshot anti-targets (Start-pin verbs) so we never invoke them by accident.
+    $startAntiTargets = @()
+    if ($script:_PinStartLabels) { $startAntiTargets = @($script:_PinStartLabels) }
+
     return (Invoke-Win11PinUnlock -Action {
+        $startLnk = $null
         try {
             $shell  = New-Object -ComObject Shell.Application
             $folder = $shell.Namespace((Split-Path $ExePath -Parent))
@@ -191,6 +196,7 @@ function Invoke-PinViaUnlockedVerb {
                 if ($item) {
                     foreach ($v in @($item.Verbs())) {
                         $norm = (("$($v.Name)") -replace '&','').Trim().ToLowerInvariant()
+                        if ($startAntiTargets -contains $norm) { continue }   # never pin to Start
                         if ($NormalizedVerbTargets -contains $norm) {
                             $v.DoIt()
                             if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
@@ -200,7 +206,8 @@ function Invoke-PinViaUnlockedVerb {
                 }
             }
 
-            # Fallback: invoke the now-unlocked verb on a Start-menu .lnk.
+            # Fallback: invoke the now-unlocked verb on a Start-menu .lnk, then
+            # delete that .lnk so we don't pollute the user's Start menu.
             $shortcutPath = Get-TaskbarShortcutPath -ExePath $ExePath -AppLabel $AppLabel
             $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
             if (-not (Test-Path $startMenuDir)) { New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null }
@@ -212,12 +219,18 @@ function Invoke-PinViaUnlockedVerb {
             $sc.IconLocation = "$ExePath,0"
             $sc.Save()
 
-            if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets) {
+            if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets -AntiTargets $startAntiTargets) {
                 if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
             }
             return $false
         } catch {
             return $false
+        } finally {
+            # Always remove the temp Start-menu .lnk so we don't leave a stray
+            # entry under "Recently added" / alphabetical Start groups.
+            if ($startLnk -and (Test-Path -LiteralPath $startLnk)) {
+                try { Remove-Item -LiteralPath $startLnk -Force -ErrorAction SilentlyContinue } catch { }
+            }
         }
     })
 }
