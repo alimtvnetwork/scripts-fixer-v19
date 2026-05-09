@@ -450,10 +450,17 @@ first click.
 | 8 | Google Chrome + curated extensions | subcommand `install chrome with-ext` | `C:\Program Files\Google\Chrome\` + HKLM `ExtensionInstallForcelist` policy | C:\ + (registry) |
 | 9 | Ubuntu Mono font | script #47 | `%LOCALAPPDATA%\Microsoft\Windows\Fonts\` | user |
 | 10 | Win11 classic right-click menu | inline `Restore-Win11ClassicContext` | HKCU `Software\Classes\CLSID\{86ca1aa0-...}` | (registry) |
+| 11 | Pin to taskbar (ConEmu, Notepad++, Notepad, Chrome) | script #62 (`install pin-terminal`) | `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` | user |
 
 > 💡 The Chrome step pushes extensions via the
 > `ExtensionInstallForcelist` policy registry key, so they apply on next
 > Chrome launch — no per-profile clicking required.
+
+> 📌 **Auto-pin:** any time you install ConEmu (#48), Notepad++ (#33),
+> Chrome (#58), or VS Code (#01) — standalone or via a profile — that app
+> is automatically pinned to the taskbar. To pin manually at any time:
+> `.\run.ps1 install pin-vscode` (or `pin-chrome`, `pin-conemu`,
+> `pin-notepadpp`, `pin-notepad`, `pin-terminal`, `pin-taskbar` for all).
 
 ---
 
