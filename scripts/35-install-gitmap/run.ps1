@@ -109,8 +109,23 @@ $ok = Install-Gitmap -GitmapConfig $config.gitmap -DevDirConfig $config.devDir -
 
 $isSuccess = $ok -eq $true
 if ($isSuccess) {
-    Write-Log $logMessages.messages.setupComplete -Level "success"
-} else {
+    # -- Post-install verification: re-run `gitmap --version` and print a
+    # clearly-formatted summary so the user sees the final binary + version.
+    $finalVerify = Assert-GitmapInstalled -InstallDir $config.gitmap.installDir -LogMessages $logMessages
+    if ($finalVerify.Success) {
+        Write-Host ""
+        Write-Host "================ gitmap post-install verification ================" -ForegroundColor Cyan
+        Write-Host ("  gitmap --version : {0}" -f $finalVerify.Version)    -ForegroundColor Green
+        Write-Host ("  resolved binary  : {0}" -f $finalVerify.BinaryPath) -ForegroundColor Green
+        Write-Host "==================================================================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Log $logMessages.messages.setupComplete -Level "success"
+    } else {
+        Write-Log "Post-install verification failed: 'gitmap --version' did not run cleanly. Open a NEW terminal and re-run." -Level "error"
+        $isSuccess = $false
+    }
+}
+if (-not $isSuccess) {
     Write-Log ($logMessages.messages.installFailed -replace '\{error\}', "See errors above") -Level "error"
 }
 

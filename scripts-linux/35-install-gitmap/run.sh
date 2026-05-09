@@ -52,6 +52,41 @@ INSTALLED_MARK="$ROOT/.installed/35.ok"
 
 verify_installed() { command -v gitmap >/dev/null 2>&1 || [ -x "$DEST" ]; }
 
+# ---------------------------------------------------------------------------
+# assert_gitmap_version -- authoritative post-install check.
+#   1. Resolves the gitmap binary (PATH first, then $DEST fallback).
+#   2. Runs `gitmap --version` and captures stdout+stderr+exit code.
+#   3. Logs the resolved binary path and printed version on success.
+#   4. Logs an explicit file-error with the exact path + reason on failure.
+# Returns 0 on success, 1 on failure.
+# ---------------------------------------------------------------------------
+assert_gitmap_version() {
+  log_info "[35] Verifying 'gitmap --version' works in current session..."
+
+  local bin=""
+  if command -v gitmap >/dev/null 2>&1; then
+    bin="$(command -v gitmap)"
+  elif [ -x "$DEST" ]; then
+    bin="$DEST"
+    log_warn "[35] gitmap not on PATH; falling back to $DEST"
+  else
+    log_file_error "$DEST" "gitmap binary not found on PATH and not present at \$DEST after install"
+    return 1
+  fi
+
+  local out rc
+  out="$("$bin" --version 2>&1)"
+  rc=$?
+  if [ "$rc" -ne 0 ] || [ -z "$out" ]; then
+    log_file_error "$bin" "'gitmap --version' exited code=$rc output=${out:-<empty>}"
+    return 1
+  fi
+
+  log_ok   "[35] Verified: gitmap --version -> $out"
+  log_info "[35] gitmap binary path: $bin"
+  return 0
+}
+
 verb_install() {
   write_install_paths \
     --tool   "gitmap" \
@@ -62,7 +97,10 @@ verb_install() {
   log_info "[35] Starting gitmap installer"
   if verify_installed; then
     log_ok "[35] Already installed"
-    mkdir -p "$ROOT/.installed"; touch "$INSTALLED_MARK"; return 0
+    if assert_gitmap_version; then
+      mkdir -p "$ROOT/.installed"; touch "$INSTALLED_MARK"; return 0
+    fi
+    log_warn "[35] Binary present but version check failed; continuing to reinstall"
   fi
 
   if ! command -v curl >/dev/null 2>&1; then
@@ -78,15 +116,21 @@ verb_install() {
     return 1
   fi
 
-  if verify_installed; then
-    log_ok "[35] Verify OK (gitmap installed)"
+  # Refresh PATH so a freshly-created ~/.local/bin/gitmap resolves immediately.
+  case ":$PATH:" in *":$BIN_DIR:"*) ;; *) export PATH="$BIN_DIR:$PATH" ;; esac
+
+  if assert_gitmap_version; then
     mkdir -p "$ROOT/.installed"; touch "$INSTALLED_MARK"; return 0
   fi
-  log_warn "[35] Verify FAILED after install (binary not on PATH; check $DEST)"
+  log_warn "[35] Verify FAILED after install (binary not on PATH or --version failed; check $DEST)"
   return 1
 }
 
-verb_check()     { if verify_installed; then log_ok "[35] Verify OK"; return 0; fi; log_warn "[35] Verify FAILED"; return 1; }
+verb_check() {
+  if assert_gitmap_version; then return 0; fi
+  log_warn "[35] Verify FAILED"
+  return 1
+}
 verb_repair()    { rm -f "$DEST" "$INSTALLED_MARK"; verb_install; }
 verb_uninstall() {
   rm -f "$DEST" || log_file_error "$DEST" "removal failed"
