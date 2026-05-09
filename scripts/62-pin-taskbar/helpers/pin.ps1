@@ -127,6 +127,101 @@ function Invoke-VerbOnShortcut {
     return $false
 }
 
+function Invoke-Win11PinUnlock {
+    <#
+    .SYNOPSIS
+        Win11 22H2+ hides the "Pin to taskbar" verb on Shell items. The
+        well-known workaround: temporarily mirror the system's
+        Windows.taskbarpin ExplorerCommandHandler CLSID into
+        HKCU:\Software\Classes\*\shell\{:} so the verb re-appears on every
+        Shell item for the current user. Run the supplied scriptblock with
+        the unlock active, then always remove the override.
+        Returns whatever the scriptblock returns ($false on any failure).
+    #>
+    param(
+        [Parameter(Mandatory)][scriptblock]$Action
+    )
+
+    $unlockKey = 'HKCU:\Software\Classes\*\shell\{:}'
+    $sourceKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\Windows.taskbarpin'
+    $created   = $false
+    try {
+        $clsid = $null
+        try { $clsid = (Get-ItemProperty -Path $sourceKey -Name 'ExplorerCommandHandler' -ErrorAction Stop).ExplorerCommandHandler } catch { $clsid = $null }
+        if ([string]::IsNullOrWhiteSpace($clsid)) { return (& $Action) }
+
+        if (-not (Test-Path $unlockKey)) {
+            New-Item -Path $unlockKey -Force | Out-Null
+            $created = $true
+        }
+        New-ItemProperty -Path $unlockKey -Name 'ExplorerCommandHandler' -Value $clsid -PropertyType String -Force | Out-Null
+
+        return (& $Action)
+    } catch {
+        return $false
+    } finally {
+        if ($created) {
+            try { Remove-Item -Path $unlockKey -Recurse -Force -ErrorAction SilentlyContinue } catch { }
+        } else {
+            try { Remove-ItemProperty -Path $unlockKey -Name 'ExplorerCommandHandler' -Force -ErrorAction SilentlyContinue } catch { }
+        }
+    }
+}
+
+function Invoke-PinViaUnlockedVerb {
+    <#
+    .SYNOPSIS
+        Run the Win11 unlock, then invoke the "Pin to taskbar" verb directly
+        on the .exe (preferred) or on a Start-menu .lnk pointing at it.
+        Returns $true only if Wait-ForTaskbarPin confirms a real .lnk landed
+        in User Pinned\TaskBar.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$ExePath,
+        [Parameter(Mandatory)][string]$AppLabel,
+        [Parameter(Mandatory)][string[]]$NormalizedVerbTargets
+    )
+
+    return (Invoke-Win11PinUnlock -Action {
+        try {
+            $shell  = New-Object -ComObject Shell.Application
+            $folder = $shell.Namespace((Split-Path $ExePath -Parent))
+            if ($folder) {
+                $item = $folder.ParseName((Split-Path $ExePath -Leaf))
+                if ($item) {
+                    foreach ($v in @($item.Verbs())) {
+                        $norm = (("$($v.Name)") -replace '&','').Trim().ToLowerInvariant()
+                        if ($NormalizedVerbTargets -contains $norm) {
+                            $v.DoIt()
+                            if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
+                            break
+                        }
+                    }
+                }
+            }
+
+            # Fallback: invoke the now-unlocked verb on a Start-menu .lnk.
+            $shortcutPath = Get-TaskbarShortcutPath -ExePath $ExePath -AppLabel $AppLabel
+            $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+            if (-not (Test-Path $startMenuDir)) { New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null }
+            $startLnk = Join-Path $startMenuDir ("{0}.lnk" -f ([System.IO.Path]::GetFileNameWithoutExtension($shortcutPath)))
+            $ws = New-Object -ComObject WScript.Shell
+            $sc = $ws.CreateShortcut($startLnk)
+            $sc.TargetPath = $ExePath
+            $sc.WorkingDirectory = Split-Path $ExePath -Parent
+            $sc.IconLocation = "$ExePath,0"
+            $sc.Save()
+
+            if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets) {
+                if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
+            }
+            return $false
+        } catch {
+            return $false
+        }
+    })
+}
+
 function Invoke-ShortcutPinFallback {
     param(
         [Parameter(Mandatory)][string]$ExePath,
@@ -134,42 +229,15 @@ function Invoke-ShortcutPinFallback {
         [string[]]$NormalizedVerbTargets = @('pin to taskbar')
     )
 
+    # 1. Win11 22H2+ unlock + verb invocation -- only path that produces a
+    #    real, Explorer-honored taskbar pin. Manual .lnk drops into
+    #    User Pinned\TaskBar are NOT honored on modern Windows and must
+    #    never be reported as success.
     try {
-        $shortcutPath = Get-TaskbarShortcutPath -ExePath $ExePath -AppLabel $AppLabel
-
-        # 1. Create a Start-menu .lnk first so we can invoke the verb on it.
-        $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
-        if (-not (Test-Path $startMenuDir)) {
-            New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null
+        if (Invoke-PinViaUnlockedVerb -ExePath $ExePath -AppLabel $AppLabel -NormalizedVerbTargets $NormalizedVerbTargets) {
+            return $true
         }
-        $startLnk = Join-Path $startMenuDir ("{0}.lnk" -f ([System.IO.Path]::GetFileNameWithoutExtension($shortcutPath)))
-
-        $shell = New-Object -ComObject WScript.Shell
-        $sc = $shell.CreateShortcut($startLnk)
-        $sc.TargetPath = $ExePath
-        $sc.WorkingDirectory = Split-Path $ExePath -Parent
-        $sc.IconLocation = "$ExePath,0"
-        $sc.Save()
-
-        # 2. Try invoking "Pin to taskbar" on the start-menu .lnk (Win11 trick).
-        if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets) {
-            if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
-        }
-
-        # 3. Manual drop into User Pinned\TaskBar (legacy path; not always honored).
-        $sc2 = $shell.CreateShortcut($shortcutPath)
-        $sc2.TargetPath = $ExePath
-        $sc2.WorkingDirectory = Split-Path $ExePath -Parent
-        $sc2.IconLocation = "$ExePath,0"
-        $sc2.Save()
-
-        Invoke-TaskbarRefresh
-        if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
-
-        if (Test-Path -LiteralPath $shortcutPath) { return $true }
-    } catch {
-        return $false
-    }
+    } catch { }
 
     return $false
 }
