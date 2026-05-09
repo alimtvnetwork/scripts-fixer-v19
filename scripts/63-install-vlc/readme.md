@@ -31,6 +31,7 @@ key to point at the real on-disk `vlc.exe` with a clean
 |---|---|
 | `install` (default) | Choco install vlc + repair associations |
 | `repair` | Repair associations only (no install) |
+| `reinstall` | Full reinstall -- uninstalls VLC, installs fresh, then repairs associations. Use this when `repair` alone does not fix "failed to launch player". |
 | `uninstall` | `choco uninstall vlc` |
 
 ## Examples
@@ -39,8 +40,10 @@ key to point at the real on-disk `vlc.exe` with a clean
 .\run.ps1 install vlc
 .\run.ps1 -I 63
 .\run.ps1 -I 63 repair
+.\run.ps1 -I 63 reinstall
 .\run.ps1 -I 63 uninstall
 ```
+
 
 ## Registry targets rewritten
 

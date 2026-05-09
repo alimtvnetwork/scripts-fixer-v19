@@ -49,6 +49,16 @@ try {
         "uninstall" {
             Uninstall-Vlc -VlcConfig $config.vlc -LogMessages $logMessages | Out-Null
         }
+        "reinstall" {
+            Write-Log $logMessages.messages.reinstallStart -Level "info"
+            Uninstall-Vlc -VlcConfig $config.vlc -LogMessages $logMessages | Out-Null
+            $ok = Install-Vlc -VlcConfig $config.vlc -LogMessages $logMessages
+            if ($ok) {
+                Write-Log $logMessages.messages.reinstallSuccess -Level "success"
+            } else {
+                Write-Log ($logMessages.messages.installFailed -replace '\{error\}', "See errors above") -Level "error"
+            }
+        }
         "repair" {
             Repair-VlcAssociations -VlcConfig $config.vlc -LogMessages $logMessages
             Write-Log $logMessages.messages.setupComplete -Level "success"
