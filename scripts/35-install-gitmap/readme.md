@@ -32,6 +32,28 @@ Implementation folder for **Script 35 — Install Gitmap**. The full design cont
 .\run.ps1 -I 35 install
 ```
 
+### Upstream one-liners (gitmap-v19)
+
+The script delegates to the upstream installers hosted in
+[`alimtvnetwork/gitmap-v19`](https://github.com/alimtvnetwork/gitmap-v19):
+
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.ps1 | iex
+```
+
+```bash
+# UNIX (macOS / Linux)
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh | sh
+```
+
+Pin a different ref (branch / tag / commit) with `-Tag` / `--tag`:
+
+```powershell
+.\run.ps1 -I 35 -Tag dev
+```
+
+
 ## Layout
 
 | File | Purpose |
