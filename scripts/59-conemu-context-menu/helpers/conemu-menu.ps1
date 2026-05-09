@@ -333,6 +333,10 @@ function Install-ConEmuParentMenus {
         $LogMessages
     )
 
+    # Purge old flat top-level entries before installing the new submenu --
+    # otherwise the right-click menu shows duplicates from prior versions.
+    Remove-ConEmuLegacyEntries -LogMessages $LogMessages
+
     $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
     $iconValue = '"' + $ConEmuExe + '"'
     $parentLabel = "$($Config.menu.parentLabel)"
