@@ -315,6 +315,7 @@ IDs to remember, no order to figure out, no half-installed tools.
 | Profile | One-liner | Tools | Steps | Best for |
 |---------|-----------|:-----:|:-----:|---------|
 | 🟢 [Minimal](#-profile-minimal) | `.\run.ps1 profile minimal -y` | 5 | 5 | Fresh Windows in 2 min |
+| 🟤 [Terminal](#-profile-terminal) | `.\run.ps1 profile terminal -y` | 10 | 10 | Foundational shell + editor + browser |
 | 🔵 [Base](#-profile-base) | `.\run.ps1 profile base -y` | 12 | 12 | Daily-driver workstation |
 | 🟣 [Git-compact](#-profile-git-compact) | `.\run.ps1 profile git-compact -y` | 5 | 5 | Source-control box |
 | 🟠 [Advance](#-profile-advance) | `.\run.ps1 profile advance -y` | 23 | 23 | Full creator setup (no langs) |
@@ -332,12 +333,18 @@ spec: [`spec/2025-batch/12-profiles.md`](spec/2025-batch/12-profiles.md).
 # List every profile + its expanded steps
 .\run.ps1 profile list
 
+# Search profiles by keyword (matches name, label, description, step labels)
+.\run.ps1 profile search terminal
+.\run.ps1 profile search chrome
+.\run.ps1 profile search dev
+
 # Dry-run -- print expanded steps, execute nothing
 .\run.ps1 profile advance  --dry-run
 .\run.ps1 profile small-dev --dry-run        # expands advance -> base + git-compact + extras
 
 # Run for real (skip per-step prompts with -y)
 .\run.ps1 profile minimal     -y
+.\run.ps1 profile terminal    -y
 .\run.ps1 profile base        -y
 .\run.ps1 profile git-compact -y
 .\run.ps1 profile advance     -y
@@ -346,8 +353,11 @@ spec: [`spec/2025-batch/12-profiles.md`](spec/2025-batch/12-profiles.md).
 .\run.ps1 profile dev         -y
 .\run.ps1 profile dev-advance -y
 
-# Same thing via the install keyword family
-.\run.ps1 install profile-minimal
+# Same thing via the install keyword family -- both prefix AND suffix work
+.\run.ps1 install profile-minimal      # prefix form
+.\run.ps1 install minimal-profile      # suffix form (equivalent)
+.\run.ps1 install profile-terminal
+.\run.ps1 install terminal-profile     # ✅ -profile suffix supported
 .\run.ps1 install profile-base
 .\run.ps1 install profile-git              # alias for profile-git-compact
 .\run.ps1 install profile-advance
