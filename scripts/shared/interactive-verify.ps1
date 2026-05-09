@@ -82,7 +82,9 @@ function Invoke-RightClickVerification {
         [Parameter(Mandatory)][string]$EntryLabel,
         [string[]]$Contexts = @('folder','empty-folder','background'),
         [string]$RetryCommand = '',
-        [switch]$NonInteractive
+        [switch]$NonInteractive,
+        [Alias('Yes','y')]
+        [switch]$AssumeYes
     )
 
     $result = [pscustomobject]@{
@@ -92,8 +94,10 @@ function Invoke-RightClickVerification {
     }
 
     $isInteractive = Test-IsInteractiveSession
-    if ($NonInteractive -or -not $isInteractive) {
-        $reason = if ($NonInteractive) { '-NonInteractive flag' } else { 'non-interactive shell / CI' }
+    if ($NonInteractive -or $AssumeYes -or -not $isInteractive) {
+        $reason = if ($AssumeYes) { '-y / --yes flag' }
+                  elseif ($NonInteractive) { '-NonInteractive flag' }
+                  else { 'non-interactive shell / CI' }
         Write-Host ""
         Write-Host "  [skip] Right-click verification skipped ($reason)." -ForegroundColor DarkGray
         $result.Skipped = $true
