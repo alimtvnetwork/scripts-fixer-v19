@@ -109,9 +109,12 @@ function Show-ProfileHelp {
     Write-Host ""
     Write-Host "  Examples:" -ForegroundColor Yellow
     Write-Host "    .\run.ps1 profile list"               -ForegroundColor Gray
+    Write-Host "    .\run.ps1 profile search <keyword>"   -ForegroundColor Gray
     Write-Host "    .\run.ps1 profile minimal"            -ForegroundColor Gray
+    Write-Host "    .\run.ps1 profile terminal"           -ForegroundColor Gray
     Write-Host "    .\run.ps1 profile advance --dry-run"  -ForegroundColor Gray
     Write-Host "    .\run.ps1 install profile-minimal"    -ForegroundColor Gray
+    Write-Host "    .\run.ps1 install terminal-profile"   -ForegroundColor Gray
     Write-Host ""
 }
 
