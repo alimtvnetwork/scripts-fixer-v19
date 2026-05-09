@@ -201,6 +201,7 @@ function Invoke-PinViaUnlockedVerb {
                         if ($startAntiTargets -contains $norm) { continue }   # never pin to Start
                         if ($NormalizedVerbTargets -contains $norm) {
                             $v.DoIt()
+                            Invoke-TaskbarRefresh
                             if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
                             break
                         }
@@ -208,12 +209,13 @@ function Invoke-PinViaUnlockedVerb {
                 }
             }
 
-            # Fallback: invoke the now-unlocked verb on a Start-menu .lnk, then
-            # delete that .lnk so we don't pollute the user's Start menu.
+            # Fallback: invoke the now-unlocked verb on a TEMP shortcut rather
+            # than a Start-menu shortcut so we never accidentally surface or pin
+            # a Start-menu entry while trying to target the taskbar.
             $shortcutPath = Get-TaskbarShortcutPath -ExePath $ExePath -AppLabel $AppLabel
-            $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
-            if (-not (Test-Path $startMenuDir)) { New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null }
-            $startLnk = Join-Path $startMenuDir ("{0}.lnk" -f ([System.IO.Path]::GetFileNameWithoutExtension($shortcutPath)))
+            $tempShortcutDir = Join-Path $env:TEMP "scripts-fixer\taskbar-pin"
+            if (-not (Test-Path $tempShortcutDir)) { New-Item -ItemType Directory -Path $tempShortcutDir -Force | Out-Null }
+            $startLnk = Join-Path $tempShortcutDir ("{0}.lnk" -f ([System.IO.Path]::GetFileNameWithoutExtension($shortcutPath)))
             $ws = New-Object -ComObject WScript.Shell
             $sc = $ws.CreateShortcut($startLnk)
             $sc.TargetPath = $ExePath
@@ -222,14 +224,14 @@ function Invoke-PinViaUnlockedVerb {
             $sc.Save()
 
             if (Invoke-VerbOnShortcut -ShortcutPath $startLnk -NormalizedTargets $NormalizedVerbTargets -AntiTargets $startAntiTargets) {
+                Invoke-TaskbarRefresh
                 if (Wait-ForTaskbarPin -ExePath $ExePath) { return $true }
             }
             return $false
         } catch {
             return $false
         } finally {
-            # Always remove the temp Start-menu .lnk so we don't leave a stray
-            # entry under "Recently added" / alphabetical Start groups.
+            # Always remove the temp shortcut so we don't leave pinning debris.
             if ($startLnk -and (Test-Path -LiteralPath $startLnk)) {
                 try { Remove-Item -LiteralPath $startLnk -Force -ErrorAction SilentlyContinue } catch { }
             }
