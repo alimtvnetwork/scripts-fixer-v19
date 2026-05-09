@@ -447,13 +447,14 @@ first click.
 | 2 | Notepad++ + curated settings | script #33 (`install+settings`) | `C:\Program Files\Notepad++\` + `%APPDATA%\Notepad++\` | C:\ + user |
 | 3 | ConEmu + curated settings | script #48 (`install+settings`) | `C:\Program Files\ConEmu\` + `%APPDATA%\ConEmu.xml` | C:\ + user |
 | 4 | PowerShell 7 (pwsh) | script #17 | `C:\Program Files\PowerShell\7\` | C:\ |
-| 5 | pwsh right-click context menu | script #31 | HKCU `Software\Classes\Directory\shell\pwsh` | (registry) |
-| 6 | 7-Zip archiver | choco `7zip.install` | `C:\Program Files\7-Zip\` | C:\ |
-| 7 | WinRAR archiver | choco `winrar` | `C:\Program Files\WinRAR\` | C:\ |
-| 8 | Google Chrome + curated extensions | subcommand `install chrome with-ext` | `C:\Program Files\Google\Chrome\` + HKLM `ExtensionInstallForcelist` policy | C:\ + (registry) |
-| 9 | Ubuntu Mono font | script #47 | `%LOCALAPPDATA%\Microsoft\Windows\Fonts\` | user |
-| 10 | Win11 classic right-click menu | inline `Restore-Win11ClassicContext` | HKCU `Software\Classes\CLSID\{86ca1aa0-...}` | (registry) |
-| 11 | Pin to taskbar (ConEmu, Notepad++, Notepad, Chrome) | script #62 (`install pin-terminal`) | `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` | user |
+| 5 | PowerShell submenu right-click menu | script #31 | HKCR `Directory\(Background)\shell\PowerShellMenu` | (registry) |
+| 6 | ConEmu submenu right-click menu | script #59 | HKCR `Directory\(Background)\shell\ConEmuMenu` | (registry) |
+| 7 | 7-Zip archiver | choco `7zip.install` | `C:\Program Files\7-Zip\` | C:\ |
+| 8 | WinRAR archiver | choco `winrar` | `C:\Program Files\WinRAR\` | C:\ |
+| 9 | Google Chrome + curated extensions | subcommand `install chrome with-ext` | `C:\Program Files\Google\Chrome\` + HKLM `ExtensionInstallForcelist` policy | C:\ + (registry) |
+| 10 | Ubuntu Mono font | script #47 | `%LOCALAPPDATA%\Microsoft\Windows\Fonts\` | user |
+| 11 | Win11 classic right-click menu | inline `Restore-Win11ClassicContext` | HKCU `Software\Classes\CLSID\{86ca1aa0-...}` | (registry) |
+| 12 | Pin to taskbar (ConEmu, Notepad++, Notepad, Chrome) | script #62 (`install pin-terminal`) | `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` | user |
 
 > 💡 The Chrome step pushes extensions via the
 > `ExtensionInstallForcelist` policy registry key, so they apply on next
@@ -462,10 +463,12 @@ first click.
 > 📌 **Auto-pin:** any time you install ConEmu (#48), Notepad++ (#33),
 > Chrome (#58), or VS Code (#01) — standalone or via a profile — that app
 > is automatically pinned to the taskbar. The `terminal` profile also
-> runs **Step 11: Pin to taskbar** as a *separate, dedicated step* in the
+> runs **Step 12: Pin to taskbar** as a *separate, dedicated step* in the
 > install summary, so you can see exactly which apps were pinned, already
 > pinned, or skipped (Win11 22H2+ may hide the "Pin to taskbar" verb on
-> some apps — those are reported as warnings, not failures).
+> some apps — those are reported as warnings, not failures). Notepad++ now
+> also retries through a shortcut-based fallback when the shell verb does
+> not materialize a taskbar pin directly.
 >
 > Re-runs always re-verify the actual pin state (the tracker no longer
 > short-circuits when a previous attempt only got as far as invoking the
@@ -964,7 +967,7 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 | `os email <name>` | Set default mail (`mailto:`) client. Same cross-OS strategy. Names: `outlook`, `outlook-new`, `thunderbird`, `mailbird`, `em-client`, `windows-mail` (+ `evolution`/`geary`/`kmail`/`mailspring`/`apple-mail`/`outlook-mac`/`spark`/`airmail` on POSIX) | 👤 No | [Examples](#default-apps-browser--mail-client) |
 | **Windows context-menu repair** | | | |
 | `os fix-vscode-context-menu` | One-shot repair of the Windows folder right-click "Open with VS Code" entries. Thin wrapper that delegates to script 52 (`scripts/52-vscode-folder-repair/`): backs up `HKCR\Directory\shell\VSCode` + Background + Drive variants, rewrites entries, runs PASS/FAIL handler verification, and refreshes Explorer. Flags: `--dry-run`, `--verify`, `--verify-handlers`, `--no-restart`, `--trace`, `--restore`, `--rollback`, `--refresh`, `--edition stable\|insiders` | 🛡️ Yes | [Examples](#fix-vscode-context-menu-windows-folder-right-click) |
-| `os conemu-context-menu` | Manage the "Open ConEmu Here" folder right-click entries (normal + admin). Thin wrapper that delegates to script 59 (`scripts/59-conemu-context-menu/`). Uninstall snapshots affected `HKCR\Directory\(Background\)shell\ConEmuHere(Admin)` keys to a `.reg` file under `.logs/registry-backups/` BEFORE deletion and prints a copy-paste `reg import` rollback hint. Destructive ops (`uninstall`, `restore`) prompt by default -- pass `--yes`/`-y` to auto-approve, `--non-interactive` for headless mode. Flags: `install`, `--uninstall`, `--dry-run-uninstall`, `--restore` (newest snapshot), `--restore --dry-run`, `--list-snapshots`, `--snapshot-file <p>`, `--yes`/`-y`, `--non-interactive` | 🛡️ Yes | [Examples](#conemu-context-menu-installuninstallrestore) |
+| `os conemu-context-menu` | Manage the **ConEmu** submenu right-click entries (**Open Here** + **Open as Admin**). Thin wrapper that delegates to script 59 (`scripts/59-conemu-context-menu/`). Uninstall snapshots affected `HKCR\Directory\(Background\)shell\ConEmuMenu` keys to a `.reg` file under `.logs/registry-backups/` BEFORE deletion and prints a copy-paste `reg import` rollback hint. Destructive ops (`uninstall`, `restore`) prompt by default -- pass `--yes`/`-y` to auto-approve, `--non-interactive` for headless mode. Flags: `install`, `--uninstall`, `--dry-run-uninstall`, `--restore` (newest snapshot), `--restore --dry-run`, `--list-snapshots`, `--snapshot-file <p>`, `--yes`/`-y`, `--non-interactive` | 🛡️ Yes | [Examples](#conemu-context-menu-installuninstallrestore) |
 | **macOS** | | | |
 | `os clean-vscode-mac` | macOS-only: surgical removal of VS Code Services, `code` CLI symlink, LaunchServices entries, login items, LaunchAgents | 👤 No | [Examples](#os-commands) |
 
@@ -1674,7 +1677,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 |----|--------|--------------|-------|
 | 10 | **VSCode Context Menu Fix** | Add/repair VS Code right-click context menu entries | Yes |
 | 11 | **VSCode Settings Sync** | Sync VS Code settings, keybindings, and extensions | No |
-| 31 | **PowerShell Context Menu** | Add "Open PowerShell Here" (normal + admin) to right-click menu | Yes |
+| 31 | **PowerShell Context Menu** | Add a **PowerShell** submenu with **Open Here** + **Open as Admin** | Yes |
 
 ### Databases (18-29)
 
@@ -1724,7 +1727,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 | 50 | **[OneNote](scripts/50-install-onenote/)** | Install OneNote — pure (default) or `+rm-onedrive` combo | Yes |
 | 51 | **[Lightshot](scripts/51-install-lightshot/)** | Install Lightshot + opinionated registry tweaks | Yes |
 | 52 | **[VSCode Folder Repair](scripts/52-vscode-folder-repair/)** | Repair VSCode folder context-menu (subcommands: dry-run, restore, refresh, ...) | Yes |
-| 59 | **[ConEmu Context Menu](scripts/59-conemu-context-menu/)** | Add "Open ConEmu Here" + admin variant to folder & background right-click menus | Yes |
+| 59 | **[ConEmu Context Menu](scripts/59-conemu-context-menu/)** | Add a **ConEmu** submenu with **Open Here** + **Open as Admin** to folder & background right-click menus | Yes |
 
 ---
 
@@ -1848,8 +1851,8 @@ them when you want to grab a specific batch.
 .\run.ps1 install vscode,git,nodejs,pnpm,python
 .\run.ps1 install npp,obs,wt,dbeaver,conemu       # all desktop tools at once
 .\run.ps1 install whatsapp,onenote,lightshot      # 2025-batch desktop apps
-.\run.ps1 install ubuntu-font,conemu              # font + terminal pair (also wires "Open ConEmu Here" right-click menu)
-.\run.ps1 install conemu-menu                     # ConEmu + right-click "Open ConEmu Here" (script 48 + 59)
+.\run.ps1 install ubuntu-font,conemu              # font + terminal pair (also wires the ConEmu submenu right-click menu)
+.\run.ps1 install conemu-menu                     # ConEmu + submenu right-click menu (script 48 + 59)
 .\run.ps1 install all-settings                    # batch settings sync incl. ConEmu menu (1, 11, 32, 33, 36, 37, 48, 59)
 .\run.ps1 install go,rust,cpp,dotnet,java         # all systems-language runtimes
 
@@ -2135,7 +2138,7 @@ scripts/
   28-install-duckdb/           # DuckDB
   29-install-litedb/           # LiteDB
   databases/                   # Database orchestrator menu
-  31-pwsh-context-menu/        # PowerShell context menu
+  31-pwsh-context-menu/        # PowerShell submenu context menu
   32-install-dbeaver/          # DBeaver Community
   33-install-notepadpp/        # Notepad++
   34-install-sticky-notes/     # Simple Sticky Notes
@@ -2151,7 +2154,7 @@ scripts/
   44-install-rust/             # Rust toolchain via rustup
   45-install-docker/           # Docker Desktop + Compose
   46-install-kubernetes/       # kubectl + minikube + Helm
-  59-conemu-context-menu/      # "Open ConEmu Here" right-click menu
+  59-conemu-context-menu/      # ConEmu submenu right-click menu
   audit/                       # Audit scanner
 spec/                          # Specifications per script
 suggestions/                   # Improvement ideas

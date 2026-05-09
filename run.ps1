@@ -567,7 +567,7 @@ function Show-RootHelpRaw {
     Write-Host "    $("install vscode+menu+fix".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + install menu + repair menu [01,11,10,52]" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "      PowerShell:" -ForegroundColor DarkYellow
-    Write-Host "    $("install pwsh-menu".PadRight($kc))" -NoNewline; Write-Host "Open PowerShell Here menu (auto-installs PowerShell) [17,31]" -ForegroundColor DarkGray
+    Write-Host "    $("install pwsh-menu".PadRight($kc))" -NoNewline; Write-Host "PowerShell submenu with 'Open Here' + 'Open as Admin' (auto-installs PowerShell) [17,31]" -ForegroundColor DarkGray
     Write-Host "    $("install pwsh-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as pwsh-menu (alias) [17,31]" -ForegroundColor DarkGray
     Write-Host "    $("install ps-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as pwsh-menu (alias) [17,31]" -ForegroundColor DarkGray
     Write-Host "    $("install powershell-menu".PadRight($kc))" -NoNewline; Write-Host "Same as pwsh-menu (alias) [17,31]" -ForegroundColor DarkGray
@@ -577,7 +577,7 @@ function Show-RootHelpRaw {
     Write-Host "    $("install conemu+settings".PadRight($kc))" -NoNewline; Write-Host "Same as conemu (explicit) [48 install+settings]" -ForegroundColor DarkGray
     Write-Host "    $("install conemu-settings".PadRight($kc))" -NoNewline; Write-Host "Apply ConEmu.xml only (skip install) [48 settings-only]" -ForegroundColor DarkGray
     Write-Host "    $("install install-conemu".PadRight($kc))" -NoNewline; Write-Host "Install ConEmu only (skip settings) [48 install-only]" -ForegroundColor DarkGray
-    Write-Host "    $("install conemu-menu".PadRight($kc))" -NoNewline; Write-Host "ConEmu + 'Open ConEmu Here' folder/background right-click [48,59]" -ForegroundColor DarkGray
+    Write-Host "    $("install conemu-menu".PadRight($kc))" -NoNewline; Write-Host "ConEmu submenu with 'Open Here' + 'Open as Admin' for folder/background right-click [48,59]" -ForegroundColor DarkGray
     Write-Host "    $("install conemu+menu".PadRight($kc))" -NoNewline; Write-Host "Same as conemu-menu (alias) [48,59]" -ForegroundColor DarkGray
     Write-Host "    $("install conemu-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as conemu-menu (alias) [48,59]" -ForegroundColor DarkGray
     Write-Host ""
@@ -748,7 +748,7 @@ function Show-RootHelpRaw {
     Write-Host "    Optional" -ForegroundColor Magenta
     & $printRow "10" "VSCode Context Menu Fix"  "Add/repair VSCode right-click context menu entries"
     & $printRow "11" "VSCode Settings Sync"     "Sync VSCode settings, keybindings, and extensions"
-    & $printRow "31" "PowerShell Context Menu"  "Add Open PowerShell Here to right-click menu"
+    & $printRow "31" "PowerShell Context Menu"  "Add PowerShell submenu to right-click menu (Open Here + Open as Admin)"
     Write-Host ""
     Write-Host "    Orchestrator" -ForegroundColor Magenta
     & $printRow "12" "Install All Dev Tools"    "Interactive grouped menu: pick tools or install everything"

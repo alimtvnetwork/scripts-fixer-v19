@@ -1,7 +1,7 @@
 {
   "scriptName": "57 - Context Menu Bundle",
   "help": {
-    "synopsis": "Run PowerShell Here (script 31) + VS Code folder repair (script 52) in one guided pass.",
+    "synopsis": "Run the PowerShell submenu installer (script 31) + VS Code folder repair (script 52) in one guided pass.",
     "usage": [
       ".\\run.ps1                 # guided install (prompts per component)",
       ".\\run.ps1 install         # same as default",
@@ -17,7 +17,7 @@
     ]
   },
   "messages": {
-    "banner":            "Context Menu Bundle -- PowerShell Here + VS Code folder repair",
+    "banner":            "Context Menu Bundle -- PowerShell submenu + VS Code folder repair",
     "notAdmin":          "Administrator privileges required. Re-run from an elevated PowerShell.",
     "scriptDisabled":    "Bundle disabled in config.json (enabled=false).",
     "promptComponent":   "Run '{0}'? [Y/n] ",

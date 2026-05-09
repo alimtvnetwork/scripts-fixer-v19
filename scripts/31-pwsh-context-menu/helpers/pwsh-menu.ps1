@@ -103,6 +103,53 @@ function ConvertTo-PwshRegPath {
     return $p
 }
 
+function Get-PwshParentRegistryPaths {
+    param([PSCustomObject]$Config)
+
+    $parentKeyName = "$($Config.menu.parentKeyName)"
+    return @{
+        directory  = "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\$parentKeyName"
+        background = "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\$parentKeyName"
+    }
+}
+
+function Get-PwshParentLeafLabel {
+    param([string]$ContextMenuLabel)
+
+    if ($ContextMenuLabel -like 'Open PowerShell*') {
+        return ($ContextMenuLabel -replace '^Open PowerShell Here\s*', '').Trim()
+    }
+    return $ContextMenuLabel
+}
+
+function Register-PwshParentMenu {
+    param(
+        [string]$RegistryPath,
+        [string]$Label,
+        [string]$IconValue,
+        [bool]$Runas,
+        $LogMessages
+    )
+
+    try {
+        $subKeyPath = $RegistryPath -replace '^Registry::HKEY_CLASSES_ROOT\\', ''
+        $hkcr = [Microsoft.Win32.Registry]::ClassesRoot
+        $key = $hkcr.CreateSubKey($subKeyPath)
+        $key.SetValue('', $Label)
+        $key.SetValue('MUIVerb', $Label)
+        $key.SetValue('SubCommands', '')
+        $key.SetValue('Icon', $IconValue)
+        if ($Runas) {
+            $key.SetValue('HasLUAShield', '')
+        }
+        $key.Close()
+        return $true
+    } catch {
+        Write-Log (("FAILED parent menu write at {0}: {1}" -f $RegistryPath, $_.Exception.Message)) -Level "error"
+        return $false
+    }
+}
+
 # --------------------------------------------------------------------------
 #  Register-PwshContextMenu -- create one registry entry
 # --------------------------------------------------------------------------
@@ -254,6 +301,26 @@ function Invoke-PwshMode {
     return $isAllOk
 }
 
+function Install-PwshParentMenus {
+    param(
+        [PSCustomObject]$Config,
+        [string]$PwshExe,
+        $LogMessages
+    )
+
+    $parentPaths = Get-PwshParentRegistryPaths -Config $Config
+    $iconValue = "`\"$PwshExe`\""
+    $parentLabel = "$($Config.menu.parentLabel)"
+    $isAllOk = $true
+
+    foreach ($scope in @('directory', 'background')) {
+        $ok = Register-PwshParentMenu -RegistryPath $parentPaths[$scope] -Label $parentLabel -IconValue $iconValue -Runas $false -LogMessages $LogMessages
+        if (-not $ok) { $isAllOk = $false }
+    }
+
+    return $isAllOk
+}
+
 function Uninstall-PwshContextMenu {
     <#
     .SYNOPSIS
@@ -279,6 +346,17 @@ function Uninstall-PwshContextMenu {
                         Write-Log "Removed registry key: $regPath" -Level "success"
                     }
                 }
+            }
+        }
+    }
+
+    if ($Config.PSObject.Properties.Name -contains 'menu') {
+        $parentPaths = Get-PwshParentRegistryPaths -Config $Config
+        foreach ($scope in @('directory', 'background')) {
+            $regPath = $parentPaths[$scope]
+            if (Test-Path $regPath) {
+                Remove-Item -Path $regPath -Recurse -Force
+                Write-Log "Removed registry key: $regPath" -Level "success"
             }
         }
     }

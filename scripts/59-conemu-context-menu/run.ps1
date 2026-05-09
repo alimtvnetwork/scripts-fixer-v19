@@ -192,7 +192,8 @@ if (-not $conemuExe) {
 
 # -- Process modes (normal + admin) -------------------------------------------
 $enabledModes    = $config.enabledModes
-$isAllSuccessful = $true
+$parentMenusOk   = Install-ConEmuParentMenus -Config $config -ConEmuExe $conemuExe -LogMessages $logMessages
+$isAllSuccessful = $parentMenusOk
 
 foreach ($modeName in $enabledModes) {
     $mode = $config.modes.$modeName
@@ -224,7 +225,7 @@ if ($isAllSuccessful) {
 # 'empty-folder' test to that registry path too.)
 $null = Invoke-RightClickVerification `
     -Tool         'ConEmu' `
-    -EntryLabel   'ConEmu Here' `
+    -EntryLabel   'ConEmu' `
     -RetryCommand ".\run.ps1 -I 59 install"
 
 # -- Save resolved state -------------------------------------------------------
