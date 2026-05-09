@@ -421,11 +421,16 @@ function Get-ConEmuContextMenuKeys {
 
     $psPaths   = @()
     $regPaths  = @()
+    $useCascadeRoot = $Config.PSObject.Properties.Name -contains 'menu'
     foreach ($modeName in $Config.enabledModes) {
         $mode = $Config.modes.$modeName
         if ($null -eq $mode) { continue }
         foreach ($scope in @("directory", "background")) {
-            $p = $mode.registryPaths.$scope
+            $p = if ($useCascadeRoot) {
+                Resolve-ConEmuLeafRegistryPath -RegistryPath $mode.registryPaths.$scope -Config $Config
+            } else {
+                $mode.registryPaths.$scope
+            }
             if ([string]::IsNullOrWhiteSpace($p)) { continue }
             $psPaths  += $p
             $regPaths += ($p -replace '^Registry::', '')
@@ -433,10 +438,13 @@ function Get-ConEmuContextMenuKeys {
     }
     if ($Config.PSObject.Properties.Name -contains 'menu') {
         $parentPaths = Get-ConEmuParentRegistryPaths -Config $Config
+        $cascadeRoot = Get-ConEmuCascadeRegistryRoot -Config $Config
         $psPaths += $parentPaths.directory
         $psPaths += $parentPaths.background
+        $psPaths += $cascadeRoot
         $regPaths += ($parentPaths.directory -replace '^Registry::', '')
         $regPaths += ($parentPaths.background -replace '^Registry::', '')
+        $regPaths += ($cascadeRoot -replace '^Registry::', '')
     }
     return [pscustomobject]@{
         PsPaths  = $psPaths
