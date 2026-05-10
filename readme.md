@@ -927,6 +927,19 @@ because they cannot be downloaded as GGUF files.
 👉 **Full table of every model with size, RAM, capabilities, license, and
 download link**: [`scripts/43-install-llama-cpp/models-list.md`](scripts/43-install-llama-cpp/models-list.md)
 
+### 🎬 Specialty AI Models (manual install)
+
+Models that don't fit the GGUF / Ollama catalogs (custom pipelines,
+NF4 encoders, prebuilt CUDA wheels) are tracked as standalone specs.
+
+| Model | What it is | Spec | Upstream |
+|---|---|---|---|
+| **Kimodo** + `KIMODO-Meta3_llm2vec_NF4` | NVIDIA-derived motion/video pipeline with NF4-quantized LLM2Vec text encoder (~5.4 GB). Python repo + prebuilt `motion_correction` wheel + offline encoder override. | [`spec/kimodo/readme.md`](spec/kimodo/readme.md) | [gist](https://gist.github.com/Aero-Ex/3affd23c4c9632dbff3045f4ae3655ec) · [kimodo](https://github.com/Aero-Ex/kimodo) · [HF encoder](https://huggingface.co/Aero-Ex/KIMODO-Meta3_llm2vec_NF4) |
+
+> Why separate? Specialty models need a Python repo clone, CUDA wheel,
+> and a one-line edit to a wrapper file — they can't be pulled like a
+> GGUF or `ollama pull` slug. See the spec for full hardware + step-by-step.
+
 ---
 
 ## 🧹 OS Toolbox — Clean & Tweak Windows
