@@ -987,6 +987,7 @@ function Install-SelectedModels {
             $downloadedCount++
         } else {
             Write-Log "  [$($model.index)] FAILED (checksum): $($model.displayName)" -Level "error"
+            Write-Log "          URL: $($model.downloadUrl)" -Level "error"
             if (Test-Path $outputPath) {
                 try { Remove-Item $outputPath -Force } catch { }
             }
