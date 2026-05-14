@@ -773,8 +773,16 @@ function Install-SelectedModels {
             Write-Log "    $($model.parameters) | $($model.quantization) | $($model.fileSizeGB) GB | RAM: $($model.ramRequiredGB)+ GB" -Level "info"
             Write-Log "    $($model.bestFor)" -Level "info"
 
-            $isDownloadOk = Invoke-Aria2Download -Uri $model.downloadUrl -OutFile $outputPath -Label $model.displayName `
-                -MaxConnections $maxConn -MaxDownloads $maxDl -ChunkSize $chunkSize -ContinueDownload $isContinue
+            # Route through the shared fast-download helper (aria2c-first
+            # with auto-install + CODE-RED file-error logging). Splits map
+            # to aria2c -x/-s; PieceSize maps to -k.
+            $isFastDownloadLoaded = Get-Command Invoke-FastDownload -ErrorAction SilentlyContinue
+            if (-not $isFastDownloadLoaded) {
+                $fastDlScript = Join-Path $PSScriptRoot "..\..\shared\fast-download.ps1"
+                if (Test-Path $fastDlScript) { . $fastDlScript }
+            }
+            $isDownloadOk = Invoke-FastDownload -Uri $model.downloadUrl -OutFile $outputPath `
+                -Splits $maxDl -PieceSize $chunkSize -Label $model.displayName
         }
 
         if (-not $isDownloadOk) {
