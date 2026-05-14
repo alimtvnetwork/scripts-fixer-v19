@@ -250,7 +250,7 @@ try {
             $catalog = @()
             $catalog += Get-BackendCatalog -Backend "llama-cpp" -Config $config -ScriptsRoot $scriptsRoot
             $catalog += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
-            $matched = Invoke-ModelFlagFilter -Models $catalog -Options $flagOpts
+            $matched = @(Invoke-ModelFlagFilter -Models $catalog -Options $flagOpts | Where-Object { $null -ne $_ })
 
             if ($matched.Count -eq 0) {
                 Write-Log "No models match the supplied flags." -Level "warn"
@@ -320,7 +320,7 @@ try {
             $query = Read-Host -Prompt "  Search Ollama Hub for"
         }
 
-        $results = Invoke-OllamaHubSearch -Query $query
+        $results = @(Invoke-OllamaHubSearch -Query $query | Where-Object { $null -ne $_ })
         $hasResults = $results.Count -gt 0
         if (-not $hasResults) {
             Write-Log $logMessages.messages.searchNoResults -Level "warn"
@@ -435,7 +435,7 @@ try {
             $allModels += Get-BackendCatalog -Backend $b -Config $config -ScriptsRoot $scriptsRoot
         }
 
-        $matched = Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages
+        $matched = @(Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages | Where-Object { $null -ne $_ })
         if ($matched.Count -eq 0) {
             Write-Log $logMessages.messages.csvNoneFound -Level "error"
             return
