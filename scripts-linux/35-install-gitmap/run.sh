@@ -90,7 +90,7 @@ assert_gitmap_version() {
 verb_install() {
   write_install_paths \
     --tool   "gitmap" \
-    --source "$INSTALL_URL (curl | bash)" \
+    --source "$INSTALL_URL (curl | sh)" \
     --temp   "${TMPDIR:-/tmp}/scripts-fixer/gitmap" \
     --target "$DEST"
 
@@ -110,9 +110,9 @@ verb_install() {
 
   mkdir -p "$BIN_DIR" || { log_file_error "$BIN_DIR" "bin dir mkdir failed"; return 1; }
 
-  log_info "[35] Invoking: curl -fsSL $INSTALL_URL | bash"
-  if ! curl -fsSL "$INSTALL_URL" | bash; then
-    log_file_error "$INSTALL_URL" "curl | bash one-liner exited non-zero"
+  log_info "[35] Invoking: curl -fsSL $INSTALL_URL | sh"
+  if ! curl -fsSL "$INSTALL_URL" | sh; then
+    log_file_error "$INSTALL_URL" "curl | sh one-liner exited non-zero"
     return 1
   fi
 

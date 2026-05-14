@@ -1867,7 +1867,7 @@ UNIX equivalent:
 [35] gitmap release tag: main
 [35] resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh
 [35] Starting gitmap installer
-[35] Invoking: curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh | bash
+[35] Invoking: curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh | sh
 [35] Verifying 'gitmap --version' works in current session...
 [OK] [35] Verified: gitmap --version -> 3.181
 [35] gitmap binary path: /home/alim/.local/bin/gitmap
