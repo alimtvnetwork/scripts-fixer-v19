@@ -600,6 +600,17 @@ case "${VERB:-help}" in
     bash "${mp_cmd[@]}"
     exit $?
     ;;
+  remote-install)
+    # SHA256-pinned remote installer (Linux mirror of Windows remote.<key>).
+    descriptor="$ROOT/_shared/remote-installers/${REMOTE_KEY}.json"
+    if [ ! -f "$descriptor" ]; then
+      log_file_error "$descriptor" "remote-install: descriptor missing for key '${REMOTE_KEY}'"
+      exit 1
+    fi
+    . "$ROOT/_shared/remote-installers/remote-install.sh"
+    remote_install "$descriptor"
+    exit $?
+    ;;
   list) registry_list_all | column -t -s$'\t' ;;
   health)      verb_health ;;
   repair-all)  verb_repair_all ;;
