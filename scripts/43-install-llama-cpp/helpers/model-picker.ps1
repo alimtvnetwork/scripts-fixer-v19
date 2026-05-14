@@ -923,7 +923,12 @@ function Install-SelectedModels {
 
                 if ($rc -and -not $isFileLanded) {
                     Write-Log "  [$($model.index)] [POST-CHECK FAIL] downloader reported success but '$outputPath' is missing or empty (size=$fileBytes B) -- attempt $attempt/$maxFileRetries" -Level "warn"
-                    Write-FileError -FilePath $outputPath -Operation "post-download-verify" -Reason "downloader exit=ok but file missing/zero-byte (attempt $attempt/$maxFileRetries)" -Module "Install-SelectedModels"
+                    Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
+                    Write-FileError -FilePath $outputPath -Operation "post-download-verify" -Reason "downloader exit=ok but file missing/zero-byte (attempt $attempt/$maxFileRetries, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
+                } elseif (-not $rc) {
+                    Write-Log "  [$($model.index)] [DOWNLOAD FAIL] $($model.displayName) -- attempt $attempt/$maxFileRetries (downloader rc=fail)" -Level "warn"
+                    Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
+                    Write-FileError -FilePath $outputPath -Operation "download-attempt" -Reason "downloader returned failure (attempt $attempt/$maxFileRetries, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 }
             }
         }
