@@ -74,6 +74,13 @@ ensure_profile_snippet() {
 }
 
 verb_install() {
+  # HARD GUARD: 'models-download' must NEVER trigger a binary install.
+  # The orchestrator sets MODELS_DOWNLOAD_NO_BINARIES=1; bail loudly.
+  if [ "${MODELS_DOWNLOAD_NO_BINARIES:-0}" = "1" ]; then
+    log_err "[43] HARD GUARD TRIPPED: verb_install called during 'models-download'. Binary installs are forbidden in this mode."
+    log_file_error "$VERSION_DIR" "models-download invoked binary-install path (url=$DOWNLOAD_URL)"
+    return 87
+  fi
   write_install_paths \
     --tool   "llama.cpp (prebuilt binary, $TAG)" \
     --source "$DOWNLOAD_URL" \
