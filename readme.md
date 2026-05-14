@@ -988,9 +988,11 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 | Subcommand | What it does | Admin | See also |
 |------------|--------------|:-----:|----------|
 | **Cleanup** | | | |
-| `os clean` | Master cleaner: temp + Windows Update cache + chocolatey lib-bad/lib-bkp + recycle bin + event logs + PSReadLine history | 🛡️ Yes | [What it touches](#what-os-clean-actually-touches) · [Examples](#os-commands) |
-| `os clean --dry-run` | **Preview only** — scans every target and reports files + size, deletes nothing | 👤 No | [Examples](#os-commands) |
-| `os clean-<category>` | Run a single category — 36 categories, e.g. `clean-chrome`, `clean-recycle`, `clean-obs-recordings`, `clean-chkdsk` (see `os --help`) | varies | [Examples](#os-commands) |
+| `os clean` | **Simple cleaner** — 5 quick wins: Windows Update download cache + `%TEMP%` + `%LOCALAPPDATA%\Temp` + `C:\Windows\Temp` + event logs + PSReadLine history | 🛡️ Yes | [What it touches](#what-os-clean-actually-touches) · [Examples](#os-commands) |
+| `os clean --dry-run` | **Preview only** — reports sizes for each target, deletes nothing | 👤 No | [Examples](#os-commands) |
+| `os advance-clean` | **Advanced cleaner** — full 59-category sweep (browsers, dev caches, OBS, recycle bin, DISM ResetBase, …). Aliases: `advanced-clean`, `clean-all` | 🛡️ Yes | [Examples](#os-commands) |
+| `os advance-clean --dry-run` | Preview every advanced category, deletes nothing | 👤 No | [Examples](#os-commands) |
+| `os clean-<category>` | Run a single advanced category — 59 available, e.g. `clean-chrome`, `clean-recycle`, `clean-obs-recordings`, `clean-chkdsk` (see `os --help`) | varies | [Examples](#os-commands) |
 | `os temp-clean` | Standalone `%TEMP%` + `%LOCALAPPDATA%\Temp` + `C:\Windows\Temp` + per-user temp + chocolatey temp sweep | 🛡️ Yes | [Examples](#usage-examples-os-update-os-power-os-temp-clean) |
 | `os choco-clean` | Quarantine sweep for `lib-bad`, `lib-bkp`, stale `.backup`, leftover `.nupkg`, plus optional `choco-cleaner` | 🛡️ Yes | [Examples](#os-commands) |
 | **System tweaks** | | | |
@@ -1024,20 +1026,29 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 
 ### What `os clean` actually touches
 
+`os clean` is the **simple, opinionated** sweep — five targets, no consent prompts,
+suitable as a daily/weekly habit. For the full 59-category sweep see
+[`os advance-clean`](#os-commands).
+
+| # | Target | Path | Why |
+|---|--------|------|-----|
+| 1 | Update cache       | `C:\Windows\SoftwareDistribution\Download` | Already-applied Windows Update payloads |
+| 2 | User temp          | `%TEMP%`                                   | Per-user app debris, installer leftovers |
+| 3 | LocalAppData temp  | `%LOCALAPPDATA%\Temp`                      | Per-user app caches |
+| 4 | Windows temp       | `C:\Windows\Temp`                          | System-level installer/log scratch |
+| 5 | Event logs         | Application / System / Security / …        | Cleared via `wevtutil cl` |
+| 6 | PSReadLine history | `%APPDATA%\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt` | Shell command history |
+
+`os advance-clean` additionally touches: choco quarantine (`lib-bad`/`lib-bkp`),
+recycle bin, browser caches (Chrome/Edge/Firefox/Brave), dev-tool caches
+(npm/pnpm/bun/yarn/cargo/go/maven/gradle/conda/poetry/pyenv/nvm/volta/asdf/mise),
+JetBrains/Android Studio caches, app caches (Discord/Spotify/Slack/Teams/Zoom/…),
+shader caches, font cache, OBS recordings (age-gated), Steam shaders, and DISM
+ResetBase. Destructive categories (recycle, ms-search, obs-recordings,
+windows-update-old) require typed-yes consent.
+
 All paths are declared in [`scripts/os/config.json`](scripts/os/config.json) —
 nothing else is deleted.
-
-| Target | Path | Why |
-|--------|------|-----|
-| User temp | `%TEMP%` | Per-user app debris, installer leftovers |
-| LocalAppData temp | `%LOCALAPPDATA%\Temp` | Per-user app caches |
-| Windows temp | `C:\Windows\Temp` | System-level installer/log scratch |
-| Update cache | `C:\Windows\SoftwareDistribution\Download` | Already-applied Windows Update payloads |
-| Choco quarantine | `C:\ProgramData\chocolatey\lib-bad`, `lib-bkp` | Failed/orphaned package backups |
-| Choco temp | `%TEMP%\chocolatey` | Mid-install scratch |
-| Recycle Bin | All drives | Standard empty-recycle-bin |
-| Event logs | Application/System/Security | Cleared via `wevtutil cl` |
-| PSReadLine history | `~\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt` | Shell command history |
 
 <p align="center">
   <img src="assets/demos/run-os-clean-detailed.svg" alt="Demo: os clean --dry-run — preview reclaimable disk space across temp/cache/recycle folders" width="100%"/>
@@ -1049,10 +1060,12 @@ One short example per subcommand listed in the OS table above. Add `--dry-run` t
 
 ```powershell
 # --- Cleaning ---
-.\run.ps1 os clean --dry-run                          # os clean --dry-run : preview every target, delete nothing
-.\run.ps1 os clean                                    # os clean           : master cleaner with per-target confirmation
-.\run.ps1 os clean --skip recycle,ms-search           # os clean           : skip specific categories
-.\run.ps1 os clean-chrome                             # os clean-<category>: single-category sweep (36 available)
+.\run.ps1 os clean --dry-run                          # os clean           : SIMPLE sweep, preview sizes only
+.\run.ps1 os clean --yes                              # os clean           : SIMPLE sweep (WU + temp + event logs + PSReadLine)
+.\run.ps1 os advance-clean --dry-run                  # os advance-clean   : preview the full 59-category sweep
+.\run.ps1 os advance-clean                            # os advance-clean   : full master cleaner with per-target consent
+.\run.ps1 os advance-clean --skip recycle,ms-search   # os advance-clean   : skip specific categories
+.\run.ps1 os clean-chrome                             # os clean-<category>: single advanced category sweep (59 available)
 .\run.ps1 os temp-clean                               # os temp-clean      : standalone %TEMP% + Windows\Temp + choco temp
 .\run.ps1 os choco-clean                              # os choco-clean     : chocolatey lib-bad/lib-bkp/.backup quarantine
 

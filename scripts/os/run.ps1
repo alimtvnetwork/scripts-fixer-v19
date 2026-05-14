@@ -159,7 +159,11 @@ function Show-OsHelp {
     Write-Host ""
     Write-Host "  PRIMARY ACTIONS" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "    clean [flags]                                          Run all 59 cleanup categories" -ForegroundColor Green
+    Write-Host "    clean [--dry-run] [--yes]                              SIMPLE cleaner (5 quick wins)" -ForegroundColor Green
+    Write-Host "      WU download cache + %TEMP% + %LOCALAPPDATA%\Temp + C:\Windows\Temp + event logs + PSReadLine history" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "    advance-clean [flags]                                  ADVANCED cleaner -- all 59 categories" -ForegroundColor Green
+    Write-Host "      Aliases: advanced-clean, clean-all, clean-advanced" -ForegroundColor DarkGray
     Write-Host "      --yes                Auto-consent destructive categories" -ForegroundColor DarkGray
     Write-Host "      --dry-run            Report only (no deletions, no consent file written)" -ForegroundColor DarkGray
     Write-Host "      --skip <a,b,c>       Skip listed categories" -ForegroundColor DarkGray
@@ -386,6 +390,13 @@ if ($normalizedAction -match '^clean-(.+)$') {
 
 switch ($normalizedAction) {
     "clean" {
+        # SIMPLE clean: WU cache + temp dirs + event logs + PSReadLine history.
+        # For the full 59-category sweep use 'advance-clean' / 'advanced-clean'.
+        & (Join-Path $scriptDir "helpers\simple-clean.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("advance-clean", "advanced-clean", "clean-all", "clean-advanced", "clean-advance") } {
+        # Master 59-category orchestrator (was previously 'os clean').
         & (Join-Path $scriptDir "helpers\clean.ps1") @Rest
         exit $LASTEXITCODE
     }
