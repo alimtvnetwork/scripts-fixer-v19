@@ -533,9 +533,45 @@ function Show-ModelList {
         }
     }
     Write-Host ""
-    Write-Host "  Install by number : .\run.ps1 models download 5,6,10" -ForegroundColor DarkGray
-    Write-Host "  Install by id     : .\run.ps1 models download qwen2.5-coder-3b,llama3.2" -ForegroundColor DarkGray
-    Write-Host "  Filter / order    : .\run.ps1 models list coding   |   models list coding,speed   |   models list --tags" -ForegroundColor DarkGray
+    Write-Host "  ========================================================================" -ForegroundColor Cyan
+    Write-Host "    How to download models -- syntax & examples" -ForegroundColor Cyan
+    Write-Host "  ========================================================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Output directory" -ForegroundColor White
+    Write-Host "    default                       per-backend (run 'models path' to inspect)" -ForegroundColor DarkGray
+    Write-Host "    custom (shared override)      .\run.ps1 models path C:\ai\models" -ForegroundColor DarkGray
+    Write-Host "    custom (backend-only)         .\run.ps1 models path llama  C:\ai\gguf" -ForegroundColor DarkGray
+    Write-Host "                                  .\run.ps1 models path ollama C:\ai\ollama" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Single / multiple downloads" -ForegroundColor White
+    Write-Host "    .\run.ps1 models download qwen2.5-coder-3b" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models download qwen2.5-coder-3b,llama3.2" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models download 5,6,10                          # by number from this list" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Filter / sort by capability tag (use 'models list --tags' for the full set)" -ForegroundColor White
+    Write-Host "    .\run.ps1 models list coding                              # only coding models" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list reasoning,speed                     # filter by reasoning, then sort by speed" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list voice,multilingual                  # multi-tag filter" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list llama coding                        # backend + capability filter" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Filter examples (preview a family, then download what fits)" -ForegroundColor White
+    Write-Host "    .\run.ps1 models list  | Select-String 'qwen3.7'           # show every Qwen 3.7 family member" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models download qwen3.7-coder-7b,qwen3.7-coder-14b   # bulk download by id" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list coding | Select-String -NotMatch '32B'   # under 32B coding models" -ForegroundColor DarkGray
+    Write-Host "    # (Linux equivalent supports first-class --family/--max-ram/--exclude/--all flags --" -ForegroundColor DarkGray
+    Write-Host "    #  see 'scripts-linux/run.sh -h' or 'scripts-linux/43-install-llama-cpp/model-pull.sh -h')" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Ratings legend" -ForegroundColor White -NoNewline
+    Write-Host "  (per-model line shows: code/reason/speed/overall, 0-10 scale)" -ForegroundColor DarkGray
+    Write-Host "    " -NoNewline
+    Write-Host "9-10 exceptional " -ForegroundColor Yellow -NoNewline
+    Write-Host "| " -ForegroundColor DarkGray -NoNewline
+    Write-Host "7-8 strong " -ForegroundColor Green -NoNewline
+    Write-Host "| " -ForegroundColor DarkGray -NoNewline
+    Write-Host "5-6 competent " -ForegroundColor White -NoNewline
+    Write-Host "| " -ForegroundColor DarkGray -NoNewline
+    Write-Host "<5 weak" -ForegroundColor DarkGray
+    Write-Host ""
 
     if ($DownloadPaths) { Show-ModelDownloadPaths -Paths $DownloadPaths }
 }

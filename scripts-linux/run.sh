@@ -208,15 +208,33 @@ Fast download (aria2c-first, defaults splits=16, piece=1M):
                                 to curl/wget. Used by all model pulls.
 
 Model download (script 43 llama.cpp model-pull):
-  models list                    Print all available GGUF models from the catalog
-  models <id> [<id> ...]         Download one or more models by id
-       --dir <path>              Output directory (default: ~/models/gguf)
+  models list                    Print full catalog (id, family, params, size,
+                                 RAM required, ratings cod/rea/spd/ovr, name)
+                                 Followed by a syntax + filter examples footer.
+  models <id> [<id> ...]         Download one or more models by exact id
+       --dir <path>              Output directory (default: ~/models/gguf, alias -d)
   model  ...                     Alias of 'models'
 
+  Filters (compose with 'list' to preview, with --all to download):
+       --family <pat>            Match family/displayName/id substring (case-insensitive)
+       --max-ram <gb> | --min-ram <gb>     Filter by ramRequiredGB
+       --max-size <gb> | --min-size <gb>   Filter by fileSizeGB
+       --coding | --reasoning | --writing | --voice | --multilingual | --chat
+                                 Keep models flagged with that capability
+       --exclude <pat>           Drop ids/family/displayName matching (repeatable)
+       --all                     Download every model that survives the filters
+       --dry-run                 Show what would be downloaded; do not fetch
+
 Examples:
-  ./run.sh models list
-  ./run.sh models qwen2.5-coder-3b
+  ./run.sh models list                                        # full catalog + footer
+  ./run.sh models qwen2.5-coder-3b                            # one model
   ./run.sh models qwen2.5-coder-3b nemotron-8b-opus-distill --dir /mnt/ai
+  ./run.sh models list --family qwen3.7                       # preview Qwen 3.7 family
+  ./run.sh models --family qwen3.7 --max-ram 16 --all         # bulk: Qwen 3.7 fitting 16 GB
+  ./run.sh models --family qwen3.7 --max-ram 16 --exclude 32b --all
+  ./run.sh models --coding --max-size 8 --all --dry-run       # preview coding picks
+  ./run.sh models --reasoning --min-ram 8 --max-ram 32 --all  # reasoning band
+  Ratings legend: 9-10 exceptional | 7-8 strong | 5-6 competent | <5 weak
 
 Remote installers (SHA256-pinned, mirror of Windows remote.<key>):
   install coding-guidelines    Coding Guidelines v23 -- alimtvnetwork/coding-guidelines-v23
@@ -570,44 +588,20 @@ case "${VERB:-help}" in
     exit $?
     ;;
   models)
-    # Parse model ids + optional --dir; forward everything to model-pull.sh.
-    mp_dir=""; mp_args=()
+    # Forward every arg to model-pull.sh -- it owns flag parsing (filters,
+    # --dir, --all, --dry-run, --exclude, capability flags, etc).
     mp_filtered=()
     for _a in "${MODELS_REST[@]:-}"; do [ -n "$_a" ] && mp_filtered+=("$_a"); done
-    mp_i=0
-    while [ "$mp_i" -lt "${#mp_filtered[@]}" ]; do
-      mp_a="${mp_filtered[$mp_i]}"
-      case "$mp_a" in
-        --dir|-d)
-          mp_i=$((mp_i+1)); mp_dir="${mp_filtered[$mp_i]:-}" ;;
-        --dir=*|-d=*) mp_dir="${mp_a#*=}" ;;
-        -h|--help)
-          echo "Usage: ./run.sh models list"
-          echo "       ./run.sh models <id> [<id> ...] [--dir <path>]"
-          exit 0 ;;
-        -*)
-          log_warn "models: unknown flag '$mp_a'"; ;;
-        *)
-          mp_args+=("$mp_a") ;;
-      esac
-      mp_i=$((mp_i+1))
-    done
-    if [ "${#mp_args[@]}" -eq 0 ]; then
-      log_err "models: at least one model id or 'list' is required"
-      echo "Usage: ./run.sh models list"
-      echo "       ./run.sh models <id> [<id> ...] [--dir <path>]"
-      exit 64
-    fi
-    # Build explicit command so model-pull.sh is always reachable
     MP_SCRIPT="$ROOT/43-install-llama-cpp/model-pull.sh"
-    if [ ! -x "$MP_SCRIPT" ]; then
+    if [ ! -x "$MP_SCRIPT" ] && [ ! -f "$MP_SCRIPT" ]; then
       log_file_error "$MP_SCRIPT" "model-pull.sh missing or not executable"
       exit 1
     fi
-    mp_cmd=("$MP_SCRIPT")
-    [ -n "$mp_dir" ] && mp_cmd+=("--dir" "$mp_dir")
-    mp_cmd+=("${mp_args[@]}")
-    bash "${mp_cmd[@]}"
+    if [ "${#mp_filtered[@]}" -gt 0 ]; then
+      bash "$MP_SCRIPT" "${mp_filtered[@]}"
+    else
+      bash "$MP_SCRIPT"
+    fi
     exit $?
     ;;
   remote-install)
