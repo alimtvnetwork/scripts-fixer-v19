@@ -1,8 +1,8 @@
 {
   "Version": "1.5.6",
   "Title": "Scripts Fixer",
-  "RepoSlug": "scripts-fixer-v17",
-  "RepoUrl": "https://github.com/alimtvnetwork/scripts-fixer-v17",
+  "RepoSlug": "scripts-fixer-v18",
+  "RepoUrl": "https://github.com/alimtvnetwork/scripts-fixer-v18",
   "Description": "Cross-platform installer & repair scripts (Windows PowerShell + Linux Bash) with structured logging, triple-path install tracking, and orchestrated fan-out playbooks.",
   "Authors": [
     {
@@ -21,6 +21,6 @@
   ],
   "version": "1.5.6",
   "updated": "2026-05-08",
-  "name": "scripts-fixer-v17",
+  "name": "scripts-fixer-v18",
   "description": "Cross-platform installer & repair scripts (Windows PowerShell + Linux Bash) with structured logging, triple-path install tracking, and orchestrated fan-out playbooks."
 }

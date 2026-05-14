@@ -400,7 +400,7 @@ Both JSON files include the canonical identity block at the top:
   "gitShaFull":     "d9d3ee90c118b0af7a4e06b9bec72bdef32333b9",
   "gitBranch":      "main",
   "gitDirty":       false,
-  "gitRemote":      "https://github.com/.../scripts-fixer-v17.git",
+  "gitRemote":      "https://github.com/.../scripts-fixer-v18.git",
   "scriptName":     "os-clean",
   "overallStatus":  "partial",
   "startTime":      "2026-05-07T12:52:45.4351913+08:00",
