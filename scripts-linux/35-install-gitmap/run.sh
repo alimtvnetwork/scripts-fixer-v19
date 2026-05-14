@@ -112,7 +112,7 @@ verb_install() {
 
   log_info "[35] Invoking: curl -fsSL $INSTALL_URL | sh"
   if ! curl -fsSL "$INSTALL_URL" | sh; then
-    log_file_error "$INSTALL_URL" "curl | bash one-liner exited non-zero"
+    log_file_error "$INSTALL_URL" "curl | sh one-liner exited non-zero"
     return 1
   fi
 
