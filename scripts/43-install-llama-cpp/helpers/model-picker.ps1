@@ -862,13 +862,55 @@ function Install-SelectedModels {
             # Route through the shared fast-download helper (aria2c-first
             # with auto-install + CODE-RED file-error logging). Splits map
             # to aria2c -x/-s; PieceSize maps to -k.
+            #
+            # Post-condition retry: after each attempt we re-check the
+            # destination folder. If the expected file is missing or
+            # zero-byte, retry the download up to maxFileRetries times.
+            # Each attempt flushes a fresh log snapshot so a hung run
+            # leaves a usable .logs/<name>.json trail.
             $isFastDownloadLoaded = Get-Command Invoke-FastDownload -ErrorAction SilentlyContinue
             if (-not $isFastDownloadLoaded) {
                 $fastDlScript = Join-Path $PSScriptRoot "..\..\shared\fast-download.ps1"
                 if (Test-Path $fastDlScript) { . $fastDlScript }
             }
-            $isDownloadOk = Invoke-FastDownload -Uri $model.downloadUrl -OutFile $outputPath `
-                -Splits $maxDl -PieceSize $chunkSize -Label $model.displayName
+            $isDownloadOk = $false
+            for ($attempt = 1; $attempt -le $maxFileRetries; $attempt++) {
+                if ($attempt -gt 1) {
+                    Write-Log "  [$($model.index)] [RETRY $attempt/$maxFileRetries] $($model.displayName) -- file missing in folder, retrying download" -Level "warn"
+                    if (Test-Path $outputPath) {
+                        try { Remove-Item $outputPath -Force -ErrorAction Stop } catch {
+                            Write-FileError -FilePath $outputPath -Operation "remove-stale" -Reason $_.Exception.Message -Module "Install-SelectedModels"
+                        }
+                    }
+                }
+                $rc = Invoke-FastDownload -Uri $model.downloadUrl -OutFile $outputPath `
+                    -Splits $maxDl -PieceSize $chunkSize -Label $model.displayName
+
+                # Post-condition: verify the file actually landed in the
+                # destination folder. aria2c can exit 0 yet leave nothing
+                # behind on disk (mirror redirects, partial cleanup).
+                $isFilePresent = Test-Path $outputPath
+                $fileBytes     = 0
+                if ($isFilePresent) {
+                    try { $fileBytes = (Get-Item -LiteralPath $outputPath).Length } catch { $fileBytes = 0 }
+                }
+                $isFileLanded = $isFilePresent -and ($fileBytes -gt 0)
+
+                # Always flush a fresh log snapshot per attempt so the
+                # current state of the run is on disk even if the next
+                # attempt hangs or the host crashes.
+                try { if (Get-Command Save-LogFile -ErrorAction SilentlyContinue) { Save-LogFile | Out-Null } } catch {}
+
+                if ($rc -and $isFileLanded) {
+                    $isDownloadOk = $true
+                    break
+                }
+
+                if ($rc -and -not $isFileLanded) {
+                    Write-Log "  [$($model.index)] [POST-CHECK FAIL] downloader reported success but '$outputPath' is missing or empty (size=$fileBytes B) -- attempt $attempt/$maxFileRetries" -Level "warn"
+                    Write-FileError -FilePath $outputPath -Operation "post-download-verify" -Reason "downloader exit=ok but file missing/zero-byte (attempt $attempt/$maxFileRetries)" -Module "Install-SelectedModels"
+                }
+            }
         }
 
         if (-not $isDownloadOk) {
