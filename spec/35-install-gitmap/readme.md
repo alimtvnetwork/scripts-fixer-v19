@@ -7,13 +7,13 @@
 
 **Part of the Dev Tools Setup Scripts toolkit**
 
-[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v6#requirements)
-[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v6#requirements)
-[![Script](https://img.shields.io/badge/Script-35-8b5cf6)](https://github.com/alimtvnetwork/gitmap-v6/blob/main/scripts/registry.json)
-[![License](https://img.shields.io/badge/License-MIT-eab308)](https://github.com/alimtvnetwork/gitmap-v6/blob/main/LICENSE)
-[![Version](https://img.shields.io/badge/Version-v0.70.0-f97316)](https://github.com/alimtvnetwork/gitmap-v6/blob/main/scripts/version.json)
-[![Changelog](https://img.shields.io/badge/Changelog-Latest-ec4899)](https://github.com/alimtvnetwork/gitmap-v6/blob/main/changelog.md)
-[![Repo](https://img.shields.io/badge/Repo-gitmap--v6-22c55e?logo=github&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v6)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v19#requirements)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v19#requirements)
+[![Script](https://img.shields.io/badge/Script-35-8b5cf6)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/scripts/registry.json)
+[![License](https://img.shields.io/badge/License-MIT-eab308)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/Version-v0.70.0-f97316)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/scripts/version.json)
+[![Changelog](https://img.shields.io/badge/Changelog-Latest-ec4899)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/changelog.md)
+[![Repo](https://img.shields.io/badge/Repo-gitmap--v19-22c55e?logo=github&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v19)
 
 *Mandatory spec header — see [spec/00-spec-writing-guide](../00-spec-writing-guide/readme.md).*
 
@@ -25,7 +25,7 @@
 
 ## Overview
 
-Script 35 installs the **GitMap CLI** -- a Git repository navigator tool for Windows. It uses the remote installer from GitHub (`alimtvnetwork/gitmap-v3`).
+Script 35 installs the **GitMap CLI** -- a Git repository navigator tool for Windows. It uses the remote installer from GitHub (`alimtvnetwork/gitmap-v19`).
 
 ## Install Command
 
@@ -39,7 +39,7 @@ Script 35 installs the **GitMap CLI** -- a Git repository navigator tool for Win
 .\run.ps1 install gitmap -Version v1.0.0
 
 # Direct remote install (standalone)
-irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v3/main/gitmap/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.ps1 | iex
 ```
 
 ## `--Version` Flag
@@ -57,7 +57,7 @@ installer fails or is unreachable.
 | `.\run.ps1 -I 35 -- -Help` | Shows help including `-Version` flag |
 
 Notes:
-- Tag must match an existing release in `alimtvnetwork/gitmap-v3` (e.g. `v1.2.0`).
+- Tag must match an existing release in `alimtvnetwork/gitmap-v19` (e.g. `v1.2.0`).
 - Use `latest` to resolve the newest release via the GitHub API.
 - The flag has no effect if the remote installer succeeds and pins its own version internally.
 
