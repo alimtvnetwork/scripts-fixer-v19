@@ -299,6 +299,7 @@ try {
             Resolve-CsvIds -Csv $csv -AllModels $all -LogMessages $logMessages
         }
 
+        $matched = @($matched | Where-Object { $null -ne $_ })
         if ($matched.Count -eq 0) {
             Write-Log $logMessages.messages.csvNoneFound -Level "error"
             return
