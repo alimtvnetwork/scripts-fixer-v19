@@ -501,8 +501,8 @@ function Show-ModelList {
         $detailParts += ("backend: {0}" -f $m.backend)
         Write-Host ("        {0}" -f ($detailParts -join " | ")) -ForegroundColor $dimColor
 
-        # Line 1: size | RAM | caps | (coding, reasoning, speed, overall) : 7/8/9/9
-        Write-Host ("        {0} | RAM {1} | {2}" -f $sizeStr, $ramStr, $caps) -ForegroundColor $bodyColor -NoNewline
+        # Line 1: size | RAM | (coding, reasoning, speed, overall) : 7/8/9/9
+        Write-Host ("        {0} | RAM {1}" -f $sizeStr, $ramStr) -ForegroundColor $bodyColor -NoNewline
         $ratings = @($rCode, $rReason, $rSpeed, $rOver)
         $ratingLabels = @("coding", "reasoning", "speed", "overall")
         $hasAnyRating = ($ratings | Where-Object { $_ -ne '-' -and $_ -ne '' }) -gt 0
