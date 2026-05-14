@@ -250,7 +250,7 @@ try {
             $catalog = @()
             $catalog += Get-BackendCatalog -Backend "llama-cpp" -Config $config -ScriptsRoot $scriptsRoot
             $catalog += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
-            $matched = Invoke-ModelFlagFilter -Models $catalog -Options $flagOpts
+            $matched = @(Invoke-ModelFlagFilter -Models $catalog -Options $flagOpts | Where-Object { $null -ne $_ })
 
             if ($matched.Count -eq 0) {
                 Write-Log "No models match the supplied flags." -Level "warn"
