@@ -435,7 +435,7 @@ try {
             $allModels += Get-BackendCatalog -Backend $b -Config $config -ScriptsRoot $scriptsRoot
         }
 
-        $matched = Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages
+        $matched = @(Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages | Where-Object { $null -ne $_ })
         if ($matched.Count -eq 0) {
             Write-Log $logMessages.messages.csvNoneFound -Level "error"
             return
