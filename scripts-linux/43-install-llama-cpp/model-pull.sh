@@ -43,7 +43,8 @@ SHARED_DIR="$(cd "$SCRIPT_DIR/../_shared" && pwd)"
 # shellcheck source=/dev/null
 . "$SHARED_DIR/apt-install.sh" 2>/dev/null || true
 # shellcheck source=/dev/null
-. "$SHARED_DIR/fast-download.sh"
+# Test hook: skip sourcing fast-download.sh so the smoke test can stub fast_download.
+[ "${MODEL_PULL_SKIP_FASTDL_SOURCE:-0}" = "1" ] || . "$SHARED_DIR/fast-download.sh"
 
 CATALOG="${MODEL_PULL_CATALOG_OVERRIDE:-$REPO_ROOT/scripts/43-install-llama-cpp/models-catalog.json}"
 DEFAULT_DIR="${MODEL_PULL_DEFAULT_DIR_OVERRIDE:-$HOME/models/gguf}"
