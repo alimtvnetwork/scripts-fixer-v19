@@ -14,6 +14,11 @@ if ((Test-Path $_hardwareDetectPath) -and -not (Get-Command Get-HardwareProfile 
     . $_hardwareDetectPath
 }
 
+$_fastDownloadPath = Join-Path $_sharedDir "fast-download.ps1"
+if ((Test-Path $_fastDownloadPath) -and -not (Get-Command Invoke-FastDownload -ErrorAction SilentlyContinue)) {
+    . $_fastDownloadPath
+}
+
 
 function Get-FileSize {
     <#
