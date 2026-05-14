@@ -935,7 +935,9 @@ function Install-SelectedModels {
 
         if (-not $isDownloadOk) {
             Write-Log "  [$($model.index)] FAILED: $($model.displayName)" -Level "error"
-            Write-FileError -FilePath $outputPath -Operation "download" -Reason "Download failed after retries" -Module "Install-SelectedModels"
+            Write-Log "          URL: $($model.downloadUrl)" -Level "error"
+            Write-Log "          Target: $outputPath" -Level "error"
+            Write-FileError -FilePath $outputPath -Operation "download" -Reason "Download failed after $maxFileRetries attempts (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
             $failedCount++
             $processedGB += [double]$model.fileSizeGB
             continue
