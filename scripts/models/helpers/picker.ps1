@@ -443,7 +443,7 @@ function Show-ModelList {
     Write-Host ""
     $headerLabel = if ($FilterLabel) { "{0} | filter: {1}" -f $BackendLabel, $FilterLabel } else { $BackendLabel }
     Write-Host ("  Available models ({0}): {1}" -f $headerLabel, $Models.Count) -ForegroundColor Yellow
-    Write-Host "  Caps legend: [C]oding [R]easoning [W]riting [V]oice [M]ultilingual    Line 1: size | RAM | code/reason/speed/overall   Line 2: Best for   9-10 = yellow" -ForegroundColor DarkGray
+    Write-Host "  Caps legend: [C]oding [R]easoning [W]riting [V]oice [M]ultilingual    Line 1: size | RAM | caps | (coding, reasoning, speed, overall) : numbers   9-10 = yellow" -ForegroundColor DarkGray
     Write-Host "  * = recommended for coding" -ForegroundColor DarkGray
     Write-Host ""
 
