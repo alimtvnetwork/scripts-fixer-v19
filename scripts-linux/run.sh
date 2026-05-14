@@ -149,6 +149,12 @@ while [ $# -gt 0 ]; do
         VERB="defapp-passthrough"; DEFAPP_KIND="browser"; shift; DEFAPP_REST=("$@"); break ;;
     email|mail|default-email|default-mail|set-email|mail-client)
         VERB="defapp-passthrough"; DEFAPP_KIND="email"; shift; DEFAPP_REST=("$@"); break ;;
+    # ---- top-level shortcut: fast-download (aria2c-first) ---------------
+    # ./run.sh download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+    # ./run.sh url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
+    # Defaults: splits=16, piece=1M, dir=$PWD.
+    download|url|fast-download|fastdownload)
+        VERB="fast-download"; shift; FD_REST=("$@"); break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
