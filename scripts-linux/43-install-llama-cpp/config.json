@@ -1,13 +1,18 @@
 {
+  "_note": "Switched from build-from-source to prebuilt binary download (per user: 'should not be installed but download the bin file and put to env file'). Pinned tag for reproducibility; bump 'tag' + 'sha256' (optional) when refreshing.",
   "install": {
-    "method":    "buildFromSource",
-    "aptDeps":   ["build-essential", "cmake", "git", "ccache", "libcurl4-openssl-dev"],
-    "repoUrl":   "https://github.com/ggerganov/llama.cpp.git",
-    "srcDir":    "${HOME}/.local/src/llama.cpp",
-    "buildDir":  "${HOME}/.local/src/llama.cpp/build",
-    "binDir":    "${HOME}/.local/bin",
-    "binaries":  ["llama-cli", "llama-server", "llama-quantize"],
-    "cmakeFlags": ["-DGGML_NATIVE=ON", "-DLLAMA_CURL=ON"]
+    "method":   "downloadPrebuiltBinary",
+    "tag":      "b9145",
+    "assets": {
+      "x86_64":  "llama-{tag}-bin-ubuntu-x64.tar.gz",
+      "aarch64": "llama-{tag}-bin-ubuntu-arm64.tar.gz"
+    },
+    "downloadUrlTemplate": "https://github.com/ggml-org/llama.cpp/releases/download/{tag}/{asset}",
+    "installRoot": "${HOME}/.local/share/llama.cpp",
+    "binDir":      "${HOME}/.local/bin",
+    "binaries":    ["llama-cli", "llama-server", "llama-quantize"],
+    "envFile":     "${HOME}/.local/share/llama.cpp/llama-cpp.env",
+    "profileSnippetMarker": "# >>> scripts-fixer: llama.cpp >>>"
   },
   "verify": {
     "cli": "${HOME}/.local/bin/llama-cli --version"
