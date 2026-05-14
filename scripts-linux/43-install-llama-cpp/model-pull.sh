@@ -161,7 +161,7 @@ ${C_BOLD}Filter examples (preview with 'list', commit with --all)${C_RESET}
   # Multilingual chat models that fit in 12 GB RAM, default dir
   ./run.sh models --multilingual --chat --max-ram 12 --all
 
-${C_BOLD}Ratings legend${C_RESET}  (printed per model: cod / rea / spd / ovr, 0-10 scale)
+${C_BOLD}Ratings legend${C_RESET}  (printed per model: (coding, reasoning, speed, overall) : numbers, 0-10 scale)
   ${C_YELLOW}9-10${C_RESET}  exceptional       ${C_GREEN}7-8${C_RESET}  strong       5-6   competent       ${C_GRAY}<5${C_RESET}    weak
 
 ${C_DIM}# 'list' shows the catalog with no downloads.
@@ -174,7 +174,7 @@ EOF
 print_list() {
   # Header
   printf '%s%-26s %-22s %-7s %-6s %-6s   %s%s\n' \
-    "$C_BOLD" "ID" "FAMILY" "PARAMS" "SIZE" "RAM" "RATINGS  cod  rea  spd  ovr   DISPLAY" "$C_RESET"
+    "$C_BOLD" "ID" "FAMILY" "PARAMS" "SIZE" "RAM" "RATINGS  (cod/rea/spd/ovr)    DISPLAY" "$C_RESET"
   printf '%-26s %-22s %-7s %-6s %-6s   %s\n' \
     "--------------------------" "----------------------" "-------" "------" "------" \
     "------------------------------------------"
