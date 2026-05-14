@@ -6,6 +6,7 @@
       "description": "Quick fresh-Windows bootstrap: choco + git + 7zip + chrome + Ubuntu font + Win11 classic right-click menu.",
       "steps": [
         { "kind": "script",     "id": 2,  "label": "Chocolatey package manager" },
+        { "kind": "choco",      "package": "aria2",                  "label": "aria2c fast downloader" },
         { "kind": "script",     "id": 7,  "label": "Git + LFS" },
         { "kind": "choco",      "package": "7zip.install", "label": "7-Zip archiver" },
         { "kind": "choco",      "package": "googlechrome", "label": "Google Chrome" },
@@ -99,6 +100,7 @@
       "description": "Foundational terminal + editor + browser bundle: Notepad++ (with settings), ConEmu (with settings), PowerShell + pwsh right-click context menu, 7-Zip, WinRAR, Google Chrome with curated extensions, Ubuntu font, and the Win11 classic right-click menu restore.",
       "steps": [
         { "kind": "script",     "id": 2,  "label": "Chocolatey package manager" },
+        { "kind": "choco",      "package": "aria2",                  "label": "aria2c fast downloader" },
         { "kind": "script",     "id": 33, "mode": "install+settings", "label": "Notepad++ + settings" },
         { "kind": "script",     "id": 48, "mode": "install+settings", "label": "ConEmu + settings" },
         { "kind": "script",     "id": 17, "label": "PowerShell 7 (pwsh)" },
