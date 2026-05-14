@@ -45,6 +45,7 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 - [Write-Log bulletproof contract](mem://features/write-log-bulletproof) — scripts/shared/logging.ps1 Write-Log wrapped in outer try/catch; can NEVER throw, always falls back to plain "[ INFO ] msg"; eliminates "Cannot index into a null array" crashes at caller's Write-Log line on PS 5.1
 - [Universal context menu](mem://features/universal-context-menu) — Cross-OS right-click spec (spec/55) — Windows registry + macOS Quick Actions + Linux .desktop/KIO/Thunar; shared catalog at scripts/shared/context-menu-actions.json; `os context-menu {install|uninstall|list|restore}` dispatcher; covers install-models-here, OS update, startup add/remove, default app, ENV/BIN add, ConEmu+tweaks open-here
 - [Fast download helper](mem://features/fast-download) — Shared aria2c wrapper (Win+Linux): defaults splits=16/piece=1M, `run download|url <url> [<dir>] [-s N] [-p SIZE]` dispatcher command, aria2c bundled in minimal+terminal profiles, used by all model pulls
+- [Models dispatcher $Args→$Rest rename](mem://features/models-args-rename) — CODE RED: `$Args` is a PowerShell automatic; using it as a script-param under StrictMode + advanced param block silently dropped splatted positionals, breaking `models-download <n>`. Renamed to `$Rest` (and helper to `$Argv`). Never name a param `$Args`.
 
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).
