@@ -59,6 +59,13 @@ Write-InstallPaths `
 Initialize-Logging -ScriptName $logMessages.scriptName
 
 try {
+    # ── Parse first-class flags (--family/--max-ram/--exclude/--all/--dry-run/...)
+    # then continue with positional-only args so existing modes keep working.
+    $flagParse  = Read-ModelFlagOptions -Args $Args
+    $flagOpts   = $flagParse.Options
+    $Args       = $flagParse.Positional
+    $flagsActive = Test-ModelFlagOptionsActive -Options $flagOpts
+
     # ── Parse positional args ────────────────────────────────────────────
     # First positional may be: "list", a CSV of model ids, or empty (interactive)
     $firstArg = if ($Args -and $Args.Count -gt 0) { $Args[0].Trim() } else { "" }
