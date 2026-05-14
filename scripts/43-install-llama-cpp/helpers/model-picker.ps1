@@ -836,7 +836,6 @@ function Install-SelectedModels {
             }
         }
         if (-not $isBatchHit) {
-        } else {
             $logLevel = if ($useBatch) { "warn" } else { "info" }
             Write-Log "  [$($model.index)] $modeTag Downloading: $($model.displayName)" -Level $logLevel
             Write-Log "    $($model.parameters) | $($model.quantization) | $($model.fileSizeGB) GB | RAM: $($model.ramRequiredGB)+ GB" -Level "info"
