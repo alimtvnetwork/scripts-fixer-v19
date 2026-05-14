@@ -9,6 +9,11 @@ if ((Test-Path $_loggingPath) -and -not (Get-Command Write-Log -ErrorAction Sile
     . $_loggingPath
 }
 
+$_fastDownloadPath = Join-Path $_sharedDir "fast-download.ps1"
+if ((Test-Path $_fastDownloadPath) -and -not (Get-Command Invoke-FastDownload -ErrorAction SilentlyContinue)) {
+    . $_fastDownloadPath
+}
+
 
 function Install-Ollama {
     param(
