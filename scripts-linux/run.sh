@@ -161,6 +161,12 @@ while [ $# -gt 0 ]; do
     # ./run.sh models <id> ... -d /path       custom output dir
     models|model)
         VERB="models"; shift; MODELS_REST=("$@"); break ;;
+    # ---- top-level shortcut: SHA256-pinned remote installers ------------
+    # ./run.sh install coding-guidelines       (alias: clean-code, cg, cc, code-guide)
+    # Streams the upstream install.sh from gitub via curl, verifies the
+    # pinned sha256 BEFORE execution, then runs it through bash.
+    coding-guidelines|clean-code|cg|cc|code-guide)
+        VERB="remote-install"; REMOTE_KEY="coding-guidelines"; shift; break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
@@ -211,6 +217,16 @@ Examples:
   ./run.sh models list
   ./run.sh models qwen2.5-coder-3b
   ./run.sh models qwen2.5-coder-3b nemotron-8b-opus-distill --dir /mnt/ai
+
+Remote installers (SHA256-pinned, mirror of Windows remote.<key>):
+  install coding-guidelines    Coding Guidelines v23 -- alimtvnetwork/coding-guidelines-v23
+  install clean-code           Same as 'install coding-guidelines'
+  install cg | cc | code-guide Aliases of 'install coding-guidelines'
+                                 Body is downloaded, sha256-verified BEFORE
+                                 execution; mismatched bodies are quarantined
+                                 in scripts-linux/_shared/remote-installers/.quarantine/
+                                 (CODE RED). Pin lives in
+                                 scripts-linux/_shared/remote-installers/coding-guidelines.json.
 
 Cross-OS startup management (script 64 shortcuts):
   startup-list                 List startup entries created by this toolkit
@@ -592,6 +608,17 @@ case "${VERB:-help}" in
     [ -n "$mp_dir" ] && mp_cmd+=("--dir" "$mp_dir")
     mp_cmd+=("${mp_args[@]}")
     bash "${mp_cmd[@]}"
+    exit $?
+    ;;
+  remote-install)
+    # SHA256-pinned remote installer (Linux mirror of Windows remote.<key>).
+    descriptor="$ROOT/_shared/remote-installers/${REMOTE_KEY}.json"
+    if [ ! -f "$descriptor" ]; then
+      log_file_error "$descriptor" "remote-install: descriptor missing for key '${REMOTE_KEY}'"
+      exit 1
+    fi
+    . "$ROOT/_shared/remote-installers/remote-install.sh"
+    remote_install "$descriptor"
     exit $?
     ;;
   list) registry_list_all | column -t -s$'\t' ;;
