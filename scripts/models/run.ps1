@@ -22,7 +22,7 @@ param(
 # empty, $isDownloadMode flipped false, and the script silently fell
 # through to the default "show full catalog" branch. Renaming to $Rest
 # fixes the binding. Memory: mem://features/models-args-rename
-$Rest = $Rest
+
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
