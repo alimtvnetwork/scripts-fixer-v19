@@ -597,12 +597,52 @@ case "${VERB:-help}" in
       log_file_error "$MP_SCRIPT" "model-pull.sh missing or not executable"
       exit 1
     fi
-    if [ "${#mp_filtered[@]}" -gt 0 ]; then
-      bash "$MP_SCRIPT" "${mp_filtered[@]}"
-    else
-      bash "$MP_SCRIPT"
+
+    # HARD GUARD: 'models' (a.k.a. models-download) must NEVER install
+    # llama.cpp binaries. Snapshot the llama.cpp install dir + bin dir,
+    # set the sentinel env var, then post-diff to detect any leak.
+    LLAMA_CFG="$ROOT/43-install-llama-cpp/config.json"
+    LLAMA_INSTALL_ROOT=""
+    LLAMA_BIN_DIR=""
+    if [ -f "$LLAMA_CFG" ] && command -v jq >/dev/null 2>&1; then
+      _r=$(jq -r '.install.installRoot' "$LLAMA_CFG"); LLAMA_INSTALL_ROOT="${_r//\$\{HOME\}/$HOME}"
+      _b=$(jq -r '.install.binDir'      "$LLAMA_CFG"); LLAMA_BIN_DIR="${_b//\$\{HOME\}/$HOME}"
     fi
-    exit $?
+    SNAP_BEFORE="$(mktemp -t models-dl-snap-before.XXXXXX)"
+    SNAP_AFTER="$(mktemp  -t models-dl-snap-after.XXXXXX)"
+    _snap() {
+      : > "$1"
+      for d in "$LLAMA_INSTALL_ROOT" "$LLAMA_BIN_DIR"; do
+        [ -n "$d" ] && [ -d "$d" ] && \
+          find "$d" -type f \( -name 'llama-*' -o -name '*.so' -o -name '*.dylib' \
+                              -o -name '*.tar.gz' -o -name '*.zip' \) \
+                    -printf '%p\t%s\n' 2>/dev/null >> "$1"
+      done
+      sort -o "$1" "$1"
+    }
+    _snap "$SNAP_BEFORE"
+
+    export MODELS_DOWNLOAD_NO_BINARIES=1
+    if [ "${#mp_filtered[@]}" -gt 0 ]; then
+      bash "$MP_SCRIPT" "${mp_filtered[@]}"; mp_rc=$?
+    else
+      bash "$MP_SCRIPT"; mp_rc=$?
+    fi
+    unset MODELS_DOWNLOAD_NO_BINARIES
+
+    _snap "$SNAP_AFTER"
+    LEAK="$(comm -13 "$SNAP_BEFORE" "$SNAP_AFTER" || true)"
+    rm -f "$SNAP_BEFORE" "$SNAP_AFTER"
+    if [ -n "$LEAK" ] || [ "$mp_rc" = 87 ]; then
+      log_err "HARD GUARD: 'models' must not install llama.cpp binaries."
+      if [ -n "$LEAK" ]; then
+        log_err "Detected new/changed binary file(s) under $LLAMA_INSTALL_ROOT / $LLAMA_BIN_DIR :"
+        printf '%s\n' "$LEAK" | sed 's/^/  + /' >&2
+      fi
+      log_err "Aborting models. Use './run.sh -I 43' to install llama.cpp binaries explicitly."
+      exit 87
+    fi
+    exit "$mp_rc"
     ;;
   remote-install)
     # SHA256-pinned remote installer (Linux mirror of Windows remote.<key>).
