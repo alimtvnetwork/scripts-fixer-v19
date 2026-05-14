@@ -155,6 +155,12 @@ while [ $# -gt 0 ]; do
     # Defaults: splits=16, piece=1M, dir=$PWD.
     download|url|fast-download|fastdownload)
         VERB="fast-download"; shift; FD_REST=("$@"); break ;;
+    # ---- top-level shortcut: model download (script 43) -----------------
+    # ./run.sh models list                    print catalog
+    # ./run.sh models <id> [<id> ...]         download by id(s)
+    # ./run.sh models <id> ... -d /path       custom output dir
+    models|model)
+        VERB="models"; shift; MODELS_REST=("$@"); break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
@@ -192,8 +198,19 @@ System-wide verbs:
 Fast download (aria2c-first, defaults splits=16, piece=1M):
   download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
   url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
-                               Auto-installs aria2c if missing; falls back
-                               to curl/wget. Used by all model pulls.
+                                Auto-installs aria2c if missing; falls back
+                                to curl/wget. Used by all model pulls.
+
+Model download (script 43 llama.cpp model-pull):
+  models list                    Print all available GGUF models from the catalog
+  models <id> [<id> ...]         Download one or more models by id
+       --dir <path>              Output directory (default: ~/models/gguf)
+  model  ...                     Alias of 'models'
+
+Examples:
+  ./run.sh models list
+  ./run.sh models qwen2.5-coder-3b
+  ./run.sh models qwen2.5-coder-3b nemotron-8b-opus-distill --dir /mnt/ai
 
 Cross-OS startup management (script 64 shortcuts):
   startup-list                 List startup entries created by this toolkit
@@ -534,6 +551,47 @@ case "${VERB:-help}" in
     . "$ROOT/_shared/apt-install.sh" 2>/dev/null || true
     . "$ROOT/_shared/fast-download.sh"
     fast_download "$fd_url" "$fd_dir" "$fd_splits" "$fd_piece"
+    exit $?
+    ;;
+  models)
+    # Parse model ids + optional --dir; forward everything to model-pull.sh.
+    mp_dir=""; mp_args=()
+    mp_filtered=()
+    for _a in "${MODELS_REST[@]:-}"; do [ -n "$_a" ] && mp_filtered+=("$_a"); done
+    mp_i=0
+    while [ "$mp_i" -lt "${#mp_filtered[@]}" ]; do
+      mp_a="${mp_filtered[$mp_i]}"
+      case "$mp_a" in
+        --dir|-d)
+          mp_i=$((mp_i+1)); mp_dir="${mp_filtered[$mp_i]:-}" ;;
+        --dir=*|-d=*) mp_dir="${mp_a#*=}" ;;
+        -h|--help)
+          echo "Usage: ./run.sh models list"
+          echo "       ./run.sh models <id> [<id> ...] [--dir <path>]"
+          exit 0 ;;
+        -*)
+          log_warn "models: unknown flag '$mp_a'"; ;;
+        *)
+          mp_args+=("$mp_a") ;;
+      esac
+      mp_i=$((mp_i+1))
+    done
+    if [ "${#mp_args[@]}" -eq 0 ]; then
+      log_err "models: at least one model id or 'list' is required"
+      echo "Usage: ./run.sh models list"
+      echo "       ./run.sh models <id> [<id> ...] [--dir <path>]"
+      exit 64
+    fi
+    # Build explicit command so model-pull.sh is always reachable
+    MP_SCRIPT="$ROOT/43-install-llama-cpp/model-pull.sh"
+    if [ ! -x "$MP_SCRIPT" ]; then
+      log_file_error "$MP_SCRIPT" "model-pull.sh missing or not executable"
+      exit 1
+    fi
+    mp_cmd=("$MP_SCRIPT")
+    [ -n "$mp_dir" ] && mp_cmd+=("--dir" "$mp_dir")
+    mp_cmd+=("${mp_args[@]}")
+    bash "${mp_cmd[@]}"
     exit $?
     ;;
   list) registry_list_all | column -t -s$'\t' ;;
