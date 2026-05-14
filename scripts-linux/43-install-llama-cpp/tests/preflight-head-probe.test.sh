@@ -64,9 +64,8 @@ export -f preflight_probe fast_download
 export PREFLIGHT_OVERRIDE_CMD=preflight_probe
 export MODEL_PULL_CATALOG_OVERRIDE="$FAKE_CATALOG"
 export MODEL_PULL_DEFAULT_DIR_OVERRIDE="$SANDBOX/out"
-# Source the script in the same shell so our exported fast_download wins
-# over the one defined by fast-download.sh. The script runs at source time.
-. "$SCRIPT_DIR/model-pull.sh" good-id bad-id
+export MODEL_PULL_SKIP_FASTDL_SOURCE=1
+bash "$SCRIPT_DIR/model-pull.sh" good-id bad-id
 echo "EXIT=\$?"
 RUN
 chmod +x "$SANDBOX/run.sh"
