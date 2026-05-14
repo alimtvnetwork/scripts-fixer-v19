@@ -957,7 +957,8 @@ function Install-SelectedModels {
                 Write-Log "    Checksum MISMATCH for $($model.displayName)" -Level "error"
                 Write-Log "      Expected: $expectedHash" -Level "error"
                 Write-Log "      Actual:   $actualHash" -Level "error"
-                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "SHA256 mismatch (expected $expectedHash, got $actualHash)" -Module "Install-SelectedModels"
+                Write-Log "      URL:      $($model.downloadUrl)" -Level "error"
+                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "SHA256 mismatch (expected $expectedHash, got $actualHash, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 $isChecksumOk = $false
             }
         } else {
