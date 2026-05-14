@@ -268,7 +268,12 @@ function Get-ModelDownloadPaths {
             $p = (Join-Path $devDir $Sub)
             return @{ Path = $p; All = @($p); Source = "DEV_DIR/$Sub" }
         }
-        return @{ Path = "<DEV_DIR not set>\$Sub"; All = @(); Source = "unresolved" }
+        # Fallback default so downloads have a real path even when DEV_DIR is unset.
+        $defaultBase = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'dev' }
+                       elseif ($env:HOME)    { Join-Path $env:HOME 'dev' }
+                       else                  { Join-Path (Get-Location).Path 'dev' }
+        $p = Join-Path $defaultBase $Sub
+        return @{ Path = $p; All = @($p); Source = "default(DEV_DIR unset)/$Sub" }
     }
 
     $llama  = _ResolveOne -BackendKey 'llama'  -EnvName 'LLAMA_MODELS_DIR' -Sub $llamaSub
