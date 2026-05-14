@@ -174,7 +174,7 @@ EOF
 print_list() {
   # Header
   printf '%s%-26s %-22s %-7s %-6s %-6s   %s%s\n' \
-    "$C_BOLD" "ID" "FAMILY" "PARAMS" "SIZE" "RAM" "RATINGS  cod  rea  spd  ovr   DISPLAY" "$C_RESET"
+    "$C_BOLD" "ID" "FAMILY" "PARAMS" "SIZE" "RAM" "RATINGS  (cod/rea/spd/ovr)    DISPLAY" "$C_RESET"
   printf '%-26s %-22s %-7s %-6s %-6s   %s\n' \
     "--------------------------" "----------------------" "-------" "------" "------" \
     "------------------------------------------"
