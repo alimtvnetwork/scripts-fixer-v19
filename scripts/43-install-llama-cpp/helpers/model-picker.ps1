@@ -821,6 +821,21 @@ function Install-SelectedModels {
         if ($isBatchHit) {
             Write-Log "  [$($model.index)] $modeTag $($model.displayName) -- verifying ($($model.fileSizeGB) GB)" -Level "info"
             $isDownloadOk = $true
+            # Post-condition guard: aria2c batch can mark success without
+            # the file actually landing. If missing/zero-byte, demote to
+            # sequential so the retry loop below picks it up.
+            $batchFileBytes = 0
+            if (Test-Path $outputPath) {
+                try { $batchFileBytes = (Get-Item -LiteralPath $outputPath).Length } catch { $batchFileBytes = 0 }
+            }
+            if ($batchFileBytes -le 0) {
+                Write-Log "  [$($model.index)] [POST-CHECK FAIL] batch reported success but '$outputPath' is missing/empty -- falling back to sequential retry" -Level "warn"
+                Write-FileError -FilePath $outputPath -Operation "batch-post-verify" -Reason "batch downloader exit=ok but file missing/zero-byte" -Module "Install-SelectedModels"
+                $isBatchHit   = $false
+                $isDownloadOk = $false
+            }
+        }
+        if (-not $isBatchHit) {
         } else {
             $logLevel = if ($useBatch) { "warn" } else { "info" }
             Write-Log "  [$($model.index)] $modeTag Downloading: $($model.displayName)" -Level $logLevel
