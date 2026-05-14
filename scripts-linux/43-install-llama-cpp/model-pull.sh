@@ -45,8 +45,8 @@ SHARED_DIR="$(cd "$SCRIPT_DIR/../_shared" && pwd)"
 # shellcheck source=/dev/null
 . "$SHARED_DIR/fast-download.sh"
 
-CATALOG="$REPO_ROOT/scripts/43-install-llama-cpp/models-catalog.json"
-DEFAULT_DIR="$HOME/models/gguf"
+CATALOG="${MODEL_PULL_CATALOG_OVERRIDE:-$REPO_ROOT/scripts/43-install-llama-cpp/models-catalog.json}"
+DEFAULT_DIR="${MODEL_PULL_DEFAULT_DIR_OVERRIDE:-$HOME/models/gguf}"
 
 if [ ! -f "$CATALOG" ]; then
   log_file_error "$CATALOG" "models-catalog.json missing -- cannot resolve model ids"
