@@ -624,6 +624,7 @@ function Install-SelectedModels {
     $batchConnsPerServer = 8
     $batchSplits = 8
     $isRequireChecksum = $false
+    $maxFileRetries    = 3
     if ($null -ne $DownloadConfig) {
         if ($null -ne $DownloadConfig.parallelEnabled)      { $isParallelEnabled   = [bool]$DownloadConfig.parallelEnabled }
         if ($DownloadConfig.maxConcurrent)                  { $batchMaxConcurrent  = [int]$DownloadConfig.maxConcurrent }
@@ -631,6 +632,10 @@ function Install-SelectedModels {
         if ($DownloadConfig.splitsPerFile)                  { $batchSplits         = [int]$DownloadConfig.splitsPerFile }
         if ($DownloadConfig.PSObject.Properties.Name -contains 'requireChecksum') {
             $isRequireChecksum = [bool]$DownloadConfig.requireChecksum
+        }
+        if ($DownloadConfig.PSObject.Properties.Name -contains 'maxFileRetries') {
+            $candidate = [int]$DownloadConfig.maxFileRetries
+            if ($candidate -ge 1) { $maxFileRetries = $candidate }
         }
     }
 
