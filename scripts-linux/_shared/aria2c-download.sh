@@ -16,7 +16,7 @@
 #   * Returns non-zero on download failure (upstream silently swallowed errors).
 
 # Tunables (override per-call via positional args).
-ARIA2C_DEFAULT_SPLIT=40
+ARIA2C_DEFAULT_SPLIT=16
 ARIA2C_DEFAULT_CONNECTIONS=16
 
 has_aria2c() { command -v aria2c >/dev/null 2>&1; }
