@@ -19,7 +19,9 @@
     "connectionsPerServer": 8,
     "splitsPerFile": 8,
     "_requireChecksumComment": "When true, models without a populated sha256 fail the install with a clear [NO-CHECKSUM] error instead of being downloaded unchecked. Default false (warn-only) to preserve existing flow for entries the catalog can't auto-fill (gated repos, etc.).",
-    "requireChecksum": false
+    "requireChecksum": false,
+    "_postDownloadVerifyComment": "After each per-file download, re-check the destination folder for the expected file. If missing or zero-byte, retry the whole download up to maxFileRetries times. Each attempt flushes a fresh entry into the run log.",
+    "maxFileRetries": 3
   },
   "executables": [
     {
