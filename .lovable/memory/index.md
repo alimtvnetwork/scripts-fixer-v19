@@ -44,6 +44,7 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 - [Right-click verification helper](mem://features/rightclick-verification) — scripts/shared/interactive-verify.ps1 prompts user to test folder/empty-folder/background right-click after script 52 (VS Code) and 59 (ConEmu) installs; auto-skips on CI
 - [Write-Log bulletproof contract](mem://features/write-log-bulletproof) — scripts/shared/logging.ps1 Write-Log wrapped in outer try/catch; can NEVER throw, always falls back to plain "[ INFO ] msg"; eliminates "Cannot index into a null array" crashes at caller's Write-Log line on PS 5.1
 - [Universal context menu](mem://features/universal-context-menu) — Cross-OS right-click spec (spec/55) — Windows registry + macOS Quick Actions + Linux .desktop/KIO/Thunar; shared catalog at scripts/shared/context-menu-actions.json; `os context-menu {install|uninstall|list|restore}` dispatcher; covers install-models-here, OS update, startup add/remove, default app, ENV/BIN add, ConEmu+tweaks open-here
+- [Fast download helper](mem://features/fast-download) — Shared aria2c wrapper (Win+Linux): defaults splits=16/piece=1M, `run download|url <url> [<dir>] [-s N] [-p SIZE]` dispatcher command, aria2c bundled in minimal+terminal profiles, used by all model pulls
 
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).
