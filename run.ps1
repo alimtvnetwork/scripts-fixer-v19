@@ -3223,7 +3223,7 @@ if ($_isEarlyHelp) {
         'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
         'menu','context-menu','profile','install','uninstall','update',
         'self-update','settings','export','os','doctor','logs','report',
-        'path','models','git','git-tools','gsa','mysql','postgresql',
+        'path','models','download','url','git','git-tools','gsa','mysql','postgresql',
         'mariadb','mongodb','redis','sqlite','node','python','docker',
         'kubernetes','java','dotnet','rust','go','php','obs','npp','wt',
         'dbeaver','ollama','user','ssh',
