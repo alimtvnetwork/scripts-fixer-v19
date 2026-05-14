@@ -320,7 +320,7 @@ try {
             $query = Read-Host -Prompt "  Search Ollama Hub for"
         }
 
-        $results = Invoke-OllamaHubSearch -Query $query
+        $results = @(Invoke-OllamaHubSearch -Query $query | Where-Object { $null -ne $_ })
         $hasResults = $results.Count -gt 0
         if (-not $hasResults) {
             Write-Log $logMessages.messages.searchNoResults -Level "warn"
