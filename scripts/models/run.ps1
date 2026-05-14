@@ -464,7 +464,12 @@ try {
     $all  = @()
     $all += Get-BackendCatalog -Backend "llama-cpp" -Config $config -ScriptsRoot $scriptsRoot
     $all += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
-    Show-ModelList -Models $all -BackendLabel "all backends" -DownloadPaths $downloadPaths
+    $defaultLabel = ""
+    if ($flagsActive) {
+        $all = Invoke-ModelFlagFilter -Models $all -Options $flagOpts
+        $defaultLabel = "flag-filtered"
+    }
+    Show-ModelList -Models $all -BackendLabel "all backends" -DownloadPaths $downloadPaths -FilterLabel $defaultLabel
     Write-Host "  Run  .\run.ps1 models help   to see every available command." -ForegroundColor DarkGray
     Write-Host ""
 
