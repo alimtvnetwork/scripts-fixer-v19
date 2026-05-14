@@ -330,6 +330,7 @@ function Show-RootHelpRaw {
     Write-Host "    $(".\run.ps1 models".PadRight($col))" -NoNewline; Write-Host "Pick AI model backend (llama.cpp / Ollama), browse + install" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 models <ids>".PadRight($col))" -NoNewline; Write-Host "Direct install: CSV of model ids (auto-routes per backend)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 models list".PadRight($col))" -NoNewline; Write-Host "List all models from both catalogs" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 models-download <n|id>".PadRight($col))" -NoNewline; Write-Host "Top-level shortcut for 'models download ...'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 -M".PadRight($col))" -NoNewline; Write-Host "Shortcut for 'models'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> [<dir>]".PadRight($col))" -NoNewline; Write-Host "Fast download (aria2c, defaults -s 16 -p 1M); 'url' is alias" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> -s 12 -p 2M".PadRight($col))" -NoNewline; Write-Host "Override splits (per-server connections) and piece size" -ForegroundColor DarkGray
