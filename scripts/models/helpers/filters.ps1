@@ -243,6 +243,134 @@ function Invoke-ModelFilter {
     return ,@($sorted | ForEach-Object { $_.Model })
 }
 
+# --------------------------------------------------------------------------
+#  First-class flag surface (mirrors the Linux model-pull.sh contract).
+#
+#  Read-ModelFlagOptions parses an args array and returns:
+#    @{
+#      Options    = @{ Family; MaxRam; MinRam; MaxSize; MinSize; Exclude;
+#                      Capabilities; All; DryRun }
+#      Positional = @(...)   # non-flag tokens, in original order
+#    }
+#
+#  Invoke-ModelFlagFilter applies those options to a model array (the same
+#  {id; displayName; backend; raw} shape Get-BackendCatalog produces).
+# --------------------------------------------------------------------------
+
+function Read-ModelFlagOptions {
+    param([array]$Args = @())
+
+    $opts = @{
+        Family       = @()
+        MaxRam       = $null
+        MinRam       = $null
+        MaxSize      = $null
+        MinSize      = $null
+        Exclude      = @()
+        Capabilities = @()
+        All          = $false
+        DryRun       = $false
+    }
+    $positional = @()
+    $capFlags   = @{
+        "--coding"       = "coding"
+        "--reasoning"    = "reasoning"
+        "--writing"      = "writing"
+        "--voice"        = "voice"
+        "--multilingual" = "multilingual"
+        "--chat"         = "chat"
+    }
+    $i = 0
+    while ($i -lt $Args.Count) {
+        $a = "$($Args[$i])"
+        $low = $a.ToLower()
+        switch -Regex ($low) {
+            '^--family$'   { $i++; if ($i -lt $Args.Count) { $opts.Family  += ("$($Args[$i])" -split '[,\s]+' | Where-Object { $_ }) }; break }
+            '^--max-ram$'  { $i++; if ($i -lt $Args.Count) { $opts.MaxRam   = [double]"$($Args[$i])" }; break }
+            '^--min-ram$'  { $i++; if ($i -lt $Args.Count) { $opts.MinRam   = [double]"$($Args[$i])" }; break }
+            '^--max-size$' { $i++; if ($i -lt $Args.Count) { $opts.MaxSize  = [double]"$($Args[$i])" }; break }
+            '^--min-size$' { $i++; if ($i -lt $Args.Count) { $opts.MinSize  = [double]"$($Args[$i])" }; break }
+            '^--exclude$'  { $i++; if ($i -lt $Args.Count) { $opts.Exclude += ("$($Args[$i])" -split '[,\s]+' | Where-Object { $_ }) }; break }
+            '^--all$'      { $opts.All    = $true; break }
+            '^--dry-run$'  { $opts.DryRun = $true; break }
+            default {
+                if ($capFlags.ContainsKey($low)) {
+                    $opts.Capabilities += $capFlags[$low]
+                } else {
+                    $positional += $a
+                }
+            }
+        }
+        $i++
+    }
+    return @{ Options = $opts; Positional = @($positional) }
+}
+
+function Invoke-ModelFlagFilter {
+    param(
+        [Parameter(Mandatory)] [array]$Models,
+        [Parameter(Mandatory)] [hashtable]$Options
+    )
+
+    $out = @()
+    foreach ($m in $Models) {
+        $raw     = $m.raw
+        $family  = "$(_GetProp $raw 'family' '')"
+        $idLow   = "$($m.id)".ToLower()
+        $famLow  = $family.ToLower()
+        $sizeGB  = [double](_GetProp $raw 'fileSizeGB' 0)
+        $ramGB   = [double](_GetProp $raw 'ramRequiredGB' 0)
+
+        if ($Options.Family.Count -gt 0) {
+            $hit = $false
+            foreach ($f in $Options.Family) {
+                $fl = "$f".ToLower()
+                if ($famLow -like "*$fl*" -or $idLow -like "*$fl*") { $hit = $true; break }
+            }
+            if (-not $hit) { continue }
+        }
+
+        if ($Options.Exclude.Count -gt 0) {
+            $skip = $false
+            foreach ($x in $Options.Exclude) {
+                $xl = "$x".ToLower()
+                if (-not $xl) { continue }
+                if ($idLow -like "*$xl*" -or $famLow -like "*$xl*") { $skip = $true; break }
+            }
+            if ($skip) { continue }
+        }
+
+        if ($null -ne $Options.MaxRam  -and $ramGB  -gt 0 -and $ramGB  -gt $Options.MaxRam)  { continue }
+        if ($null -ne $Options.MinRam  -and $ramGB  -gt 0 -and $ramGB  -lt $Options.MinRam)  { continue }
+        if ($null -ne $Options.MaxSize -and $sizeGB -gt 0 -and $sizeGB -gt $Options.MaxSize) { continue }
+        if ($null -ne $Options.MinSize -and $sizeGB -gt 0 -and $sizeGB -lt $Options.MinSize) { continue }
+
+        if ($Options.Capabilities.Count -gt 0) {
+            $tagSet = Get-ModelTagSet -Raw $raw
+            $hasAll = $true
+            foreach ($c in $Options.Capabilities) {
+                if (-not $tagSet.ContainsKey($c)) { $hasAll = $false; break }
+            }
+            if (-not $hasAll) { continue }
+        }
+
+        $out += $m
+    }
+    return ,@($out)
+}
+
+function Test-ModelFlagOptionsActive {
+    param([hashtable]$Options)
+    if (-not $Options) { return $false }
+    if ($Options.Family.Count       -gt 0) { return $true }
+    if ($Options.Exclude.Count      -gt 0) { return $true }
+    if ($Options.Capabilities.Count -gt 0) { return $true }
+    foreach ($k in @('MaxRam','MinRam','MaxSize','MinSize')) {
+        if ($null -ne $Options[$k]) { return $true }
+    }
+    return $false
+}
+
 function Show-FilterTagsHelp {
     <#
     .SYNOPSIS
