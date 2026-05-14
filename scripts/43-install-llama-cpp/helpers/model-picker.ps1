@@ -701,6 +701,55 @@ function Install-SelectedModels {
         return
     }
 
+    # -- Pass 1.5: PREFLIGHT every pending URL BEFORE the batch ---------------
+    # aria2c batch mode masks 401/403/404 as "Invalid username or password",
+    # so HEAD-probe each entry up-front and drop any that point at a missing
+    # or gated HuggingFace repo. This is the only place where fictional /
+    # stale catalog entries are caught before we burn bandwidth + retries.
+    Write-Log "Preflight: HEAD-probing $($pending.Count) URL(s) to skip missing/gated repos..." -Level "info"
+    $preflightSurvivors = @()
+    $preflightFailed    = 0
+    foreach ($pf in $pending) {
+        $pfModel = $pf.Model
+        $pfOk    = $true
+        $pfCode  = 0
+        try {
+            $pfResp = Invoke-WebRequest -Uri $pfModel.downloadUrl -Method Head -MaximumRedirection 5 `
+                -TimeoutSec 15 -UseBasicParsing -ErrorAction Stop
+            $pfCode = [int]$pfResp.StatusCode
+            if ($pfCode -lt 200 -or $pfCode -ge 400) { $pfOk = $false }
+        } catch {
+            $pfOk = $false
+            try { if ($_.Exception.Response) { $pfCode = [int]$_.Exception.Response.StatusCode } } catch {}
+        }
+        if ($pfOk) {
+            $preflightSurvivors += $pf
+        } else {
+            $pfReason = switch ($pfCode) {
+                401 { "401 Unauthorized -- repo is gated or does not exist on HuggingFace" }
+                403 { "403 Forbidden -- repo requires acceptance of license / access request" }
+                404 { "404 Not Found -- this catalog entry points to a non-existent file" }
+                default { "preflight HEAD failed (status=$pfCode) -- URL likely invalid" }
+            }
+            Write-Log "  [$($pfModel.index)] [ FAIL ] $($pfModel.displayName) -- $pfReason" -Level "error"
+            Write-Log "          URL: $($pfModel.downloadUrl)" -Level "error"
+            Write-Log "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json" -Level "error"
+            Write-FileError -FilePath $pfModel.downloadUrl -Operation "preflight-head" -Reason $pfReason -Module "Install-SelectedModels"
+            $preflightFailed++
+            $failedCount++
+        }
+    }
+    $pending      = $preflightSurvivors
+    $pendingCount = $pending.Count
+    if ($preflightFailed -gt 0) {
+        Write-Log "Preflight dropped $preflightFailed entry(ies); $pendingCount remaining." -Level "warn"
+    }
+    if ($pendingCount -eq 0) {
+        Write-Log "Preflight removed every pending entry. Nothing to download." -Level "error"
+        Write-Log "Models directory: $ModelsDir" -Level "info"
+        return
+    }
+
     # Pending size totals for the progress indicator
     $pendingTotalGB = 0.0
     foreach ($p in $pending) { $pendingTotalGB += [double]$p.Model.fileSizeGB }
