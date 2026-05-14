@@ -439,13 +439,19 @@ for entry in "${SURVIVORS[@]}"; do
 
     if [ "$rc" -eq 0 ] && [ "$file_bytes" -le 0 ]; then
       log_warn "[model-pull] [POST-CHECK FAIL] downloader reported success but '$target' is missing/zero (size=${file_bytes}B) -- attempt $attempt/$MAX_FILE_RETRIES"
+      log_warn "          URL: $url"
       log_file_error "$target" "post-download verify: downloader exit=ok but file missing/zero-byte (attempt $attempt/$MAX_FILE_RETRIES, url=$url)"
     else
+      log_warn "[model-pull] [DOWNLOAD FAIL] $id -- attempt $attempt/$MAX_FILE_RETRIES (rc=$rc)"
+      log_warn "          URL: $url"
       log_file_error "$target" "fast_download failed for model id '$id' (rc=$rc, attempt $attempt/$MAX_FILE_RETRIES, url=$url)"
     fi
   done
 
   if [ "$is_done" -ne 1 ]; then
+    log_warn "[model-pull] all $MAX_FILE_RETRIES attempts exhausted for $id"
+    log_warn "          URL: $url"
+    log_warn "          Target: $target"
     fail=$((fail+1))
   fi
 done

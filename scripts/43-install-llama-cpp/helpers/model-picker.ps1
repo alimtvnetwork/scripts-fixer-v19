@@ -830,7 +830,8 @@ function Install-SelectedModels {
             }
             if ($batchFileBytes -le 0) {
                 Write-Log "  [$($model.index)] [POST-CHECK FAIL] batch reported success but '$outputPath' is missing/empty -- falling back to sequential retry" -Level "warn"
-                Write-FileError -FilePath $outputPath -Operation "batch-post-verify" -Reason "batch downloader exit=ok but file missing/zero-byte" -Module "Install-SelectedModels"
+                Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
+                Write-FileError -FilePath $outputPath -Operation "batch-post-verify" -Reason "batch downloader exit=ok but file missing/zero-byte (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 $isBatchHit   = $false
                 $isDownloadOk = $false
             }
@@ -922,14 +923,21 @@ function Install-SelectedModels {
 
                 if ($rc -and -not $isFileLanded) {
                     Write-Log "  [$($model.index)] [POST-CHECK FAIL] downloader reported success but '$outputPath' is missing or empty (size=$fileBytes B) -- attempt $attempt/$maxFileRetries" -Level "warn"
-                    Write-FileError -FilePath $outputPath -Operation "post-download-verify" -Reason "downloader exit=ok but file missing/zero-byte (attempt $attempt/$maxFileRetries)" -Module "Install-SelectedModels"
+                    Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
+                    Write-FileError -FilePath $outputPath -Operation "post-download-verify" -Reason "downloader exit=ok but file missing/zero-byte (attempt $attempt/$maxFileRetries, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
+                } elseif (-not $rc) {
+                    Write-Log "  [$($model.index)] [DOWNLOAD FAIL] $($model.displayName) -- attempt $attempt/$maxFileRetries (downloader rc=fail)" -Level "warn"
+                    Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
+                    Write-FileError -FilePath $outputPath -Operation "download-attempt" -Reason "downloader returned failure (attempt $attempt/$maxFileRetries, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 }
             }
         }
 
         if (-not $isDownloadOk) {
             Write-Log "  [$($model.index)] FAILED: $($model.displayName)" -Level "error"
-            Write-FileError -FilePath $outputPath -Operation "download" -Reason "Download failed after retries" -Module "Install-SelectedModels"
+            Write-Log "          URL: $($model.downloadUrl)" -Level "error"
+            Write-Log "          Target: $outputPath" -Level "error"
+            Write-FileError -FilePath $outputPath -Operation "download" -Reason "Download failed after $maxFileRetries attempts (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
             $failedCount++
             $processedGB += [double]$model.fileSizeGB
             continue
@@ -949,7 +957,8 @@ function Install-SelectedModels {
                 Write-Log "    Checksum MISMATCH for $($model.displayName)" -Level "error"
                 Write-Log "      Expected: $expectedHash" -Level "error"
                 Write-Log "      Actual:   $actualHash" -Level "error"
-                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "SHA256 mismatch (expected $expectedHash, got $actualHash)" -Module "Install-SelectedModels"
+                Write-Log "      URL:      $($model.downloadUrl)" -Level "error"
+                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "SHA256 mismatch (expected $expectedHash, got $actualHash, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 $isChecksumOk = $false
             }
         } else {
@@ -965,7 +974,8 @@ function Install-SelectedModels {
             Write-Log "    Run '.\run.ps1 -I 43 fill-sha256 -- -Ids $($model.id)' to attempt auto-fill, or populate manually in models-catalog.json." -Level "info"
             if ($isRequireChecksum) {
                 Write-Log "    download.requireChecksum=true -- failing this model (failure path: $outputPath)" -Level "error"
-                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "no sha256 in catalog and download.requireChecksum=true" -Module "Install-SelectedModels"
+                Write-Log "    URL: $($model.downloadUrl)" -Level "error"
+                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "no sha256 in catalog and download.requireChecksum=true (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 $isChecksumOk = $false
             }
         }
@@ -977,6 +987,7 @@ function Install-SelectedModels {
             $downloadedCount++
         } else {
             Write-Log "  [$($model.index)] FAILED (checksum): $($model.displayName)" -Level "error"
+            Write-Log "          URL: $($model.downloadUrl)" -Level "error"
             if (Test-Path $outputPath) {
                 try { Remove-Item $outputPath -Force } catch { }
             }
