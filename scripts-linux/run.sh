@@ -588,44 +588,20 @@ case "${VERB:-help}" in
     exit $?
     ;;
   models)
-    # Parse model ids + optional --dir; forward everything to model-pull.sh.
-    mp_dir=""; mp_args=()
+    # Forward every arg to model-pull.sh -- it owns flag parsing (filters,
+    # --dir, --all, --dry-run, --exclude, capability flags, etc).
     mp_filtered=()
     for _a in "${MODELS_REST[@]:-}"; do [ -n "$_a" ] && mp_filtered+=("$_a"); done
-    mp_i=0
-    while [ "$mp_i" -lt "${#mp_filtered[@]}" ]; do
-      mp_a="${mp_filtered[$mp_i]}"
-      case "$mp_a" in
-        --dir|-d)
-          mp_i=$((mp_i+1)); mp_dir="${mp_filtered[$mp_i]:-}" ;;
-        --dir=*|-d=*) mp_dir="${mp_a#*=}" ;;
-        -h|--help)
-          echo "Usage: ./run.sh models list"
-          echo "       ./run.sh models <id> [<id> ...] [--dir <path>]"
-          exit 0 ;;
-        -*)
-          log_warn "models: unknown flag '$mp_a'"; ;;
-        *)
-          mp_args+=("$mp_a") ;;
-      esac
-      mp_i=$((mp_i+1))
-    done
-    if [ "${#mp_args[@]}" -eq 0 ]; then
-      log_err "models: at least one model id or 'list' is required"
-      echo "Usage: ./run.sh models list"
-      echo "       ./run.sh models <id> [<id> ...] [--dir <path>]"
-      exit 64
-    fi
-    # Build explicit command so model-pull.sh is always reachable
     MP_SCRIPT="$ROOT/43-install-llama-cpp/model-pull.sh"
-    if [ ! -x "$MP_SCRIPT" ]; then
+    if [ ! -x "$MP_SCRIPT" ] && [ ! -f "$MP_SCRIPT" ]; then
       log_file_error "$MP_SCRIPT" "model-pull.sh missing or not executable"
       exit 1
     fi
-    mp_cmd=("$MP_SCRIPT")
-    [ -n "$mp_dir" ] && mp_cmd+=("--dir" "$mp_dir")
-    mp_cmd+=("${mp_args[@]}")
-    bash "${mp_cmd[@]}"
+    if [ "${#mp_filtered[@]}" -gt 0 ]; then
+      bash "$MP_SCRIPT" "${mp_filtered[@]}"
+    else
+      bash "$MP_SCRIPT"
+    fi
     exit $?
     ;;
   remote-install)
