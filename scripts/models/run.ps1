@@ -5,7 +5,7 @@
 # --------------------------------------------------------------------------
 param(
     [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
-    [string[]]$Args,
+    [string[]]$Rest,
 
     [string]$Backend,
     [string]$Install,
@@ -13,6 +13,16 @@ param(
     [switch]$Force,
     [switch]$Help
 )
+
+# CODE RED root-cause note: previously this param was named $Args, which
+# collides with PowerShell's automatic $args variable. Under Set-StrictMode
+# Latest + a [Parameter()]-attributed (advanced) param block, splatted
+# positional tokens from `& $modelsScript @mdArgs` (e.g. "download","93")
+# bound only the first token reliably; the rest collapsed, $secondArg went
+# empty, $isDownloadMode flipped false, and the script silently fell
+# through to the default "show full catalog" branch. Renaming to $Rest
+# fixes the binding. Memory: mem://features/models-args-rename
+$Args = $Rest
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
