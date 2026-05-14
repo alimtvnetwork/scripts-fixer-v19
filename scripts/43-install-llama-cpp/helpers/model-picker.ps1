@@ -773,6 +773,38 @@ function Install-SelectedModels {
             Write-Log "    $($model.parameters) | $($model.quantization) | $($model.fileSizeGB) GB | RAM: $($model.ramRequiredGB)+ GB" -Level "info"
             Write-Log "    $($model.bestFor)" -Level "info"
 
+            # PREFLIGHT: HEAD-probe the download URL so a non-existent /
+            # gated repo fails fast with a clear message instead of burning
+            # 3 aria2c retries on "Authorization failed". HuggingFace returns
+            # 401 for missing-or-gated repos and 404 for missing files.
+            $preflightOk = $true
+            try {
+                $headResp = Invoke-WebRequest -Uri $model.downloadUrl -Method Head -MaximumRedirection 5 -TimeoutSec 15 -UseBasicParsing -ErrorAction Stop
+                $code     = [int]$headResp.StatusCode
+                if ($code -lt 200 -or $code -ge 400) { $preflightOk = $false; $preflightCode = $code }
+            } catch {
+                $preflightOk = $false
+                $preflightCode = 0
+                try {
+                    if ($_.Exception.Response) { $preflightCode = [int]$_.Exception.Response.StatusCode }
+                } catch {}
+            }
+            if (-not $preflightOk) {
+                $reason = switch ($preflightCode) {
+                    401 { "401 Unauthorized -- repo is gated or does not exist on HuggingFace" }
+                    403 { "403 Forbidden -- repo requires acceptance of license / access request" }
+                    404 { "404 Not Found -- this catalog entry points to a non-existent file" }
+                    default { "preflight HEAD failed (status=$preflightCode) -- URL likely invalid" }
+                }
+                Write-Log "  [$($model.index)] [ FAIL ] $($model.displayName) -- $reason" -Level "error"
+                Write-Log "          URL: $($model.downloadUrl)" -Level "error"
+                Write-Log "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json" -Level "error"
+                Write-FileError -FilePath $model.downloadUrl -Operation "preflight-head" -Reason $reason -Module "Install-SelectedModels"
+                $failedCount++
+                $processedGB += [double]$model.fileSizeGB
+                continue
+            }
+
             # Route through the shared fast-download helper (aria2c-first
             # with auto-install + CODE-RED file-error logging). Splits map
             # to aria2c -x/-s; PieceSize maps to -k.
