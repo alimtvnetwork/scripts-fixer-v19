@@ -736,16 +736,56 @@ function Invoke-BackendInstall {
             . (Join-Path $sharedDir "aria2c-batch.ps1")
             . (Join-Path $llamaScriptDir "helpers\model-picker.ps1")
 
-            $devDir = if ($env:DEV_DIR) { $env:DEV_DIR } else { "$env:USERPROFILE\dev" }
+            $devDir  = if ($env:DEV_DIR) { $env:DEV_DIR } else { "$env:USERPROFILE\dev" }
+            $baseDir = Join-Path $devDir $llamaCfg.devDirSubfolder
 
-            $env:LLAMA_CPP_INSTALL_IDS = $ids
+            # HARD GUARD: snapshot the llama.cpp binary dir before the run so
+            # we can detect (and fail) any binary that lands there during a
+            # 'models-download' invocation. Models go to a separate models
+            # subdir; binaries here would mean the install path leaked.
+            $binSnapshotBefore = @{}
+            if (Test-Path $baseDir) {
+                Get-ChildItem -LiteralPath $baseDir -Recurse -ErrorAction SilentlyContinue `
+                    -Include "llama-*.exe","*.dll","*.zip" |
+                    ForEach-Object { $binSnapshotBefore[$_.FullName] = $_.Length }
+            }
+
+            $env:LLAMA_CPP_INSTALL_IDS       = $ids
+            $env:MODELS_DOWNLOAD_NO_BINARIES = "1"
+            $guardTripped = $false
             try {
                 Invoke-ModelInstaller -CatalogPath $catalogPath -DevDir $devDir `
                     -DefaultModelsSubfolder $llamaCfg.modelsConfig.devDirSubfolder `
                     -Aria2Config $llamaCfg.aria2c -DownloadConfig $llamaCfg.download `
                     -LogMessages $llamaLogs
+            } catch {
+                if ("$_" -match "HARD GUARD TRIPPED") { $guardTripped = $true }
+                Write-Log "models-download dispatch failed: $_" -Level "error"
             } finally {
-                Remove-Item Env:\LLAMA_CPP_INSTALL_IDS -ErrorAction SilentlyContinue
+                Remove-Item Env:\LLAMA_CPP_INSTALL_IDS       -ErrorAction SilentlyContinue
+                Remove-Item Env:\MODELS_DOWNLOAD_NO_BINARIES -ErrorAction SilentlyContinue
+            }
+
+            # Post-run diff: any new/grown binary file under baseDir = leak.
+            $newBinaries = @()
+            if (Test-Path $baseDir) {
+                $afterFiles = Get-ChildItem -LiteralPath $baseDir -Recurse -ErrorAction SilentlyContinue `
+                    -Include "llama-*.exe","*.dll","*.zip"
+                foreach ($f in $afterFiles) {
+                    $isNew  = -not $binSnapshotBefore.ContainsKey($f.FullName)
+                    $isGrew = $binSnapshotBefore.ContainsKey($f.FullName) -and ($binSnapshotBefore[$f.FullName] -ne $f.Length)
+                    if ($isNew -or $isGrew) { $newBinaries += $f.FullName }
+                }
+            }
+
+            if ($guardTripped -or $newBinaries.Count -gt 0) {
+                Write-Log "HARD GUARD: 'models-download' must not install llama.cpp binaries." -Level "error"
+                if ($newBinaries.Count -gt 0) {
+                    Write-Log "Detected $($newBinaries.Count) new/changed binary file(s) under $baseDir :" -Level "error"
+                    $newBinaries | ForEach-Object { Write-Log "  + $_" -Level "error" }
+                }
+                Write-Log "Aborting models-download. Use '.\run.ps1 -I 43' to install llama.cpp binaries explicitly." -Level "error"
+                throw "models-download hard guard tripped: llama.cpp binary install path was triggered."
             }
         }
     }
