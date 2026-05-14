@@ -501,22 +501,34 @@ function Show-ModelList {
         $detailParts += ("backend: {0}" -f $m.backend)
         Write-Host ("        {0}" -f ($detailParts -join " | ")) -ForegroundColor $dimColor
 
-        # Line 1: size | RAM | caps | code/reason/speed/overall (numbers colored)
-        Write-Host ("        {0} | RAM {1} | {2} | " -f $sizeStr, $ramStr, $caps) -ForegroundColor $bodyColor -NoNewline
+        # Line 1: size | RAM | caps | (coding, reasoning, speed, overall) : 7/8/9/9
+        Write-Host ("        {0} | RAM {1} | {2}" -f $sizeStr, $ramStr, $caps) -ForegroundColor $bodyColor -NoNewline
         $ratings = @($rCode, $rReason, $rSpeed, $rOver)
-        for ($i = 0; $i -lt $ratings.Count; $i++) {
-            $val = $ratings[$i]
-            $num = 0
-            $color = $dimColor
-            if ([int]::TryParse([string]$val, [ref]$num)) {
-                if ($num -ge 9)     { $color = "Yellow" }
-                elseif ($num -ge 7) { $color = "Green" }
-                elseif ($num -ge 5) { $color = "White" }
-                else                { $color = "DarkGray" }
+        $ratingLabels = @("coding", "reasoning", "speed", "overall")
+        $hasAnyRating = ($ratings | Where-Object { $_ -ne '-' -and $_ -ne '' }) -gt 0
+        if ($hasAnyRating) {
+            Write-Host "  (" -ForegroundColor $dimColor -NoNewline
+            for ($i = 0; $i -lt $ratings.Count; $i++) {
+                Write-Host ($ratingLabels[$i]) -ForegroundColor $dimColor -NoNewline
+                if ($i -lt $ratings.Count - 1) {
+                    Write-Host ", " -ForegroundColor $dimColor -NoNewline
+                }
             }
-            Write-Host ("{0}" -f $val) -ForegroundColor $color -NoNewline
-            if ($i -lt $ratings.Count - 1) {
-                Write-Host "/" -ForegroundColor $dimColor -NoNewline
+            Write-Host ") : " -ForegroundColor $dimColor -NoNewline
+            for ($i = 0; $i -lt $ratings.Count; $i++) {
+                $val = $ratings[$i]
+                $num = 0
+                $color = $dimColor
+                if ([int]::TryParse([string]$val, [ref]$num)) {
+                    if ($num -ge 9)     { $color = "Yellow" }
+                    elseif ($num -ge 7) { $color = "Green" }
+                    elseif ($num -ge 5) { $color = "White" }
+                    else                { $color = "DarkGray" }
+                }
+                Write-Host ($val) -ForegroundColor $color -NoNewline
+                if ($i -lt $ratings.Count - 1) {
+                    Write-Host "/" -ForegroundColor $dimColor -NoNewline
+                }
             }
         }
         Write-Host ""
