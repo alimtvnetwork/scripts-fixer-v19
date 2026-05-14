@@ -122,8 +122,33 @@ via `Write-FileError` (Windows) or `log_file_error` (Linux). Reasons
 include: `aria2c install failed`, `aria2c exit=N`, `file missing after
 download`, `file empty after download`, `cannot create output dir`.
 
+## Progress UI
+
+**Decision (2026-05): keep aria2c's native console summary; do not wrap
+in `Write-Progress`.**
+
+Rationale:
+
+- aria2c already prints a compact `[#abcd 1.2GiB/5.0GiB(24%) CN:16
+  DL:35MiB ETA:1m48s]` line every 5s (`--summary-interval=5`) showing
+  percentage, per-connection throughput, total speed, and ETA. That is
+  more information than a single `Write-Progress` bar can carry.
+- Parsing aria2c's output to drive `Write-Progress` would require a
+  background reader, ANSI-stripping, and per-line state -- adds
+  complexity, breaks `--console-log-level=warn`, and loses the
+  per-connection breakdown.
+- Batch mode (`aria2c-batch.ps1`) already aggregates the same summary
+  across N parallel files; a wrapped bar would have to fight that.
+
+If a unified bar is ever required (e.g. for a GUI front-end), parse
+aria2c's `--summary-interval` lines from a piped stdout reader rather
+than replacing the engine. Until then, native output wins on signal-
+to-noise.
+
 ## Out of scope
 
 - BitTorrent / IPFS / Magnet sources.
 - Cross-host load balancing.
 - Per-URL header injection (use raw `aria2c` for that).
+- Wrapped progress bar (see "Progress UI" above for rationale).
+

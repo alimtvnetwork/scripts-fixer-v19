@@ -9,6 +9,11 @@ if ((Test-Path $_loggingPath) -and -not (Get-Command Write-Log -ErrorAction Sile
     . $_loggingPath
 }
 
+$_fastDownloadPath = Join-Path $_sharedDir "fast-download.ps1"
+if ((Test-Path $_fastDownloadPath) -and -not (Get-Command Invoke-FastDownload -ErrorAction SilentlyContinue)) {
+    . $_fastDownloadPath
+}
+
 
 function Install-Ollama {
     param(
@@ -48,7 +53,7 @@ function Install-Ollama {
     $installerPath = Join-Path $downloadDir $Config.installerFileName
     Write-Log ($LogMessages.messages.ollamaDownloading -replace '\{path\}', $installerPath) -Level "info"
 
-    $isDownloadOk = Invoke-DownloadWithRetry -Uri $Config.downloadUrl -OutFile $installerPath -Label "OllamaSetup.exe"
+    $isDownloadOk = Invoke-FastDownload -Uri $Config.downloadUrl -OutFile $installerPath -Label "OllamaSetup.exe"
     if (-not $isDownloadOk) {
         Write-Log ($LogMessages.messages.ollamaDownloadFailed -replace '\{error\}', "All download attempts failed") -Level "error"
         Save-InstalledError -Name "ollama" -ErrorMessage "Download failed after retries"

@@ -14,6 +14,11 @@ if ((Test-Path $_hardwareDetectPath) -and -not (Get-Command Get-HardwareProfile 
     . $_hardwareDetectPath
 }
 
+$_fastDownloadPath = Join-Path $_sharedDir "fast-download.ps1"
+if ((Test-Path $_fastDownloadPath) -and -not (Get-Command Invoke-FastDownload -ErrorAction SilentlyContinue)) {
+    . $_fastDownloadPath
+}
+
 
 function Get-FileSize {
     <#
@@ -157,7 +162,7 @@ function Install-LlamaCppExecutables {
         }
 
         # Download
-        $isDownloadOk = Invoke-DownloadWithRetry -Uri $item.downloadUrl -OutFile $outputPath -Label $item.displayName
+        $isDownloadOk = Invoke-FastDownload -Uri $item.downloadUrl -OutFile $outputPath -Label $item.displayName
         if (-not $isDownloadOk) {
             Write-Log ($LogMessages.messages.downloadFailed -replace '\{slug\}', $item.slug -replace '\{error\}', "All download attempts failed") -Level "error"
             Write-FileError -FilePath $outputPath -Operation "download" -Reason "Download failed after retries" -Module "Install-LlamaCppExecutables"
