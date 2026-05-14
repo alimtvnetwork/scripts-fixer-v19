@@ -97,6 +97,17 @@ function Install-LlamaCppExecutables {
         [string]$BaseDir
     )
 
+    # HARD GUARD: models-download must NEVER trigger a binary install.
+    # The orchestrator sets MODELS_DOWNLOAD_NO_BINARIES=1; bail loudly.
+    if ($env:MODELS_DOWNLOAD_NO_BINARIES -eq "1") {
+        $msg = "HARD GUARD TRIPPED: Install-LlamaCppExecutables called during 'models-download'. Binary installs are forbidden in this mode."
+        Write-Log $msg -Level "error"
+        Write-FileError -FilePath $BaseDir -Operation "install-binaries" `
+            -Reason "models-download invoked binary-install path" `
+            -Module "Install-LlamaCppExecutables"
+        throw $msg
+    }
+
     $executables = $Config.executables
     $pathConfig = $Config.path
 
