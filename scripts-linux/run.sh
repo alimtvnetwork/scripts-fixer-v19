@@ -198,8 +198,19 @@ System-wide verbs:
 Fast download (aria2c-first, defaults splits=16, piece=1M):
   download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
   url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
-                               Auto-installs aria2c if missing; falls back
-                               to curl/wget. Used by all model pulls.
+                                Auto-installs aria2c if missing; falls back
+                                to curl/wget. Used by all model pulls.
+
+Model download (script 43 llama.cpp model-pull):
+  models list                    Print all available GGUF models from the catalog
+  models <id> [<id> ...]         Download one or more models by id
+       --dir <path>              Output directory (default: ~/models/gguf)
+  model  ...                     Alias of 'models'
+
+Examples:
+  ./run.sh models list
+  ./run.sh models qwen2.5-coder-3b
+  ./run.sh models qwen2.5-coder-3b nemotron-8b-opus-distill --dir /mnt/ai
 
 Cross-OS startup management (script 64 shortcuts):
   startup-list                 List startup entries created by this toolkit
