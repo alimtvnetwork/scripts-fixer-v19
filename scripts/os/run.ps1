@@ -386,6 +386,13 @@ if ($normalizedAction -match '^clean-(.+)$') {
 
 switch ($normalizedAction) {
     "clean" {
+        # SIMPLE clean: WU cache + temp dirs + event logs + PSReadLine history.
+        # For the full 59-category sweep use 'advance-clean' / 'advanced-clean'.
+        & (Join-Path $scriptDir "helpers\simple-clean.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("advance-clean", "advanced-clean", "clean-all", "clean-advanced", "clean-advance") } {
+        # Master 59-category orchestrator (was previously 'os clean').
         & (Join-Path $scriptDir "helpers\clean.ps1") @Rest
         exit $LASTEXITCODE
     }
