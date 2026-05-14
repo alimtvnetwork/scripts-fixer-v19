@@ -155,6 +155,12 @@ while [ $# -gt 0 ]; do
     # Defaults: splits=16, piece=1M, dir=$PWD.
     download|url|fast-download|fastdownload)
         VERB="fast-download"; shift; FD_REST=("$@"); break ;;
+    # ---- top-level shortcut: model download (script 43) -----------------
+    # ./run.sh models list                    print catalog
+    # ./run.sh models <id> [<id> ...]         download by id(s)
+    # ./run.sh models <id> ... -d /path       custom output dir
+    models|model)
+        VERB="models"; shift; MODELS_REST=("$@"); break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
