@@ -71,7 +71,7 @@ Initialize-Logging -ScriptName $logMessages.scriptName
 try {
     # ── Parse first-class flags (--family/--max-ram/--exclude/--all/--dry-run/...)
     # then continue with positional-only args so existing modes keep working.
-    $flagParse  = Read-ModelFlagOptions -Args $Rest
+    $flagParse  = Read-ModelFlagOptions -Argv $Rest
     $flagOpts   = $flagParse.Options
     $Rest       = $flagParse.Positional
     $flagsActive = Test-ModelFlagOptionsActive -Options $flagOpts
