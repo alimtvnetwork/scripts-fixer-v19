@@ -218,6 +218,16 @@ Examples:
   ./run.sh models qwen2.5-coder-3b
   ./run.sh models qwen2.5-coder-3b nemotron-8b-opus-distill --dir /mnt/ai
 
+Remote installers (SHA256-pinned, mirror of Windows remote.<key>):
+  install coding-guidelines    Coding Guidelines v23 -- alimtvnetwork/coding-guidelines-v23
+  install clean-code           Same as 'install coding-guidelines'
+  install cg | cc | code-guide Aliases of 'install coding-guidelines'
+                                 Body is downloaded, sha256-verified BEFORE
+                                 execution; mismatched bodies are quarantined
+                                 in scripts-linux/_shared/remote-installers/.quarantine/
+                                 (CODE RED). Pin lives in
+                                 scripts-linux/_shared/remote-installers/coding-guidelines.json.
+
 Cross-OS startup management (script 64 shortcuts):
   startup-list                 List startup entries created by this toolkit
   startup-remove <name> [...]  Remove a tool-created entry (alias: startup-rm)
