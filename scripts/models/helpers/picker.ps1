@@ -719,12 +719,34 @@ function Invoke-BackendInstall {
                 Write-Log "  Then re-run:                  .\run.ps1 models-download $ids" -Level "info"
                 continue
             }
-            # llama.cpp: pass via env var read by helpers/model-picker.ps1.
-            # Use 'models' (model-only) — never 'all', which would re-download
-            # the llama.cpp binaries.
+            # llama.cpp: invoke the model-installer helper DIRECTLY (do not
+            # call script 43's run.ps1, which prints the "Install llama.cpp"
+            # banner, asserts admin, and may pull binaries). models-download
+            # must only fetch GGUF files into the models directory.
+            $llamaScriptDir = Join-Path $ScriptsRoot $folder
+            $llamaCfgPath   = Join-Path $llamaScriptDir "config.json"
+            $llamaLogsPath  = Join-Path $llamaScriptDir "log-messages.json"
+            $catalogPath    = Join-Path $llamaScriptDir "models-catalog.json"
+            $llamaCfg       = Get-Content $llamaCfgPath  -Raw | ConvertFrom-Json
+            $llamaLogs      = Get-Content $llamaLogsPath -Raw | ConvertFrom-Json
+
+            $sharedDir = Join-Path $ScriptsRoot "shared"
+            . (Join-Path $sharedDir "download-retry.ps1")
+            . (Join-Path $sharedDir "aria2c-download.ps1")
+            . (Join-Path $sharedDir "aria2c-batch.ps1")
+            . (Join-Path $llamaScriptDir "helpers\model-picker.ps1")
+
+            $devDir = if ($env:DEV_DIR) { $env:DEV_DIR } else { "$env:USERPROFILE\dev" }
+
             $env:LLAMA_CPP_INSTALL_IDS = $ids
-            & $script models
-            Remove-Item Env:\LLAMA_CPP_INSTALL_IDS -ErrorAction SilentlyContinue
+            try {
+                Invoke-ModelInstaller -CatalogPath $catalogPath -DevDir $devDir `
+                    -DefaultModelsSubfolder $llamaCfg.modelsConfig.devDirSubfolder `
+                    -Aria2Config $llamaCfg.aria2c -DownloadConfig $llamaCfg.download `
+                    -LogMessages $llamaLogs
+            } finally {
+                Remove-Item Env:\LLAMA_CPP_INSTALL_IDS -ErrorAction SilentlyContinue
+            }
         }
     }
 }
