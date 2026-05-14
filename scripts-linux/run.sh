@@ -189,6 +189,12 @@ System-wide verbs:
   repair-all           Run install for every id whose health != ok
                          --only-drift   only repair ids in drift state
 
+Fast download (aria2c-first, defaults splits=16, piece=1M):
+  download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+  url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
+                               Auto-installs aria2c if missing; falls back
+                               to curl/wget. Used by all model pulls.
+
 Cross-OS startup management (script 64 shortcuts):
   startup-list                 List startup entries created by this toolkit
   startup-remove <name> [...]  Remove a tool-created entry (alias: startup-rm)
