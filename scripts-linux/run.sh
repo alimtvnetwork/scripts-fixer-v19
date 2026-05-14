@@ -149,6 +149,12 @@ while [ $# -gt 0 ]; do
         VERB="defapp-passthrough"; DEFAPP_KIND="browser"; shift; DEFAPP_REST=("$@"); break ;;
     email|mail|default-email|default-mail|set-email|mail-client)
         VERB="defapp-passthrough"; DEFAPP_KIND="email"; shift; DEFAPP_REST=("$@"); break ;;
+    # ---- top-level shortcut: fast-download (aria2c-first) ---------------
+    # ./run.sh download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+    # ./run.sh url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
+    # Defaults: splits=16, piece=1M, dir=$PWD.
+    download|url|fast-download|fastdownload)
+        VERB="fast-download"; shift; FD_REST=("$@"); break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
@@ -182,6 +188,12 @@ System-wide verbs:
                          --json   emit machine-readable JSON
   repair-all           Run install for every id whose health != ok
                          --only-drift   only repair ids in drift state
+
+Fast download (aria2c-first, defaults splits=16, piece=1M):
+  download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+  url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
+                               Auto-installs aria2c if missing; falls back
+                               to curl/wget. Used by all model pulls.
 
 Cross-OS startup management (script 64 shortcuts):
   startup-list                 List startup entries created by this toolkit
@@ -483,6 +495,47 @@ verb_repair_all() {
 
 case "${VERB:-help}" in
   help) show_help ;;
+  fast-download)
+    # Parse: <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+    fd_url=""; fd_dir="$PWD"; fd_splits=16; fd_piece="1M"
+    fd_pos=0
+    fd_args=("${FD_REST[@]:-}")
+    fd_i=0
+    while [ "$fd_i" -lt "${#fd_args[@]}" ]; do
+      fd_a="${fd_args[$fd_i]}"
+      case "$fd_a" in
+        -s|--splits)            fd_i=$((fd_i+1)); fd_splits="${fd_args[$fd_i]:-16}" ;;
+        --splits=*)             fd_splits="${fd_a#*=}" ;;
+        -s=*)                   fd_splits="${fd_a#*=}" ;;
+        -p|--piece-size|--piece) fd_i=$((fd_i+1)); fd_piece="${fd_args[$fd_i]:-1M}" ;;
+        --piece-size=*)         fd_piece="${fd_a#*=}" ;;
+        --piece=*)              fd_piece="${fd_a#*=}" ;;
+        -p=*)                   fd_piece="${fd_a#*=}" ;;
+        -h|--help)
+          echo "Usage: ./run.sh download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]"
+          echo "Defaults: splits=16, piece=1M, dir=\$PWD"
+          exit 0 ;;
+        -*)
+          log_warn "fast-download: unknown flag '$fd_a'" ;;
+        *)
+          if [ "$fd_pos" -eq 0 ]; then fd_url="$fd_a"
+          elif [ "$fd_pos" -eq 1 ]; then fd_dir="$fd_a"
+          else log_warn "fast-download: extra positional '$fd_a' ignored"
+          fi
+          fd_pos=$((fd_pos+1)) ;;
+      esac
+      fd_i=$((fd_i+1))
+    done
+    if [ -z "$fd_url" ]; then
+      log_err "fast-download: <url> is required"
+      echo "Usage: ./run.sh download <url> [<dir>] [-s N] [-p SIZE]"
+      exit 64
+    fi
+    . "$ROOT/_shared/apt-install.sh" 2>/dev/null || true
+    . "$ROOT/_shared/fast-download.sh"
+    fast_download "$fd_url" "$fd_dir" "$fd_splits" "$fd_piece"
+    exit $?
+    ;;
   list) registry_list_all | column -t -s$'\t' ;;
   health)      verb_health ;;
   repair-all)  verb_repair_all ;;

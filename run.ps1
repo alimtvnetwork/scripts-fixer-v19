@@ -331,6 +331,8 @@ function Show-RootHelpRaw {
     Write-Host "    $(".\run.ps1 models <ids>".PadRight($col))" -NoNewline; Write-Host "Direct install: CSV of model ids (auto-routes per backend)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 models list".PadRight($col))" -NoNewline; Write-Host "List all models from both catalogs" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 -M".PadRight($col))" -NoNewline; Write-Host "Shortcut for 'models'" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 download <url> [<dir>]".PadRight($col))" -NoNewline; Write-Host "Fast download (aria2c, defaults -s 16 -p 1M); 'url' is alias" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 download <url> -s 12 -p 2M".PadRight($col))" -NoNewline; Write-Host "Override splits (per-server connections) and piece size" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 os <action>".PadRight($col))" -NoNewline; Write-Host "OS housekeeping: clean, temp-clean, hib-off, flp, add-user ('os -h' for full list)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 vscode-folder <action>".PadRight($col))" -NoNewline; Write-Host "VS Code folder-only context-menu repair ('vscode-folder help')" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 vscode-context-menu install".PadRight($col))" -NoNewline; Write-Host "Add VS Code 'Open with Code' to Windows right-click menu (uninstall to remove)" -ForegroundColor DarkGray
@@ -3223,7 +3225,7 @@ if ($_isEarlyHelp) {
         'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
         'menu','context-menu','profile','install','uninstall','update',
         'self-update','settings','export','os','doctor','logs','report',
-        'path','models','git','git-tools','gsa','mysql','postgresql',
+        'path','models','download','url','git','git-tools','gsa','mysql','postgresql',
         'mariadb','mongodb','redis','sqlite','node','python','docker',
         'kubernetes','java','dotnet','rust','go','php','obs','npp','wt',
         'dbeaver','ollama','user','ssh',
@@ -4020,6 +4022,58 @@ if ($hasCommand) {
         $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
         & $modelsScript @Install
         exit 0
+    } elseif ($normalizedCommand -in @("download","url","fast-download","fastdownload")) {
+        # ── Fast download command: aria2c-first wrapper ──────────────────
+        #   .\run.ps1 download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+        #   .\run.ps1 url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
+        # Defaults: splits=16, piece=1M, dir=$PWD.
+        Show-VersionHeader
+        $fdUrl = $null; $fdDir = (Get-Location).Path; $fdSplits = 16; $fdPiece = "1M"
+        $fdPos = 0
+        $fdArgs = @($Install | Where-Object { $_ })
+        $fi = 0
+        while ($fi -lt $fdArgs.Count) {
+            $a = "$($fdArgs[$fi])"
+            $low = $a.ToLower()
+            if ($low -in @("-s","--splits","-splits")) {
+                $fi++; if ($fi -lt $fdArgs.Count) { $fdSplits = [int]$fdArgs[$fi] }
+            } elseif ($low -like "--splits=*" -or $low -like "-s=*") {
+                $fdSplits = [int]($a.Split("=",2)[1])
+            } elseif ($low -in @("-p","--piece-size","--piece","-piecesize")) {
+                $fi++; if ($fi -lt $fdArgs.Count) { $fdPiece = "$($fdArgs[$fi])" }
+            } elseif ($low -like "--piece-size=*" -or $low -like "--piece=*" -or $low -like "-p=*") {
+                $fdPiece = $a.Split("=",2)[1]
+            } elseif ($low -in @("-h","--help","-help","/?","?")) {
+                Write-Host "Usage: .\run.ps1 download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]"
+                Write-Host "Defaults: splits=16, piece=1M, dir=current directory."
+                exit 0
+            } elseif ($a.StartsWith("-")) {
+                Write-Host "  [ WARN ] " -ForegroundColor Yellow -NoNewline
+                Write-Host "fast-download: unknown flag '$a'"
+            } else {
+                if ($fdPos -eq 0) { $fdUrl = $a }
+                elseif ($fdPos -eq 1) { $fdDir = $a }
+                else { Write-Host "fast-download: extra positional '$a' ignored" -ForegroundColor DarkGray }
+                $fdPos++
+            }
+            $fi++
+        }
+        if ([string]::IsNullOrWhiteSpace($fdUrl)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "fast-download: <url> is required."
+            Write-Host "Usage: .\run.ps1 download <url> [<dir>] [-s N] [-p SIZE]"
+            exit 64
+        }
+        . (Join-Path $RootDir "scripts\shared\logging.ps1")
+        Initialize-Logging -ScriptName "fast-download"
+        . (Join-Path $RootDir "scripts\shared\fast-download.ps1")
+        $isOutDirAbs = [System.IO.Path]::IsPathRooted($fdDir)
+        if (-not $isOutDirAbs) { $fdDir = Join-Path (Get-Location).Path $fdDir }
+        $fdName = [System.IO.Path]::GetFileName(($fdUrl -split '\?',2)[0])
+        if ([string]::IsNullOrWhiteSpace($fdName)) { $fdName = "download.bin" }
+        $fdOut = Join-Path $fdDir $fdName
+        $isOk = Invoke-FastDownload -Uri $fdUrl -OutFile $fdOut -Splits $fdSplits -PieceSize $fdPiece -Label $fdName
+        if ($isOk) { exit 0 } else { exit 1 }
     } elseif ($isBareSelfUpdateCommand) {
         # ── Self-update: refresh the local scripts-fixer checkout ────────
         # Pulls latest commits from the tracked branch via the shared

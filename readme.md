@@ -870,6 +870,44 @@ Override the dev drive globally before running any profile:
 
 ---
 
+## ⚡ Fast Download (`download` / `url`)
+
+Top-level shortcut for **any URL** that uses [aria2c](https://aria2.github.io/)
+under the hood — multi-segment parallel download, automatic resume, and
+auto-installed if missing. Same surface on Windows + Linux/macOS.
+
+```powershell
+# Windows
+.\run.ps1 download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+.\run.ps1 url      <url> [<dir>] [-s N] [-p SIZE]    # alias
+```
+
+```bash
+# Linux / macOS
+./run.sh download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+./run.sh url      <url> [<dir>] [-s N] [-p SIZE]     # alias
+```
+
+**Defaults:** `-s 16` (splits = connections per server), `-p 1M` (aria2c
+piece / min-split size — values < 1M are clamped). `<dir>` defaults to
+the current working directory.
+
+```powershell
+.\run.ps1 download https://hf.co/TheBloke/some-model-Q4.gguf
+.\run.ps1 download https://hf.co/TheBloke/some-model-Q4.gguf D:\models -s 12 -p 2M
+.\run.ps1 url      https://example.com/big.tar.gz . -s 8
+```
+
+```bash
+./run.sh download https://hf.co/TheBloke/some-model-Q4.gguf
+./run.sh download https://hf.co/TheBloke/some-model-Q4.gguf /var/models -s 12 -p 2M
+```
+
+Same helper backs **every model pull** in `.\run.ps1 models …` and is
+bundled into the `minimal` and `terminal` profiles so a fresh box always
+has aria2c ready before the first GGUF is fetched. Spec:
+[`spec/shared/fast-download.md`](spec/shared/fast-download.md).
+
 ## 🤖 Local AI Models — 90 GGUFs + Ollama
 
 Two backends, one orchestrator. Install local LLMs without juggling
