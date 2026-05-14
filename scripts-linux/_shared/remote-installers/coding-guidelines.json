@@ -1,0 +1,6 @@
+{
+  "_comment": "Linux mirror of Windows scripts/shared/install-keywords.json :: remote.clean-code. Refresh sha256 the same way -- curl the URL fresh and run sha256sum on the raw body. See _pinMaintenanceNote in the Windows file.",
+  "url": "https://raw.githubusercontent.com/alimtvnetwork/coding-guidelines-v23/main/install.sh",
+  "sha256": "d24fa3f256a09cfeed55fbc253354aa3fdfc13f33fe9af48deeda95f28938eba",
+  "label": "Coding Guidelines v23 (clean-code)"
+}
