@@ -59,6 +59,13 @@ Write-InstallPaths `
 Initialize-Logging -ScriptName $logMessages.scriptName
 
 try {
+    # ── Parse first-class flags (--family/--max-ram/--exclude/--all/--dry-run/...)
+    # then continue with positional-only args so existing modes keep working.
+    $flagParse  = Read-ModelFlagOptions -Args $Args
+    $flagOpts   = $flagParse.Options
+    $Args       = $flagParse.Positional
+    $flagsActive = Test-ModelFlagOptionsActive -Options $flagOpts
+
     # ── Parse positional args ────────────────────────────────────────────
     # First positional may be: "list", a CSV of model ids, or empty (interactive)
     $firstArg = if ($Args -and $Args.Count -gt 0) { $Args[0].Trim() } else { "" }
@@ -204,6 +211,20 @@ try {
             }
         }
 
+        if ($flagsActive) {
+            $all = Invoke-ModelFlagFilter -Models $all -Options $flagOpts
+            $bits = @()
+            if ($flagOpts.Family.Count       -gt 0) { $bits += "family=$($flagOpts.Family -join '|')" }
+            if ($flagOpts.Capabilities.Count -gt 0) { $bits += "caps=$($flagOpts.Capabilities -join '+')" }
+            if ($null -ne $flagOpts.MaxRam)         { $bits += "max-ram=$($flagOpts.MaxRam)" }
+            if ($null -ne $flagOpts.MinRam)         { $bits += "min-ram=$($flagOpts.MinRam)" }
+            if ($null -ne $flagOpts.MaxSize)        { $bits += "max-size=$($flagOpts.MaxSize)" }
+            if ($null -ne $flagOpts.MinSize)        { $bits += "min-size=$($flagOpts.MinSize)" }
+            if ($flagOpts.Exclude.Count      -gt 0) { $bits += "exclude=$($flagOpts.Exclude -join '|')" }
+            $flagLabel = $bits -join ' '
+            $filterLabel = if ($filterLabel) { "$filterLabel | $flagLabel" } else { $flagLabel }
+        }
+
         $label = if ($backendFilter) { $backendFilter } else { "all backends" }
         Show-ModelList -Models $all -BackendLabel $label -DownloadPaths $downloadPaths -FilterLabel $filterLabel
         return
@@ -213,8 +234,46 @@ try {
     # Usage: .\run.ps1 models download 5,6,10   (numbers from `models list`)
     if ($isDownloadMode) {
         $csv = if ($secondArg) { $secondArg } elseif ($hasInstallParam) { $Install } else { "" }
+
+        # Flag-driven download: --family / --max-ram / --coding / ... [+ --all]
+        if ([string]::IsNullOrWhiteSpace($csv) -and $flagsActive) {
+            $catalog = @()
+            $catalog += Get-BackendCatalog -Backend "llama-cpp" -Config $config -ScriptsRoot $scriptsRoot
+            $catalog += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
+            $matched = Invoke-ModelFlagFilter -Models $catalog -Options $flagOpts
+
+            if ($matched.Count -eq 0) {
+                Write-Log "No models match the supplied flags." -Level "warn"
+                return
+            }
+
+            Write-Host ""
+            Write-Host ("  Flag filter matched {0} model(s):" -f $matched.Count) -ForegroundColor Cyan
+            foreach ($m in $matched) {
+                Write-Host ("    - {0}  ({1})" -f $m.id, $m.backend) -ForegroundColor White
+            }
+            Write-Host ""
+
+            if ($flagOpts.DryRun) {
+                Write-Log "--dry-run set; no downloads performed." -Level "info"
+                return
+            }
+            if (-not $flagOpts.All) {
+                Write-Log "Re-run with --all to download every match, or pass an id/CSV explicitly." -Level "warn"
+                Write-Log "  e.g.  .\run.ps1 models download $(($matched | ForEach-Object { $_.id }) -join ',')" -Level "info"
+                return
+            }
+
+            Show-ModelDownloadPaths -Paths $downloadPaths
+            Invoke-BackendInstall -Models $matched -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
+            Show-ModelDownloadPaths -Paths $downloadPaths
+            Write-Log $logMessages.messages.complete -Level "success"
+            return
+        }
+
         if ([string]::IsNullOrWhiteSpace($csv)) {
             Write-Log "  Usage: .\run.ps1 models download <numbers-or-ids>  e.g. download 5,6,10  or  download qwen2.5-coder-3b" -Level "warn"
+            Write-Log "         (or use flags: download --family qwen3.7 --max-ram 16 --all)" -Level "info"
             return
         }
 
@@ -405,7 +464,12 @@ try {
     $all  = @()
     $all += Get-BackendCatalog -Backend "llama-cpp" -Config $config -ScriptsRoot $scriptsRoot
     $all += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
-    Show-ModelList -Models $all -BackendLabel "all backends" -DownloadPaths $downloadPaths
+    $defaultLabel = ""
+    if ($flagsActive) {
+        $all = Invoke-ModelFlagFilter -Models $all -Options $flagOpts
+        $defaultLabel = "flag-filtered"
+    }
+    Show-ModelList -Models $all -BackendLabel "all backends" -DownloadPaths $downloadPaths -FilterLabel $defaultLabel
     Write-Host "  Run  .\run.ps1 models help   to see every available command." -ForegroundColor DarkGray
     Write-Host ""
 

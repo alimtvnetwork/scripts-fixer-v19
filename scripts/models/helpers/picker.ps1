@@ -554,12 +554,14 @@ function Show-ModelList {
     Write-Host "    .\run.ps1 models list voice,multilingual                  # multi-tag filter" -ForegroundColor DarkGray
     Write-Host "    .\run.ps1 models list llama coding                        # backend + capability filter" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  Filter examples (preview a family, then download what fits)" -ForegroundColor White
-    Write-Host "    .\run.ps1 models list  | Select-String 'qwen3.7'           # show every Qwen 3.7 family member" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models download qwen3.7-coder-7b,qwen3.7-coder-14b   # bulk download by id" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models list coding | Select-String -NotMatch '32B'   # under 32B coding models" -ForegroundColor DarkGray
-    Write-Host "    # (Linux equivalent supports first-class --family/--max-ram/--exclude/--all flags --" -ForegroundColor DarkGray
-    Write-Host "    #  see 'scripts-linux/run.sh -h' or 'scripts-linux/43-install-llama-cpp/model-pull.sh -h')" -ForegroundColor DarkGray
+    Write-Host "  Filter by family / RAM / size / capability (first-class flags)" -ForegroundColor White
+    Write-Host "    .\run.ps1 models list --family qwen3.7                            # every Qwen 3.7 family member" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --family qwen3.7 --max-ram 16               # Qwen 3.7 that fits in 16 GB RAM" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --family qwen3.7 --max-ram 16 --exclude 32b # ...but skip 32B variants" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --coding --max-size 8                       # coding models <= 8 GB on disk" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models download --family qwen3.7 --max-ram 16 --all     # bulk download every match" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models download --coding --max-ram 12 --all --dry-run   # preview without pulling" -ForegroundColor DarkGray
+    Write-Host "    Tag-based shortcut (legacy):  .\run.ps1 models list coding | Select-String -NotMatch '32B'" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Ratings legend" -ForegroundColor White -NoNewline
     Write-Host "  (per-model line shows: code/reason/speed/overall, 0-10 scale)" -ForegroundColor DarkGray
