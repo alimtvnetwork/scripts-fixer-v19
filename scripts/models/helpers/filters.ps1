@@ -401,4 +401,22 @@ function Show-FilterTagsHelp {
     Write-Host "    .\run.ps1 models list reasoning,best      # reasoning, top quality first"
     Write-Host "    .\run.ps1 models list voice               # all voice models"
     Write-Host ""
+    Write-Host "  First-class flags (combine with any list/download command):" -ForegroundColor Cyan
+    Write-Host "    --family <name[,name]>   match family or id substring (e.g. qwen3.7, gemma)"
+    Write-Host "    --max-ram <GB>           keep models with ramRequiredGB <= GB"
+    Write-Host "    --min-ram <GB>           keep models with ramRequiredGB >= GB"
+    Write-Host "    --max-size <GB>          keep models with fileSizeGB     <= GB"
+    Write-Host "    --min-size <GB>          keep models with fileSizeGB     >= GB"
+    Write-Host "    --exclude <token[,...]>  drop models whose id/family contains any token (e.g. 32b)"
+    Write-Host "    --coding | --reasoning | --writing | --voice | --multilingual | --chat"
+    Write-Host "    --all                    auto-select every match for download (no prompt)"
+    Write-Host "    --dry-run                with download: print matches, do not pull"
+    Write-Host ""
+    Write-Host "  Flag examples:" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --family qwen3.7"
+    Write-Host "    .\run.ps1 models list --family qwen3.7 --max-ram 16 --exclude 32b"
+    Write-Host "    .\run.ps1 models list --coding --max-ram 12"
+    Write-Host "    .\run.ps1 models download --family qwen3.7 --max-ram 16 --all"
+    Write-Host "    .\run.ps1 models download --coding --max-size 8 --all --dry-run"
+    Write-Host ""
 }
