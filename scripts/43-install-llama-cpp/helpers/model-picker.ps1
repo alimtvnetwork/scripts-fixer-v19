@@ -830,7 +830,8 @@ function Install-SelectedModels {
             }
             if ($batchFileBytes -le 0) {
                 Write-Log "  [$($model.index)] [POST-CHECK FAIL] batch reported success but '$outputPath' is missing/empty -- falling back to sequential retry" -Level "warn"
-                Write-FileError -FilePath $outputPath -Operation "batch-post-verify" -Reason "batch downloader exit=ok but file missing/zero-byte" -Module "Install-SelectedModels"
+                Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
+                Write-FileError -FilePath $outputPath -Operation "batch-post-verify" -Reason "batch downloader exit=ok but file missing/zero-byte (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 $isBatchHit   = $false
                 $isDownloadOk = $false
             }
