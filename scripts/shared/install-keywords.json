@@ -1550,9 +1550,9 @@
   "_pathComment": "A remote.<key> entry MAY use 'path' (repo-relative) instead of 'url' to point at a wrapper script checked into THIS repo. The dispatcher loads the body from disk via the local path; the SHA256 pin is still enforced exactly the same way (UTF-8 bytes of the body). Use this when the upstream URL is unreliable (404, takedown, censored region) or when a curated wrapper is preferable to streaming third-party code.",
   "remote": {
     "clean-code": {
-      "url": "https://raw.githubusercontent.com/alimtvnetwork/coding-guidelines-v15/main/install.ps1",
-      "label": "Coding Guidelines v15 (clean-code)",
-      "sha256": "c045f55132171ba170c60af0d3b1671059c571bfcc293a7674c2e6a2635b8c42"
+      "url": "https://raw.githubusercontent.com/alimtvnetwork/coding-guidelines-v23/main/install.ps1",
+      "label": "Coding Guidelines v23 (clean-code)",
+      "sha256": "7cb8f757b1810a148beb441facab947f4b951510f8dcfc8ca64c3291a8c12b4e"
     },
     "starship": {
       "path": "scripts/shared/remote-installers/starship.ps1",

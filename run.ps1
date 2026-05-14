@@ -712,7 +712,7 @@ function Show-RootHelpRaw {
     Write-Host "    Remote installers (irm <url> | iex):" -ForegroundColor Magenta
     Write-Host "      All aliases on each row are EQUIVALENT -- pick whichever you remember." -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "    $("install clean-code".PadRight($kc))" -NoNewline; Write-Host "Coding Guidelines v15 -- alimtvnetwork/coding-guidelines-v15" -ForegroundColor DarkGray
+    Write-Host "    $("install clean-code".PadRight($kc))" -NoNewline; Write-Host "Coding Guidelines v23 -- alimtvnetwork/coding-guidelines-v23" -ForegroundColor DarkGray
     Write-Host "    $("install code-guide  (= cg, cc)".PadRight($kc))" -NoNewline; Write-Host "Same as 'install clean-code' (4 aliases total)" -ForegroundColor DarkGray
     Write-Host "    $("install coding-guidelines".PadRight($kc))" -NoNewline; Write-Host "Same as 'install clean-code' (long alias)" -ForegroundColor DarkGray
     Write-Host "    $("install starship    (= ss)".PadRight($kc))" -NoNewline; Write-Host "Starship cross-shell prompt -- local wrapper (winget/scoop/cargo)" -ForegroundColor DarkGray
@@ -1247,9 +1247,9 @@ function Show-KeywordTable {
     Write-Host "    $("systems-dev".PadRight($kwCol))$("C++ + Rust".PadRight($descCol))09, 44"
     Write-Host ""
     Write-Host "    Remote installers (irm | iex)" -ForegroundColor Magenta
-    Write-Host "    $("clean-code, cg, cc".PadRight($kwCol))$("Coding Guidelines v15".PadRight($descCol))remote"
-    Write-Host "    $("code-guide".PadRight($kwCol))$("Coding Guidelines v15 (alias)".PadRight($descCol))remote"
-    Write-Host "    $("coding-guidelines".PadRight($kwCol))$("Coding Guidelines v15 (alias)".PadRight($descCol))remote"
+    Write-Host "    $("clean-code, cg, cc".PadRight($kwCol))$("Coding Guidelines v23".PadRight($descCol))remote"
+    Write-Host "    $("code-guide".PadRight($kwCol))$("Coding Guidelines v23 (alias)".PadRight($descCol))remote"
+    Write-Host "    $("coding-guidelines".PadRight($kwCol))$("Coding Guidelines v23 (alias)".PadRight($descCol))remote"
     Write-Host "    $("starship, ss".PadRight($kwCol))$("Starship cross-shell prompt".PadRight($descCol))remote"
     Write-Host "    $("starship-prompt".PadRight($kwCol))$("Starship (alias)".PadRight($descCol))remote"
     Write-Host "    $("oh-my-posh, omp, posh".PadRight($kwCol))$("Oh My Posh prompt theme".PadRight($descCol))remote"
