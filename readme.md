@@ -988,9 +988,11 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 | Subcommand | What it does | Admin | See also |
 |------------|--------------|:-----:|----------|
 | **Cleanup** | | | |
-| `os clean` | Master cleaner: temp + Windows Update cache + chocolatey lib-bad/lib-bkp + recycle bin + event logs + PSReadLine history | 🛡️ Yes | [What it touches](#what-os-clean-actually-touches) · [Examples](#os-commands) |
-| `os clean --dry-run` | **Preview only** — scans every target and reports files + size, deletes nothing | 👤 No | [Examples](#os-commands) |
-| `os clean-<category>` | Run a single category — 36 categories, e.g. `clean-chrome`, `clean-recycle`, `clean-obs-recordings`, `clean-chkdsk` (see `os --help`) | varies | [Examples](#os-commands) |
+| `os clean` | **Simple cleaner** — 5 quick wins: Windows Update download cache + `%TEMP%` + `%LOCALAPPDATA%\Temp` + `C:\Windows\Temp` + event logs + PSReadLine history | 🛡️ Yes | [What it touches](#what-os-clean-actually-touches) · [Examples](#os-commands) |
+| `os clean --dry-run` | **Preview only** — reports sizes for each target, deletes nothing | 👤 No | [Examples](#os-commands) |
+| `os advance-clean` | **Advanced cleaner** — full 59-category sweep (browsers, dev caches, OBS, recycle bin, DISM ResetBase, …). Aliases: `advanced-clean`, `clean-all` | 🛡️ Yes | [Examples](#os-commands) |
+| `os advance-clean --dry-run` | Preview every advanced category, deletes nothing | 👤 No | [Examples](#os-commands) |
+| `os clean-<category>` | Run a single advanced category — 59 available, e.g. `clean-chrome`, `clean-recycle`, `clean-obs-recordings`, `clean-chkdsk` (see `os --help`) | varies | [Examples](#os-commands) |
 | `os temp-clean` | Standalone `%TEMP%` + `%LOCALAPPDATA%\Temp` + `C:\Windows\Temp` + per-user temp + chocolatey temp sweep | 🛡️ Yes | [Examples](#usage-examples-os-update-os-power-os-temp-clean) |
 | `os choco-clean` | Quarantine sweep for `lib-bad`, `lib-bkp`, stale `.backup`, leftover `.nupkg`, plus optional `choco-cleaner` | 🛡️ Yes | [Examples](#os-commands) |
 | **System tweaks** | | | |
