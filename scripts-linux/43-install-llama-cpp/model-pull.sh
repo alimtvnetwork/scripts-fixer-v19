@@ -397,14 +397,55 @@ if [ "${#SURVIVORS[@]}" -eq 0 ]; then
   exit $?
 fi
 
+# Post-condition retry: after each attempt re-check the destination folder.
+# If the expected file is missing or zero-byte, retry the download up to
+# MODELS_MAX_FILE_RETRIES times. Each attempt logs a fresh line so a hung
+# run leaves a usable trail (logs are line-buffered to stdout/stderr).
+MAX_FILE_RETRIES="${MODELS_MAX_FILE_RETRIES:-3}"
+case "$MAX_FILE_RETRIES" in ''|*[!0-9]*) MAX_FILE_RETRIES=3 ;; esac
+[ "$MAX_FILE_RETRIES" -lt 1 ] && MAX_FILE_RETRIES=1
+
 for entry in "${SURVIVORS[@]}"; do
   id="${entry%%|*}"; rest="${entry#*|}"
   url="${rest%%|*}"; target="${rest#*|}"
-  log_info "[model-pull] downloading $id -> $target"
-  if fast_download "$url" "$OUT_DIR" 16 1M; then
-    ok=$((ok+1))
-  else
-    log_file_error "$target" "fast_download failed for model id '$id' (url=$url)"
+  is_done=0
+  for attempt in $(seq 1 "$MAX_FILE_RETRIES"); do
+    if [ "$attempt" -gt 1 ]; then
+      log_warn "[model-pull] [RETRY $attempt/$MAX_FILE_RETRIES] $id -- file missing in folder, retrying download"
+      if [ -e "$target" ]; then
+        rm -f -- "$target" 2>/dev/null || \
+          log_file_error "$target" "failed to remove stale partial before retry $attempt"
+      fi
+    else
+      log_info "[model-pull] downloading $id -> $target"
+    fi
+
+    rc=0
+    fast_download "$url" "$OUT_DIR" 16 1M || rc=$?
+
+    # Post-condition: verify the file actually landed in the folder.
+    # aria2c can exit 0 yet leave nothing behind on disk.
+    file_bytes=0
+    if [ -f "$target" ]; then
+      file_bytes=$(wc -c < "$target" 2>/dev/null | tr -d '[:space:]')
+      [ -z "$file_bytes" ] && file_bytes=0
+    fi
+
+    if [ "$rc" -eq 0 ] && [ "$file_bytes" -gt 0 ]; then
+      ok=$((ok+1))
+      is_done=1
+      break
+    fi
+
+    if [ "$rc" -eq 0 ] && [ "$file_bytes" -le 0 ]; then
+      log_warn "[model-pull] [POST-CHECK FAIL] downloader reported success but '$target' is missing/zero (size=${file_bytes}B) -- attempt $attempt/$MAX_FILE_RETRIES"
+      log_file_error "$target" "post-download verify: downloader exit=ok but file missing/zero-byte (attempt $attempt/$MAX_FILE_RETRIES, url=$url)"
+    else
+      log_file_error "$target" "fast_download failed for model id '$id' (rc=$rc, attempt $attempt/$MAX_FILE_RETRIES, url=$url)"
+    fi
+  done
+
+  if [ "$is_done" -ne 1 ]; then
     fail=$((fail+1))
   fi
 done
