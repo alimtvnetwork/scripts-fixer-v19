@@ -208,15 +208,33 @@ Fast download (aria2c-first, defaults splits=16, piece=1M):
                                 to curl/wget. Used by all model pulls.
 
 Model download (script 43 llama.cpp model-pull):
-  models list                    Print all available GGUF models from the catalog
-  models <id> [<id> ...]         Download one or more models by id
-       --dir <path>              Output directory (default: ~/models/gguf)
+  models list                    Print full catalog (id, family, params, size,
+                                 RAM required, ratings cod/rea/spd/ovr, name)
+                                 Followed by a syntax + filter examples footer.
+  models <id> [<id> ...]         Download one or more models by exact id
+       --dir <path>              Output directory (default: ~/models/gguf, alias -d)
   model  ...                     Alias of 'models'
 
+  Filters (compose with 'list' to preview, with --all to download):
+       --family <pat>            Match family/displayName/id substring (case-insensitive)
+       --max-ram <gb> | --min-ram <gb>     Filter by ramRequiredGB
+       --max-size <gb> | --min-size <gb>   Filter by fileSizeGB
+       --coding | --reasoning | --writing | --voice | --multilingual | --chat
+                                 Keep models flagged with that capability
+       --exclude <pat>           Drop ids/family/displayName matching (repeatable)
+       --all                     Download every model that survives the filters
+       --dry-run                 Show what would be downloaded; do not fetch
+
 Examples:
-  ./run.sh models list
-  ./run.sh models qwen2.5-coder-3b
+  ./run.sh models list                                        # full catalog + footer
+  ./run.sh models qwen2.5-coder-3b                            # one model
   ./run.sh models qwen2.5-coder-3b nemotron-8b-opus-distill --dir /mnt/ai
+  ./run.sh models list --family qwen3.7                       # preview Qwen 3.7 family
+  ./run.sh models --family qwen3.7 --max-ram 16 --all         # bulk: Qwen 3.7 fitting 16 GB
+  ./run.sh models --family qwen3.7 --max-ram 16 --exclude 32b --all
+  ./run.sh models --coding --max-size 8 --all --dry-run       # preview coding picks
+  ./run.sh models --reasoning --min-ram 8 --max-ram 32 --all  # reasoning band
+  Ratings legend: 9-10 exceptional | 7-8 strong | 5-6 competent | <5 weak
 
 Remote installers (SHA256-pinned, mirror of Windows remote.<key>):
   install coding-guidelines    Coding Guidelines v23 -- alimtvnetwork/coding-guidelines-v23
