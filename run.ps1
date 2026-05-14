@@ -4023,6 +4023,19 @@ if ($hasCommand) {
         $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
         & $modelsScript @Install
         exit 0
+    } elseif ($isBareModelsDownloadCommand) {
+        # ── 'models-download <ids|numbers>'  →  shortcut for 'models download ...'
+        # Top-level alias so users don't have to type the two-word form.
+        Show-VersionHeader
+        $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
+        $mdArgs = @("download")
+        if ($null -ne $Install) {
+            foreach ($mdArg in $Install) {
+                if ($null -ne $mdArg -and "$mdArg".Length -gt 0) { $mdArgs += "$mdArg" }
+            }
+        }
+        & $modelsScript @mdArgs
+        exit 0
     } elseif ($normalizedCommand -in @("download","url","fast-download","fastdownload")) {
         # ── Fast download command: aria2c-first wrapper ──────────────────
         #   .\run.ps1 download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
