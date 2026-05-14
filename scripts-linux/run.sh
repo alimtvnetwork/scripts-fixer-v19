@@ -489,6 +489,47 @@ verb_repair_all() {
 
 case "${VERB:-help}" in
   help) show_help ;;
+  fast-download)
+    # Parse: <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
+    fd_url=""; fd_dir="$PWD"; fd_splits=16; fd_piece="1M"
+    fd_pos=0
+    fd_args=("${FD_REST[@]:-}")
+    fd_i=0
+    while [ "$fd_i" -lt "${#fd_args[@]}" ]; do
+      fd_a="${fd_args[$fd_i]}"
+      case "$fd_a" in
+        -s|--splits)            fd_i=$((fd_i+1)); fd_splits="${fd_args[$fd_i]:-16}" ;;
+        --splits=*)             fd_splits="${fd_a#*=}" ;;
+        -s=*)                   fd_splits="${fd_a#*=}" ;;
+        -p|--piece-size|--piece) fd_i=$((fd_i+1)); fd_piece="${fd_args[$fd_i]:-1M}" ;;
+        --piece-size=*)         fd_piece="${fd_a#*=}" ;;
+        --piece=*)              fd_piece="${fd_a#*=}" ;;
+        -p=*)                   fd_piece="${fd_a#*=}" ;;
+        -h|--help)
+          echo "Usage: ./run.sh download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]"
+          echo "Defaults: splits=16, piece=1M, dir=\$PWD"
+          exit 0 ;;
+        -*)
+          log_warn "fast-download: unknown flag '$fd_a'" ;;
+        *)
+          if [ "$fd_pos" -eq 0 ]; then fd_url="$fd_a"
+          elif [ "$fd_pos" -eq 1 ]; then fd_dir="$fd_a"
+          else log_warn "fast-download: extra positional '$fd_a' ignored"
+          fi
+          fd_pos=$((fd_pos+1)) ;;
+      esac
+      fd_i=$((fd_i+1))
+    done
+    if [ -z "$fd_url" ]; then
+      log_err "fast-download: <url> is required"
+      echo "Usage: ./run.sh download <url> [<dir>] [-s N] [-p SIZE]"
+      exit 64
+    fi
+    . "$ROOT/_shared/apt-install.sh" 2>/dev/null || true
+    . "$ROOT/_shared/fast-download.sh"
+    fast_download "$fd_url" "$fd_dir" "$fd_splits" "$fd_piece"
+    exit $?
+    ;;
   list) registry_list_all | column -t -s$'\t' ;;
   health)      verb_health ;;
   repair-all)  verb_repair_all ;;
