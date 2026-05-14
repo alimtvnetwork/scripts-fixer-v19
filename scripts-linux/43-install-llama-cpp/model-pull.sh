@@ -43,10 +43,11 @@ SHARED_DIR="$(cd "$SCRIPT_DIR/../_shared" && pwd)"
 # shellcheck source=/dev/null
 . "$SHARED_DIR/apt-install.sh" 2>/dev/null || true
 # shellcheck source=/dev/null
-. "$SHARED_DIR/fast-download.sh"
+# Test hook: skip sourcing fast-download.sh so the smoke test can stub fast_download.
+[ "${MODEL_PULL_SKIP_FASTDL_SOURCE:-0}" = "1" ] || . "$SHARED_DIR/fast-download.sh"
 
-CATALOG="$REPO_ROOT/scripts/43-install-llama-cpp/models-catalog.json"
-DEFAULT_DIR="$HOME/models/gguf"
+CATALOG="${MODEL_PULL_CATALOG_OVERRIDE:-$REPO_ROOT/scripts/43-install-llama-cpp/models-catalog.json}"
+DEFAULT_DIR="${MODEL_PULL_DEFAULT_DIR_OVERRIDE:-$HOME/models/gguf}"
 
 if [ ! -f "$CATALOG" ]; then
   log_file_error "$CATALOG" "models-catalog.json missing -- cannot resolve model ids"
@@ -311,7 +312,29 @@ log_info "[model-pull] output dir: $OUT_DIR"
 log_info "[model-pull] selection : ${ARGS[*]}"
 [ "$WANT_DRY" -eq 1 ] && log_info "[model-pull] DRY RUN -- no downloads will start"
 
+# --- Pre-flight: HEAD-probe every URL up-front --------------------------------
+# HuggingFace returns 401 for missing/gated repos and 404 for missing files.
+# Without this probe, fast_download/aria2c masks 401 as "Authorization failed"
+# and burns 3 retries per file. Override URL probe with PREFLIGHT_OVERRIDE_CMD
+# (used by the smoke test) -- it is a function name that takes the URL and
+# echoes "<status>" (e.g. "200", "404", "0" for network error).
+preflight_url() {
+  local _u="$1"
+  if [ -n "${PREFLIGHT_OVERRIDE_CMD:-}" ] && declare -F "$PREFLIGHT_OVERRIDE_CMD" >/dev/null 2>&1; then
+    "$PREFLIGHT_OVERRIDE_CMD" "$_u"; return
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    curl -sS -o /dev/null -L --max-time 15 -w '%{http_code}' -I "$_u" 2>/dev/null || echo 0
+  elif command -v wget >/dev/null 2>&1; then
+    wget --spider --max-redirect=5 --timeout=15 -S "$_u" 2>&1 | awk '/HTTP\// {code=$2} END {print code+0}'
+  else
+    echo 200  # no probe tool -> trust the catalog, downloader will surface errors
+  fi
+}
+
 ok=0; fail=0; skipped=0
+SURVIVORS=()
+log_info "[model-pull] preflight: HEAD-probing ${#ARGS[@]} URL(s) to skip missing/gated repos..."
 for id in "${ARGS[@]}"; do
   pair="$(resolve_model "$id")"
   if [ -z "$pair" ] || [ "$pair" = "|" ]; then
@@ -332,6 +355,51 @@ for id in "${ARGS[@]}"; do
     continue
   fi
 
+  status="$(preflight_url "$url")"
+  case "$status" in
+    2*|3*)
+      SURVIVORS+=("$id|$url|$target")
+      ;;
+    401)
+      log_err  "[model-pull] [ FAIL ] $id -- 401 Unauthorized -- repo is gated or does not exist on HuggingFace"
+      log_err  "          URL: $url"
+      log_err  "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json"
+      log_file_error "$url" "preflight HEAD: 401 (gated/missing repo)"
+      fail=$((fail+1))
+      ;;
+    403)
+      log_err  "[model-pull] [ FAIL ] $id -- 403 Forbidden -- repo requires acceptance of license"
+      log_err  "          URL: $url"
+      log_file_error "$url" "preflight HEAD: 403 (license acceptance required)"
+      fail=$((fail+1))
+      ;;
+    404)
+      log_err  "[model-pull] [ FAIL ] $id -- 404 Not Found -- this catalog entry points to a non-existent file"
+      log_err  "          URL: $url"
+      log_err  "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json"
+      log_file_error "$url" "preflight HEAD: 404 (file does not exist)"
+      fail=$((fail+1))
+      ;;
+    *)
+      log_err  "[model-pull] [ FAIL ] $id -- preflight HEAD failed (status=$status) -- URL likely invalid"
+      log_err  "          URL: $url"
+      log_file_error "$url" "preflight HEAD failed (status=$status)"
+      fail=$((fail+1))
+      ;;
+  esac
+done
+
+if [ "${#SURVIVORS[@]}" -eq 0 ]; then
+  log_warn "[model-pull] preflight removed every entry; nothing to download."
+  echo
+  log_info "[model-pull] summary: ok=$ok skipped=$skipped fail=$fail"
+  [ "$fail" -eq 0 ]
+  exit $?
+fi
+
+for entry in "${SURVIVORS[@]}"; do
+  id="${entry%%|*}"; rest="${entry#*|}"
+  url="${rest%%|*}"; target="${rest#*|}"
   log_info "[model-pull] downloading $id -> $target"
   if fast_download "$url" "$OUT_DIR" 16 1M; then
     ok=$((ok+1))
