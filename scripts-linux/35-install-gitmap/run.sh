@@ -90,7 +90,7 @@ assert_gitmap_version() {
 verb_install() {
   write_install_paths \
     --tool   "gitmap" \
-    --source "$INSTALL_URL (curl | bash)" \
+    --source "$INSTALL_URL (curl | sh)" \
     --temp   "${TMPDIR:-/tmp}/scripts-fixer/gitmap" \
     --target "$DEST"
 
