@@ -5,7 +5,7 @@
 # --------------------------------------------------------------------------
 param(
     [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
-    [string[]]$Args,
+    [string[]]$Rest,
 
     [string]$Backend,
     [string]$Install,
@@ -13,6 +13,16 @@ param(
     [switch]$Force,
     [switch]$Help
 )
+
+# CODE RED root-cause note: previously this param was named $Args, which
+# collides with PowerShell's automatic $args variable. Under Set-StrictMode
+# Latest + a [Parameter()]-attributed (advanced) param block, splatted
+# positional tokens from `& $modelsScript @mdArgs` (e.g. "download","93")
+# bound only the first token reliably; the rest collapsed, $secondArg went
+# empty, $isDownloadMode flipped false, and the script silently fell
+# through to the default "show full catalog" branch. Renaming to $Rest
+# fixes the binding. Memory: mem://features/models-args-rename
+
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -61,15 +71,15 @@ Initialize-Logging -ScriptName $logMessages.scriptName
 try {
     # ── Parse first-class flags (--family/--max-ram/--exclude/--all/--dry-run/...)
     # then continue with positional-only args so existing modes keep working.
-    $flagParse  = Read-ModelFlagOptions -Args $Args
+    $flagParse  = Read-ModelFlagOptions -Argv $Rest
     $flagOpts   = $flagParse.Options
-    $Args       = $flagParse.Positional
+    $Rest       = $flagParse.Positional
     $flagsActive = Test-ModelFlagOptionsActive -Options $flagOpts
 
     # ── Parse positional args ────────────────────────────────────────────
     # First positional may be: "list", a CSV of model ids, or empty (interactive)
-    $firstArg = if ($Args -and $Args.Count -gt 0) { $Args[0].Trim() } else { "" }
-    $secondArg = if ($Args -and $Args.Count -gt 1) { $Args[1].Trim() } else { "" }
+    $firstArg = if ($Rest -and $Rest.Count -gt 0) { $Rest[0].Trim() } else { "" }
+    $secondArg = if ($Rest -and $Rest.Count -gt 1) { $Rest[1].Trim() } else { "" }
 
     $isHelpMode      = $firstArg.ToLower() -in @("help", "--help", "-h", "/?")
     if ($isHelpMode) {
@@ -90,8 +100,8 @@ try {
     # ── Path mode: show / set / add / remove model-dir overrides ────────
     if ($isPathMode) {
         $sub  = if ($secondArg) { $secondArg.ToLower() } else { "" }
-        $arg2 = if ($Args.Count -gt 2) { "$($Args[2])".Trim() } else { "" }
-        $arg3 = if ($Args.Count -gt 3) { "$($Args[3])".Trim() } else { "" }
+        $arg2 = if ($Rest.Count -gt 2) { "$($Rest[2])".Trim() } else { "" }
+        $arg3 = if ($Rest.Count -gt 3) { "$($Rest[3])".Trim() } else { "" }
 
         # `models path`  -- show current resolution
         if (-not $sub) {

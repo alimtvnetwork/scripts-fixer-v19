@@ -258,7 +258,7 @@ function Invoke-ModelFilter {
 # --------------------------------------------------------------------------
 
 function Read-ModelFlagOptions {
-    param([array]$Args = @())
+    param([array]$Argv = @())
 
     $opts = @{
         Family       = @()
@@ -281,16 +281,16 @@ function Read-ModelFlagOptions {
         "--chat"         = "chat"
     }
     $i = 0
-    while ($i -lt $Args.Count) {
-        $a = "$($Args[$i])"
+    while ($i -lt $Argv.Count) {
+        $a = "$($Argv[$i])"
         $low = $a.ToLower()
         switch -Regex ($low) {
-            '^--family$'   { $i++; if ($i -lt $Args.Count) { $opts.Family  += ("$($Args[$i])" -split '[,\s]+' | Where-Object { $_ }) }; break }
-            '^--max-ram$'  { $i++; if ($i -lt $Args.Count) { $opts.MaxRam   = [double]"$($Args[$i])" }; break }
-            '^--min-ram$'  { $i++; if ($i -lt $Args.Count) { $opts.MinRam   = [double]"$($Args[$i])" }; break }
-            '^--max-size$' { $i++; if ($i -lt $Args.Count) { $opts.MaxSize  = [double]"$($Args[$i])" }; break }
-            '^--min-size$' { $i++; if ($i -lt $Args.Count) { $opts.MinSize  = [double]"$($Args[$i])" }; break }
-            '^--exclude$'  { $i++; if ($i -lt $Args.Count) { $opts.Exclude += ("$($Args[$i])" -split '[,\s]+' | Where-Object { $_ }) }; break }
+            '^--family$'   { $i++; if ($i -lt $Argv.Count) { $opts.Family  += ("$($Argv[$i])" -split '[,\s]+' | Where-Object { $_ }) }; break }
+            '^--max-ram$'  { $i++; if ($i -lt $Argv.Count) { $opts.MaxRam   = [double]"$($Argv[$i])" }; break }
+            '^--min-ram$'  { $i++; if ($i -lt $Argv.Count) { $opts.MinRam   = [double]"$($Argv[$i])" }; break }
+            '^--max-size$' { $i++; if ($i -lt $Argv.Count) { $opts.MaxSize  = [double]"$($Argv[$i])" }; break }
+            '^--min-size$' { $i++; if ($i -lt $Argv.Count) { $opts.MinSize  = [double]"$($Argv[$i])" }; break }
+            '^--exclude$'  { $i++; if ($i -lt $Argv.Count) { $opts.Exclude += ("$($Argv[$i])" -split '[,\s]+' | Where-Object { $_ }) }; break }
             '^--all$'      { $opts.All    = $true; break }
             '^--dry-run$'  { $opts.DryRun = $true; break }
             default {
