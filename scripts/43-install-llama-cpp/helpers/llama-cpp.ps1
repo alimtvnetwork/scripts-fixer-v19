@@ -162,7 +162,7 @@ function Install-LlamaCppExecutables {
         }
 
         # Download
-        $isDownloadOk = Invoke-DownloadWithRetry -Uri $item.downloadUrl -OutFile $outputPath -Label $item.displayName
+        $isDownloadOk = Invoke-FastDownload -Uri $item.downloadUrl -OutFile $outputPath -Label $item.displayName
         if (-not $isDownloadOk) {
             Write-Log ($LogMessages.messages.downloadFailed -replace '\{slug\}', $item.slug -replace '\{error\}', "All download attempts failed") -Level "error"
             Write-FileError -FilePath $outputPath -Operation "download" -Reason "Download failed after retries" -Module "Install-LlamaCppExecutables"
