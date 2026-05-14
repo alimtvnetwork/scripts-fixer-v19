@@ -974,7 +974,8 @@ function Install-SelectedModels {
             Write-Log "    Run '.\run.ps1 -I 43 fill-sha256 -- -Ids $($model.id)' to attempt auto-fill, or populate manually in models-catalog.json." -Level "info"
             if ($isRequireChecksum) {
                 Write-Log "    download.requireChecksum=true -- failing this model (failure path: $outputPath)" -Level "error"
-                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "no sha256 in catalog and download.requireChecksum=true" -Module "Install-SelectedModels"
+                Write-Log "    URL: $($model.downloadUrl)" -Level "error"
+                Write-FileError -FilePath $outputPath -Operation "checksum" -Reason "no sha256 in catalog and download.requireChecksum=true (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
                 $isChecksumOk = $false
             }
         }
