@@ -555,10 +555,12 @@ function Show-ModelList {
     Write-Host "    custom (backend-only)         .\run.ps1 models path llama  C:\ai\gguf" -ForegroundColor DarkGray
     Write-Host "                                  .\run.ps1 models path ollama C:\ai\ollama" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  Single / multiple downloads" -ForegroundColor White
-    Write-Host "    .\run.ps1 models download qwen2.5-coder-3b" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models download qwen2.5-coder-3b,llama3.2" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models download 5,6,10                          # by number from this list" -ForegroundColor DarkGray
+    Write-Host "  Single / multiple downloads  (use 'models-download' as a one-word shortcut)" -ForegroundColor White
+    Write-Host "    .\run.ps1 models-download 93                              # by number from this list" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models-download 5,6,10                          # multiple by number" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models-download qwen2.5-coder-3b                # by id" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models-download qwen2.5-coder-3b,llama3.2       # multiple by id (CSV)" -ForegroundColor DarkGray
+    Write-Host "    Equivalent two-word form:  .\run.ps1 models download 93" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Filter / sort by capability tag (use 'models list --tags' for the full set)" -ForegroundColor White
     Write-Host "    .\run.ps1 models list coding                              # only coding models" -ForegroundColor DarkGray
@@ -567,12 +569,12 @@ function Show-ModelList {
     Write-Host "    .\run.ps1 models list llama coding                        # backend + capability filter" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Filter by family / RAM / size / capability (first-class flags)" -ForegroundColor White
-    Write-Host "    .\run.ps1 models list --family qwen3.7                            # every Qwen 3.7 family member" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models list --family qwen3.7 --max-ram 16               # Qwen 3.7 that fits in 16 GB RAM" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models list --family qwen3.7 --max-ram 16 --exclude 32b # ...but skip 32B variants" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models list --coding --max-size 8                       # coding models <= 8 GB on disk" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models download --family qwen3.7 --max-ram 16 --all     # bulk download every match" -ForegroundColor DarkGray
-    Write-Host "    .\run.ps1 models download --coding --max-ram 12 --all --dry-run   # preview without pulling" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --family qwen3.7                                # every Qwen 3.7 family member" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --family qwen3.7 --max-ram 16                   # Qwen 3.7 that fits in 16 GB RAM" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --family qwen3.7 --max-ram 16 --exclude 32b     # ...but skip 32B variants" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models list --coding --max-size 8                           # coding models <= 8 GB on disk" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models-download --family qwen3.7 --max-ram 16 --all         # bulk download every match" -ForegroundColor DarkGray
+    Write-Host "    .\run.ps1 models-download --coding --max-ram 12 --all --dry-run       # preview without pulling" -ForegroundColor DarkGray
     Write-Host "    Tag-based shortcut (legacy):  .\run.ps1 models list coding | Select-String -NotMatch '32B'" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  Ratings legend" -ForegroundColor White -NoNewline

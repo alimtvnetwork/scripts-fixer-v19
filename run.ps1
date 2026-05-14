@@ -330,6 +330,7 @@ function Show-RootHelpRaw {
     Write-Host "    $(".\run.ps1 models".PadRight($col))" -NoNewline; Write-Host "Pick AI model backend (llama.cpp / Ollama), browse + install" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 models <ids>".PadRight($col))" -NoNewline; Write-Host "Direct install: CSV of model ids (auto-routes per backend)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 models list".PadRight($col))" -NoNewline; Write-Host "List all models from both catalogs" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 models-download <n|id>".PadRight($col))" -NoNewline; Write-Host "Top-level shortcut for 'models download ...'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 -M".PadRight($col))" -NoNewline; Write-Host "Shortcut for 'models'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> [<dir>]".PadRight($col))" -NoNewline; Write-Host "Fast download (aria2c, defaults -s 16 -p 1M); 'url' is alias" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> -s 12 -p 2M".PadRight($col))" -NoNewline; Write-Host "Override splits (per-server connections) and piece size" -ForegroundColor DarkGray
@@ -3225,7 +3226,7 @@ if ($_isEarlyHelp) {
         'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
         'menu','context-menu','profile','install','uninstall','update',
         'self-update','settings','export','os','doctor','logs','report',
-        'path','models','download','url','git','git-tools','gsa','mysql','postgresql',
+        'path','models','models-download','download','url','git','git-tools','gsa','mysql','postgresql',
         'mariadb','mongodb','redis','sqlite','node','python','docker',
         'kubernetes','java','dotnet','rust','go','php','obs','npp','wt',
         'dbeaver','ollama','user','ssh',
@@ -3670,6 +3671,7 @@ if ($hasCommand) {
     $isBareDoctorCommand  = $normalizedCommand -eq "doctor"
     $isBareReportCommand  = $normalizedCommand -in @("report", "install-report", "installreport", "reports")
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
+    $isBareModelsDownloadCommand = $normalizedCommand -in @("models-download","model-download","modelsdownload","modeldownload","models-dl","model-dl","models-install","model-install","models-pull","model-pull")
     $isBareOsCommand      = $normalizedCommand -eq "os"
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
     $isBareVscodeContextMenuCommand = $normalizedCommand -in @("vscode-context-menu", "vscode-contextmenu", "vscodecontextmenu", "vscode-menu", "vscodemenu")
@@ -3700,7 +3702,7 @@ if ($hasCommand) {
     #   - any of $Install contains --no-pull / -no-pull / --offline
     #   - command is read-only (status/path/scan/export/doctor)
     $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand -or $isBareReportCommand
-    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand
+    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand
     $isNoPullEnv = $env:SCRIPTS_FIXER_NO_PULL -eq "1"
     $isNoPullFlag = $false
     if ($null -ne $Install) {
@@ -4021,6 +4023,19 @@ if ($hasCommand) {
         Show-VersionHeader
         $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
         & $modelsScript @Install
+        exit 0
+    } elseif ($isBareModelsDownloadCommand) {
+        # ── 'models-download <ids|numbers>'  →  shortcut for 'models download ...'
+        # Top-level alias so users don't have to type the two-word form.
+        Show-VersionHeader
+        $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
+        $mdArgs = @("download")
+        if ($null -ne $Install) {
+            foreach ($mdArg in $Install) {
+                if ($null -ne $mdArg -and "$mdArg".Length -gt 0) { $mdArgs += "$mdArg" }
+            }
+        }
+        & $modelsScript @mdArgs
         exit 0
     } elseif ($normalizedCommand -in @("download","url","fast-download","fastdownload")) {
         # ── Fast download command: aria2c-first wrapper ──────────────────
