@@ -301,7 +301,14 @@ try {
 
         $matched = @($matched | Where-Object { $null -ne $_ })
         if ($matched.Count -eq 0) {
-            Write-Log $logMessages.messages.csvNoneFound -Level "error"
+            if ($isNumeric) {
+                $maxIdx = $all.Count
+                Write-Log "No matching models for '$csv'. Catalog has $maxIdx model(s) -- valid index range is 1..$maxIdx." -Level "error"
+                Write-Log "  Run '.\run.ps1 models list' to see numbered entries, or '.\run.ps1 models list --tags' for filters." -Level "info"
+            } else {
+                Write-Log $logMessages.messages.csvNoneFound -Level "error"
+                Write-Log "  Run '.\run.ps1 models list' to see catalog ids." -Level "info"
+            }
             return
         }
         Show-ModelDownloadPaths -Paths $downloadPaths
