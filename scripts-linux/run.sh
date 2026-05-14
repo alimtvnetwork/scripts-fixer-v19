@@ -161,6 +161,12 @@ while [ $# -gt 0 ]; do
     # ./run.sh models <id> ... -d /path       custom output dir
     models|model)
         VERB="models"; shift; MODELS_REST=("$@"); break ;;
+    # ---- top-level shortcut: SHA256-pinned remote installers ------------
+    # ./run.sh install coding-guidelines       (alias: clean-code, cg, cc, code-guide)
+    # Streams the upstream install.sh from gitub via curl, verifies the
+    # pinned sha256 BEFORE execution, then runs it through bash.
+    coding-guidelines|clean-code|cg|cc|code-guide)
+        VERB="remote-install"; REMOTE_KEY="coding-guidelines"; shift; break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
