@@ -925,6 +925,8 @@ Z.AI GLM 5.1, Moonshot Kimi K2.6, OpenAI gpt-oss-120b. Closed-source
 API models (Claude, GPT-5.4, Gemini, Grok) are intentionally excluded
 because they cannot be downloaded as GGUF files.
 
+By default, model payloads land under the normal shared dev root at `<dev-dir>\models`. That `<dev-dir>` comes from the same script-wide resolution order: `$env:DEV_DIR`, then saved `.un.ps1 path`, then the standard smart default dev path. Use `.un.ps1 models path`, `MODELS_DIR`, `LLAMA_MODELS_DIR`, or `OLLAMA_MODELS` only when you explicitly want an override.
+
 ### Quick install
 
 ```powershell
