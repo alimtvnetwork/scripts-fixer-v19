@@ -2251,11 +2251,13 @@ E:\dev-tool\
   python\      # Python install + PYTHONUSERBASE (Scripts/)
   pnpm\        # pnpm store
   llama-cpp\   # llama.cpp binaries (CUDA, AVX2, KoboldCPP)
-  llama-models\# GGUF model files
+  models\      # downloaded GGUF + Ollama-format model payloads
   ollama\      # Ollama installer cache
 ```
 
-Ollama models default to `<dev-dir>\ollama-models` (configurable via `OLLAMA_MODELS` env var).
+Model downloads default to `<dev-dir>\models`. The same shared dev-dir resolver is used here too: `$env:DEV_DIR` first, then saved `./run.ps1 path`, then the normal smart default dev path.
+
+Backend-specific overrides are still available via `LLAMA_MODELS_DIR` and `OLLAMA_MODELS`, and a shared override via `MODELS_DIR`.
 
 Override with: `.\run.ps1 -I 12 -- -Path F:\dev-tool`
 
