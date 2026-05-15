@@ -49,6 +49,7 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 - [Models dispatcher $Args→$Rest rename](mem://features/models-args-rename) — CODE RED: `$Args` is a PowerShell automatic; using it as a script-param under StrictMode + advanced param block silently dropped splatted positionals, breaking `models-download <n>`. Renamed to `$Rest` (and helper to `$Argv`). Never name a param `$Args`.
 - [Reset command](mem://features/reset-command) — `reset` verb on Windows + Linux wipes .logs/, .resolved/, .installed/ for fresh start; supports --dry-run / --yes / --keep-* flags
 - [Download URL logging](mem://features/download-url-logging) — CODE RED extension: every model-download failure path logs upstream URL + target on console and in *-error.json (Win + Linux)
+- [Ollama standalone registry pull](mem://features/ollama-registry-direct-pull) — Direct registry.ollama.ai blob+manifest pull; no daemon/binary required
 
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).
