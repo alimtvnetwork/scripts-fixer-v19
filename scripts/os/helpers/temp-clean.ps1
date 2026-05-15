@@ -213,8 +213,8 @@ $perUserRoot = $config.tempClean.perUserTempRoot
 if (Test-Path $perUserRoot) {
     $userDirs = @()
     try {
-        $userDirs = Get-ChildItem -Path $perUserRoot -Directory -Force -ErrorAction SilentlyContinue |
-                    Where-Object { $_.Name -notin @("Public", "Default", "Default User", "All Users", "WDAGUtilityAccount") }
+        $userDirs = @(Get-ChildItem -Path $perUserRoot -Directory -Force -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -notin @("Public", "Default", "Default User", "All Users", "WDAGUtilityAccount") })
     } catch {}
 
     Write-Log ($logMessages.tempClean.perUserSweep -replace '\{root\}', $perUserRoot -replace '\{count\}', $userDirs.Count) -Level "info"
