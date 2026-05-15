@@ -1271,6 +1271,15 @@
     "install-npp": {
       "33": "install-only"
     },
+    "npp-font": {
+      "33": "font-only"
+    },
+    "notepad-font": {
+      "33": "font-only"
+    },
+    "notepadpp-font": {
+      "33": "font-only"
+    },
     "php": {
       "16": "php+phpmyadmin"
     },
