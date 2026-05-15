@@ -893,140 +893,14 @@ function Invoke-BackendInstall {
         [Parameter(Mandatory)] [PSObject]$LogMessages
     )
 
-    # CONTRACT: 'models-download' is FULLY STANDALONE. It must NEVER require
-    # Ollama or llama.cpp to be installed first, and must NEVER install them.
-    # GGUF weights -> direct aria2c download into <llama-dir>.
-    # Ollama models -> direct registry.ollama.ai pull into <ollama-dir>
-    #                  using the on-disk layout the daemon expects, so a
-    #                  later `-I 42` install picks them up automatically.
-    . (Join-Path (Split-Path -Parent $PSCommandPath) "ollama-registry-pull.ps1")
-
-    # PREFERENCE: any model picked from the Ollama catalog that has a GGUF
-    # equivalent in the llama-cpp catalog gets rerouted, so 'models download'
-    # always prefers a plain GGUF file download over the Ollama blob layout.
-    # This handles the case where the user picks by NUMERIC INDEX from
-    # `models list` (which resolves directly to the ollama row), not just by
-    # typed id.
-    try {
-        $llamaCatalog = Get-BackendCatalog -Backend "llama-cpp" -Config $Config -ScriptsRoot $ScriptsRoot
-        $llamaIds = @{}
-        foreach ($lm in $llamaCatalog) { $llamaIds[$lm.id.ToLower()] = $lm }
-        $remapped = @()
-        foreach ($m in $Models) {
-            if ($m.backend -eq 'ollama') {
-                $needle = "$($m.id)".ToLower()
-                $candidates = @(
-                    ($needle -replace '^library/', '' -replace ':', '-'),
-                    ($needle -replace ':', '-'),
-                    $needle
-                ) | Select-Object -Unique
-                $alias = $null
-                foreach ($c in $candidates) {
-                    if ($llamaIds.ContainsKey($c)) { $alias = $llamaIds[$c]; break }
-                }
-                if ($alias) {
-                    Write-Log ("[route] '{0}' (ollama) -> GGUF alias '{1}' (llama-cpp)" -f $m.id, $alias.id) -Level "info"
-                    $remapped += $alias
-                    continue
-                }
-            }
-            $remapped += $m
-        }
-        $Models = $remapped
-    } catch {
-        Write-Log "GGUF-alias remap skipped: $_" -Level "warn"
+    # CONTRACT: models-download is GGUF-only. It always resolves every pick to
+    # a standalone GGUF file in the shared models folder and never routes to
+    # Ollama blobs or daemon pulls.
+    $paths = Get-ModelDownloadPaths -Config $Config -ScriptsRoot $ScriptsRoot
+    $resolved = Resolve-StandaloneDownloadModels -Models $Models -Config $Config -ScriptsRoot $ScriptsRoot -OutputRoot $paths.Llama
+    if (@($resolved).Count -eq 0) {
+        Write-Log "No standalone GGUF downloads could be resolved from the requested selection." -Level "error"
+        return
     }
-
-    $byBackend = $Models | Group-Object backend
-    foreach ($group in $byBackend) {
-        $backend = $group.Name
-        $ids     = ($group.Group | ForEach-Object { $_.id }) -join ","
-        $folder  = $Config.backends.$backend.scriptFolder
-        $script  = Join-Path (Join-Path $ScriptsRoot $folder) "run.ps1"
-
-        $line = $LogMessages.messages.dispatching -replace '\{backend\}', $backend
-        Write-Log $line -Level "info"
-
-        if ($backend -eq "ollama") {
-            # STANDALONE: pull blobs+manifest directly from registry.ollama.ai.
-            # No `ollama` binary, no daemon, no `& $script pull` required.
-            $paths     = Get-ModelDownloadPaths -Config $Config -ScriptsRoot $ScriptsRoot
-            $targetDir = $paths.Ollama
-            Write-Log ("[ollama] standalone registry download target -> {0}" -f $targetDir) -Level "info"
-            $slugs = @($group.Group | ForEach-Object { $_.id })
-            $ok = Invoke-OllamaRegistryPull -Slugs $slugs -TargetRoot $targetDir
-            if (-not $ok) {
-                Write-Log "[ollama] one or more models failed; see error log for URLs + reasons" -Level "error"
-            }
-        } else {
-            # llama.cpp: invoke the model-installer helper DIRECTLY (do not
-            # call script 43's run.ps1, which prints the "Install llama.cpp"
-            # banner, asserts admin, and may pull binaries). models-download
-            # must only fetch GGUF files into the models directory.
-            $llamaScriptDir = Join-Path $ScriptsRoot $folder
-            $llamaCfgPath   = Join-Path $llamaScriptDir "config.json"
-            $llamaLogsPath  = Join-Path $llamaScriptDir "log-messages.json"
-            $catalogPath    = Join-Path $llamaScriptDir "models-catalog.json"
-            $llamaCfg       = Get-Content $llamaCfgPath  -Raw | ConvertFrom-Json
-            $llamaLogs      = Get-Content $llamaLogsPath -Raw | ConvertFrom-Json
-
-            $sharedDir = Join-Path $ScriptsRoot "shared"
-            . (Join-Path $sharedDir "download-retry.ps1")
-            . (Join-Path $sharedDir "aria2c-download.ps1")
-            . (Join-Path $sharedDir "aria2c-batch.ps1")
-            . (Join-Path $llamaScriptDir "helpers\model-picker.ps1")
-
-            $devDir  = Resolve-EffectiveDevDir
-            $baseDir = Join-Path $devDir $llamaCfg.devDirSubfolder
-
-            # HARD GUARD: snapshot the llama.cpp binary dir before the run so
-            # we can detect (and fail) any binary that lands there during a
-            # 'models-download' invocation. Models go to a separate models
-            # subdir; binaries here would mean the install path leaked.
-            $binSnapshotBefore = @{}
-            if (Test-Path $baseDir) {
-                Get-ChildItem -LiteralPath $baseDir -Recurse -ErrorAction SilentlyContinue `
-                    -Include "llama-*.exe","*.dll","*.zip" |
-                    ForEach-Object { $binSnapshotBefore[$_.FullName] = $_.Length }
-            }
-
-            $env:LLAMA_CPP_INSTALL_IDS       = $ids
-            $env:MODELS_DOWNLOAD_NO_BINARIES = "1"
-            $guardTripped = $false
-            try {
-                Invoke-ModelInstaller -CatalogPath $catalogPath -DevDir $devDir `
-                    -DefaultModelsSubfolder $llamaCfg.modelsConfig.devDirSubfolder `
-                    -Aria2Config $llamaCfg.aria2c -DownloadConfig $llamaCfg.download `
-                    -LogMessages $llamaLogs
-            } catch {
-                if ("$_" -match "HARD GUARD TRIPPED") { $guardTripped = $true }
-                Write-Log "models-download dispatch failed: $_" -Level "error"
-            } finally {
-                Remove-Item Env:\LLAMA_CPP_INSTALL_IDS       -ErrorAction SilentlyContinue
-                Remove-Item Env:\MODELS_DOWNLOAD_NO_BINARIES -ErrorAction SilentlyContinue
-            }
-
-            # Post-run diff: any new/grown binary file under baseDir = leak.
-            $newBinaries = @()
-            if (Test-Path $baseDir) {
-                $afterFiles = Get-ChildItem -LiteralPath $baseDir -Recurse -ErrorAction SilentlyContinue `
-                    -Include "llama-*.exe","*.dll","*.zip"
-                foreach ($f in $afterFiles) {
-                    $isNew  = -not $binSnapshotBefore.ContainsKey($f.FullName)
-                    $isGrew = $binSnapshotBefore.ContainsKey($f.FullName) -and ($binSnapshotBefore[$f.FullName] -ne $f.Length)
-                    if ($isNew -or $isGrew) { $newBinaries += $f.FullName }
-                }
-            }
-
-            if ($guardTripped -or $newBinaries.Count -gt 0) {
-                Write-Log "HARD GUARD: 'models-download' must not install llama.cpp binaries." -Level "error"
-                if ($newBinaries.Count -gt 0) {
-                    Write-Log "Detected $($newBinaries.Count) new/changed binary file(s) under $baseDir :" -Level "error"
-                    $newBinaries | ForEach-Object { Write-Log "  + $_" -Level "error" }
-                }
-                Write-Log "Aborting models-download. Use '.\run.ps1 -I 43' to install llama.cpp binaries explicitly." -Level "error"
-                throw "models-download hard guard tripped: llama.cpp binary install path was triggered."
-            }
-        }
-    }
+    [void](Invoke-StandaloneGgufDownload -Models $resolved -Config $Config -ScriptsRoot $ScriptsRoot)
 }
