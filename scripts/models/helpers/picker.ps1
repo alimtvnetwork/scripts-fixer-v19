@@ -666,13 +666,52 @@ function Resolve-CsvIds {
     $ids = $Csv -split '[,\s]+' | Where-Object { $_.Length -gt 0 }
     Write-Log ($LogMessages.messages.csvResolveStart -replace '\{count\}', $ids.Count) -Level "info"
 
+    function _Get-IdCandidates {
+        param([Parameter(Mandatory)] [string]$Needle)
+        $seen = @{}
+        $out = New-Object System.Collections.Generic.List[string]
+        foreach ($candidate in @(
+            ($Needle -replace '^library/', '' -replace ':', '-'),
+            ($Needle -replace '^library/', ''),
+            $Needle
+        )) {
+            $value = "$candidate".Trim().ToLower()
+            if (-not [string]::IsNullOrWhiteSpace($value) -and -not $seen.ContainsKey($value)) {
+                $seen[$value] = $true
+                [void]$out.Add($value)
+            }
+        }
+        return @($out)
+    }
+
     $matched = @()
     foreach ($id in $ids) {
         $needle = $id.Trim().ToLower()
-        $hit = $AllModels | Where-Object { $_.id.ToLower() -eq $needle } | Select-Object -First 1
+        $candidates = @(_Get-IdCandidates -Needle $needle)
+        $hit = $null
+
+        foreach ($candidate in $candidates) {
+            $hit = $AllModels | Where-Object { $_.backend -eq 'llama-cpp' -and $_.id.ToLower() -eq $candidate } | Select-Object -First 1
+            if ($hit) { break }
+        }
+        if (-not $hit) {
+            foreach ($candidate in $candidates) {
+                $hit = $AllModels | Where-Object { $_.id.ToLower() -eq $candidate } | Select-Object -First 1
+                if ($hit) { break }
+            }
+        }
         if (-not $hit) {
             # Try partial match (e.g. "qwen2.5-coder" matches "qwen2.5-coder-3b")
-            $hit = $AllModels | Where-Object { $_.id.ToLower() -like "*$needle*" } | Select-Object -First 1
+            foreach ($candidate in $candidates) {
+                $hit = $AllModels | Where-Object { $_.backend -eq 'llama-cpp' -and $_.id.ToLower() -like "*$candidate*" } | Select-Object -First 1
+                if ($hit) { break }
+            }
+        }
+        if (-not $hit) {
+            foreach ($candidate in $candidates) {
+                $hit = $AllModels | Where-Object { $_.id.ToLower() -like "*$candidate*" } | Select-Object -First 1
+                if ($hit) { break }
+            }
         }
         if ($hit) {
             $line = $LogMessages.messages.csvResolved -replace '\{id\}', $id -replace '\{backend\}', $hit.backend
