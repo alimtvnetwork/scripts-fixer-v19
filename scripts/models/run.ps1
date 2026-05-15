@@ -293,10 +293,11 @@ try {
         $all += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
 
         $isNumeric = $csv -match '^[\d,\s\-]+$'
+        $defaultOutputRoot = if ($downloadPaths -and $downloadPaths.PSObject.Properties['Llama']) { $downloadPaths.Llama } else { $null }
         $matched = if ($isNumeric) {
-            Resolve-NumericPicks -Csv $csv -AllModels $all
+            Resolve-NumericPicks -Csv $csv -AllModels $all -OutputRoot $defaultOutputRoot -FailureReason "No matching models for numeric selection"
         } else {
-            Resolve-CsvIds -Csv $csv -AllModels $all -LogMessages $logMessages
+            Resolve-CsvIds -Csv $csv -AllModels $all -LogMessages $logMessages -OutputRoot $defaultOutputRoot -FailureReason "No matching models for requested id"
         }
 
         $matched = @($matched | Where-Object { $null -ne $_ })
@@ -442,7 +443,8 @@ try {
             $allModels += Get-BackendCatalog -Backend $b -Config $config -ScriptsRoot $scriptsRoot
         }
 
-        $matched = @(Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages | Where-Object { $null -ne $_ })
+        $defaultOutputRoot = if ($downloadPaths -and $downloadPaths.PSObject.Properties['Llama']) { $downloadPaths.Llama } else { $null }
+        $matched = @(Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages -OutputRoot $defaultOutputRoot -FailureReason "No matching models for requested id" | Where-Object { $null -ne $_ })
         if ($matched.Count -eq 0) {
             Write-Log $logMessages.messages.csvNoneFound -Level "error"
             return
