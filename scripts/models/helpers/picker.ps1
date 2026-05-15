@@ -222,10 +222,15 @@ function Get-ModelDownloadPaths {
         [Parameter(Mandatory)] [string]$ScriptsRoot
     )
 
+    $savedDevDir = $null
+    if (Get-Command Get-SavedDevPath -ErrorAction SilentlyContinue) {
+        try { $savedDevDir = Get-SavedDevPath } catch {}
+    }
     $devDir = Resolve-EffectiveDevDir
     $hasDevDir = -not [string]::IsNullOrWhiteSpace($devDir)
     $devDirSource = if (-not [string]::IsNullOrWhiteSpace($env:DEV_DIR)) { "env" }
-                    elseif ($hasDevDir) { "saved" }
+                    elseif (-not [string]::IsNullOrWhiteSpace($savedDevDir)) { "saved" }
+                    elseif ($hasDevDir) { "default" }
                     else { "unset" }
 
     # Per-backend default subfolders -- now both default to 'models'
@@ -271,7 +276,7 @@ function Get-ModelDownloadPaths {
 
         if ($hasDevDir) {
             $p = (Join-Path $devDir $Sub)
-            return @{ Path = $p; All = @($p); Source = "DEV_DIR/$Sub" }
+            return @{ Path = $p; All = @($p); Source = "$devDirSource/$Sub" }
         }
         # Fallback default so downloads follow the shared scripts default dev dir.
         $defaultBase = if ($hasDevDir) { $devDir }
