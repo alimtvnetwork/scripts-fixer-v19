@@ -3974,7 +3974,32 @@ if ($hasCommand) {
             exit 1
         }
 
-        # ── Profile-name shortcut ─────────────────────────────────────────
+        # ── 'install model <ids>' shortcut ──────────────────────────────
+        # Forward to the models orchestrator (download mode, standalone GGUF).
+        # CSV ids are preserved as a single token so the orchestrator parser
+        # handles them. Strips the leading 'model'/'models' verb.
+        $modelInstallFirst = "$($Install[0])".Trim().ToLower()
+        $isModelInstallShortcut = $modelInstallFirst -in @("model","models")
+        if ($isModelInstallShortcut) {
+            $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
+            $isModelsScriptPresent = Test-Path $modelsScript
+            if (-not $isModelsScriptPresent) {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "Models dispatcher missing at: $modelsScript"
+                exit 1
+            }
+            $mdArgs = @("download")
+            if ($Install.Count -gt 1) {
+                foreach ($mdArg in $Install[1..($Install.Count - 1)]) {
+                    if ($null -ne $mdArg -and "$mdArg".Length -gt 0) { $mdArgs += "$mdArg" }
+                }
+            }
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Routing 'install $modelInstallFirst' to models dispatcher (download mode)" -ForegroundColor DarkGray
+            & $modelsScript @mdArgs
+            exit $LASTEXITCODE
+        }
+
         # Allow `install minimal` (or any profile name / alias) to route to the
         # profile dispatcher, in addition to the existing `install profile-minimal`.
         # Only triggers when the FIRST token is unambiguously a profile name --
