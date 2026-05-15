@@ -13,6 +13,10 @@
     "settingsDir": "",
     "syncSettings": true,
     "defaultMode": "install+settings",
-    "validModes": ["install+settings", "settings-only", "install-only"]
+    "validModes": ["install+settings", "settings-only", "install-only", "font-only"],
+    "font": {
+      "name": "Ubuntu",
+      "size": 26
+    }
   }
 }
