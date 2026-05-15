@@ -107,8 +107,8 @@ Invoke-Step "Windows Update download cache" {
 
 # Step 2: Temp dirs
 Invoke-Step "Temp directories" {
-    $args = @("-NoConfirm")
-    if ($autoYes) { $args += "-Yes" }
+    $tempArgs = @("-NoConfirm")
+    if ($autoYes) { $tempArgs += "-Yes" }
     if ($dryRun) {
         # temp-clean has no native dry-run; emulate by reporting sizes only.
         Write-Host "  [DRY-RUN] Sizes only (no deletions):" -ForegroundColor Yellow
@@ -128,7 +128,7 @@ Invoke-Step "Temp directories" {
             }
         }
     } else {
-        & $tempBin @args
+        & $tempBin @tempArgs
     }
 }
 
