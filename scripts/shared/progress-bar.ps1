@@ -58,8 +58,10 @@ function Write-DownloadProgressBar {
     $empty  = $Width - $filled
 
     $color  = Get-DownloadBarColor -Percent $Percent
-    $barFilled = '#' * $filled
-    $barEmpty  = '-' * $empty
+    # ASCII-only "real progress bar" look: '=' filled, '>' head, ' ' empty.
+    $headChar = if ($Percent -gt 0 -and $Percent -lt 100) { '>' } else { '=' }
+    $barFilled = if ($filled -gt 0) { ('=' * ($filled - 1)) + $headChar } else { '' }
+    $barEmpty  = ' ' * $empty
     $pctStr    = ('{0,3}%' -f $Percent)
 
     # Compose label (truncate to keep one line)
@@ -69,32 +71,41 @@ function Write-DownloadProgressBar {
         $shortLabel = $shortLabel.Substring(0, $maxLabel - 1) + "~"
     }
 
+    # Emit a blank line above on first render so the bar has top padding,
+    # visually separated from the previous log lines.
+    if ($script:_pbarFirstRender) {
+        Write-Host ""
+        $script:_pbarFirstRender = $false
+    }
+
+    $indent = $script:_pbarIndent
+
     # Plain-text length used to pad / clear residue from any prior longer render.
-    $plain = "  $pctStr [$barFilled$barEmpty]  $Sizes  DL:$Speed  ETA:$Eta  $shortLabel"
+    $plain = "$indent$pctStr  [$barFilled$barEmpty]   $Sizes   DL: $Speed   ETA: $Eta   $shortLabel"
     $padNeeded = [math]::Max(0, $script:_pbarLastLen - $plain.Length)
     $script:_pbarLastLen = $plain.Length
 
     # Render -- carriage return then segmented colour writes.
     [Console]::Write("`r")
-    Write-Host -NoNewline "  "
+    Write-Host -NoNewline $indent
     Write-Host -NoNewline $pctStr -ForegroundColor $color
-    Write-Host -NoNewline " ["
+    Write-Host -NoNewline "  ["
     Write-Host -NoNewline $barFilled -ForegroundColor $color
     if ($empty -gt 0) {
         Write-Host -NoNewline $barEmpty -ForegroundColor DarkGray
     }
-    Write-Host -NoNewline "]  "
+    Write-Host -NoNewline "]   "
     if ($Sizes) { Write-Host -NoNewline $Sizes -ForegroundColor White }
     if ($Speed) {
-        Write-Host -NoNewline "  DL:" -ForegroundColor DarkGray
-        Write-Host -NoNewline $Speed  -ForegroundColor Green
+        Write-Host -NoNewline "   DL: " -ForegroundColor DarkGray
+        Write-Host -NoNewline $Speed   -ForegroundColor Green
     }
     if ($Eta)   {
-        Write-Host -NoNewline "  ETA:" -ForegroundColor DarkGray
-        Write-Host -NoNewline $Eta     -ForegroundColor Yellow
+        Write-Host -NoNewline "   ETA: " -ForegroundColor DarkGray
+        Write-Host -NoNewline $Eta      -ForegroundColor Yellow
     }
     if ($shortLabel) {
-        Write-Host -NoNewline "  "
+        Write-Host -NoNewline "   "
         Write-Host -NoNewline $shortLabel -ForegroundColor DarkCyan
     }
     if ($padNeeded -gt 0) {
