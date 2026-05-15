@@ -1,6 +1,6 @@
 # --------------------------------------------------------------------------
-#  Script 59 -- ConEmu Context Menu
-#  Adds "Open ConEmu Here" (normal + admin) to the right-click menu for
+#  Script 64 -- WindowsTerminal Context Menu
+#  Adds "Open Windows Terminal Here" (normal + admin) to the right-click menu for
 #  folders and folder backgrounds. Mirrors script 31 (PowerShell Here).
 #
 #  Subcommands:
@@ -12,7 +12,7 @@
 #    restore            Re-import the newest .reg snapshot from
 #                       .logs/registry-backups/ (use -SnapshotFile to pick
 #                       a specific one). Add -DryRun to preview.
-#    list-snapshots     List newest-first conemu-context-menu .reg backups.
+#    list-snapshots     List newest-first wt-context-menu .reg backups.
 #    help               Show usage.
 # --------------------------------------------------------------------------
 param(
@@ -52,7 +52,7 @@ $script:ScriptDir = $scriptDir
 . (Join-Path $sharedDir "confirm-prompt.ps1")
 
 # -- Dot-source script helpers ------------------------------------------------
-. (Join-Path $scriptDir "helpers\conemu-menu.ps1")
+. (Join-Path $scriptDir "helpers\wt-menu.ps1")
 
 # -- Load config & log messages -----------------------------------------------
 $config      = Import-JsonConfig (Join-Path $scriptDir "config.json")
@@ -90,11 +90,11 @@ Write-Banner -Title $logMessages.scriptName
 
 # -- Triple-path trio (Source / Temp / Target) -----------------------
 Write-InstallPaths `
-    -Tool   "ConEmu right-click menu" `
+    -Tool   "Windows Terminal right-click menu" `
     -Action "Configure" `
-    -Source "$scriptDir\helpers\conemu-menu.ps1" `
-    -Temp   ($env:TEMP + "\scripts-fixer\conemu-ctx") `
-    -Target ("HKCR:\Directory\(Background\)shell\ConEmuHere(+Admin)")
+    -Source "$scriptDir\helpers\wt-menu.ps1" `
+    -Temp   ($env:TEMP + "\scripts-fixer\wt-ctx") `
+    -Target ("HKCR:\Directory\(Background\)shell\WindowsTerminalHere(+Admin)")
 
 # -- Initialize logging --------------------------------------------------------
 Initialize-Logging -ScriptName $logMessages.scriptName
@@ -127,15 +127,15 @@ if (-not $isReadOnly) {
 # -- Subcommand dispatcher ----------------------------------------------------
 switch ($normalizedCommand) {
     'list-snapshots' {
-        $snaps = Get-ConEmuContextMenuSnapshots
+        $snaps = Get-WtContextMenuSnapshots
         if ($snaps.Count -eq 0) {
             $backupRoot = Join-Path $script:ScriptDir ".logs\registry-backups"
             Write-Log ("No snapshots found under: " + $backupRoot) -Level "warn"
-            Write-Log "Run '.\\run.ps1 -I 59 uninstall' to create one." -Level "info"
+            Write-Log "Run '.\\run.ps1 -I 64 uninstall' to create one." -Level "info"
             return
         }
         Write-Host ""
-        Write-Host "  ConEmu context menu :: snapshots (newest first)" -ForegroundColor Cyan
+        Write-Host "  Windows Terminal context menu :: snapshots (newest first)" -ForegroundColor Cyan
         Write-Host  "  -------------------------------------------------" -ForegroundColor DarkGray
         $i = 0
         foreach ($s in $snaps) {
@@ -144,55 +144,55 @@ switch ($normalizedCommand) {
             Write-Host ("  {0} [{1,2}]  {2}  {3,8} bytes  {4}" -f $marker, $i, ($s.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')), $s.Length, $s.FullName) -ForegroundColor White
         }
         Write-Host ""
-        Write-Host "  Restore newest:  .\run.ps1 -I 59 restore" -ForegroundColor DarkGray
-        Write-Host "  Restore picked:  .\run.ps1 -I 59 restore --snapshot-file <path>" -ForegroundColor DarkGray
+        Write-Host "  Restore newest:  .\run.ps1 -I 64 restore" -ForegroundColor DarkGray
+        Write-Host "  Restore picked:  .\run.ps1 -I 64 restore --snapshot-file <path>" -ForegroundColor DarkGray
         return
     }
     { $_ -in @('uninstall','remove','rollback') } {
         $confirmed = Confirm-DestructiveAction `
-            -Title  "Uninstall ConEmu context menu (registry rollback)" `
-            -Detail "Snapshots affected HKCR keys to a .reg file, then DELETES the right-click entries. Restore via '.\run.ps1 -I 59 restore'." `
+            -Title  "Uninstall Windows Terminal context menu (registry rollback)" `
+            -Detail "Snapshots affected HKCR keys to a .reg file, then DELETES the right-click entries. Restore via '.\run.ps1 -I 64 restore'." `
             -NonInteractive:$NonInteractive `
             -AssumeYes:$AssumeYes
         if (-not $confirmed) { Write-Log "Uninstall aborted by user." -Level "warn"; return }
-        Uninstall-ConEmuContextMenu -Config $config -LogMessages $logMessages
+        Uninstall-WtContextMenu -Config $config -LogMessages $logMessages
         return
     }
     { $_ -in @('dry-run-uninstall','uninstall-dry-run','preview-uninstall') } {
-        Uninstall-ConEmuContextMenu -Config $config -LogMessages $logMessages -DryRun
+        Uninstall-WtContextMenu -Config $config -LogMessages $logMessages -DryRun
         return
     }
     { $_ -in @('restore','restore-snapshot') } {
         if (-not $DryRun) {
             $snapLabel = if ([string]::IsNullOrWhiteSpace($SnapshotFile)) { '<newest snapshot>' } else { $SnapshotFile }
             $confirmed = Confirm-DestructiveAction `
-                -Title  "Restore ConEmu context menu from .reg snapshot" `
+                -Title  "Restore Windows Terminal context menu from .reg snapshot" `
                 -Detail ("Re-imports registry entries from: " + $snapLabel + ". This OVERWRITES current HKCR keys.") `
                 -NonInteractive:$NonInteractive `
                 -AssumeYes:$AssumeYes
             if (-not $confirmed) { Write-Log "Restore aborted by user." -Level "warn"; return }
         }
-        $ok = Restore-ConEmuContextMenuSnapshot -SnapshotFile $SnapshotFile -DryRun:$DryRun -LogMessages $logMessages
+        $ok = Restore-WtContextMenuSnapshot -SnapshotFile $SnapshotFile -DryRun:$DryRun -LogMessages $logMessages
         if (-not $ok) { exit 1 }
         return
     }
     default { } # 'install' / '' / 'all' -> fall through to legacy install path
 }
 
-# -- Detect ConEmu64.exe ------------------------------------------------------
-$conemuExe = Resolve-ConEmuPath `
-    -ConEmuPaths     $config.conemuPaths `
+# -- Detect wt.exe ------------------------------------------------------
+$wtExe = Resolve-WtPath `
+    -WtPaths     $config.wtPaths `
     -VerifyCommand   $config.verifyCommand `
     -FallbackTo32Bit $config.fallbackTo32Bit `
     -LogMessages     $logMessages
 
-if (-not $conemuExe) {
+if (-not $wtExe) {
     return
 }
 
 # -- Process modes (normal + admin) -------------------------------------------
 $enabledModes    = $config.enabledModes
-$parentMenusOk   = Install-ConEmuParentMenus -Config $config -ConEmuExe $conemuExe -LogMessages $logMessages
+$parentMenusOk   = Install-WtParentMenus -Config $config -WtExe $wtExe -LogMessages $logMessages
 $isAllSuccessful = $parentMenusOk
 
 foreach ($modeName in $enabledModes) {
@@ -203,17 +203,17 @@ foreach ($modeName in $enabledModes) {
         continue
     }
 
-    $result = Invoke-ConEmuMode `
+    $result = Invoke-WtMode `
         -Mode        $mode `
         -ModeName    $modeName `
-        -ConEmuExe   $conemuExe `
+        -WtExe   $wtExe `
         -Config      $config `
         -LogMessages $logMessages
 
     if (-not $result) { $isAllSuccessful = $false }
 }
 
-Invoke-ConEmuExplorerRefresh
+Invoke-WtExplorerRefresh
 
 # -- Summary -------------------------------------------------------------------
 if ($isAllSuccessful) {
@@ -227,15 +227,15 @@ if ($isAllSuccessful) {
 # uses the same Directory\Background handler as 'background', so we map the
 # 'empty-folder' test to that registry path too.)
 $null = Invoke-RightClickVerification `
-    -Tool         'ConEmu' `
-    -EntryLabel   'ConEmu' `
-    -RetryCommand ".\run.ps1 -I 59 install" `
+    -Tool         'WindowsTerminal' `
+    -EntryLabel   'WindowsTerminal' `
+    -RetryCommand ".\run.ps1 -I 64 install" `
     -NonInteractive:$NonInteractive `
     -AssumeYes:$AssumeYes
 
 # -- Save resolved state -------------------------------------------------------
-Save-ResolvedData -ScriptFolder "59-conemu-context-menu" -Data @{
-    conemuExe = $conemuExe
+Save-ResolvedData -ScriptFolder "59-wt-context-menu" -Data @{
+    wtExe = $wtExe
     modes     = ($enabledModes -join ',')
     timestamp = (Get-Date -Format "o")
 }

@@ -1,17 +1,17 @@
 {
-  "_comment": "Script 59 -- ConEmu right-click context menu. 'Open Here' (no elevation) is listed first; 'Open as Admin' second (UAC via Start-Process -Verb RunAs).",
+  "_comment": "Script 64 -- WindowsTerminal right-click context menu. 'Open Here' (no elevation) is listed first; 'Open as Admin' second (UAC via Start-Process -Verb RunAs).",
   "enabled": true,
   "menu": {
-    "parentKeyName": "ConEmuMenu",
-    "parentLabel": "ConEmu",
-    "iconMode": "conemu"
+    "parentKeyName": "WindowsTerminalMenu",
+    "parentLabel": "WindowsTerminal",
+    "iconMode": "wt"
   },
   "modes": {
     "normal": {
       "contextMenuLabel": "Open Here",
       "registryPaths": {
-        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\01-OpenHere",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\01-OpenHere"
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\WindowsTerminalMenu\\shell\\01-OpenHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\WindowsTerminalMenu\\shell\\01-OpenHere"
       },
       "commandArgs": {
         "directory":  "\"{exe}\" -Dir \"%V\"",
@@ -21,8 +21,8 @@
     "admin": {
       "contextMenuLabel": "Open as Admin",
       "registryPaths": {
-        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\02-OpenAsAdmin",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\02-OpenAsAdmin"
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\WindowsTerminalMenu\\shell\\02-OpenAsAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\WindowsTerminalMenu\\shell\\02-OpenAsAdmin"
       },
       "commandArgs": {
         "directory":  "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-Dir','%V'\"",
@@ -33,14 +33,14 @@
     }
   },
   "enabledModes": ["normal", "admin"],
-  "conemuPaths": {
-    "programFiles":      "C:\\Program Files\\ConEmu\\ConEmu64.exe",
-    "programFilesX86":   "C:\\Program Files (x86)\\ConEmu\\ConEmu64.exe",
-    "chocoShim":         "%ProgramData%\\chocolatey\\bin\\ConEmu64.exe",
-    "chocoToolsRoot":    "%ProgramData%\\chocolatey\\lib\\conemu\\tools\\ConEmuPack",
-    "userLocalAppData":  "%LOCALAPPDATA%\\ConEmu\\ConEmu64.exe"
+  "wtPaths": {
+    "programFiles":      "C:\\Program Files\\WindowsTerminal\\wt.exe",
+    "programFilesX86":   "C:\\Program Files (x86)\\WindowsTerminal\\wt.exe",
+    "chocoShim":         "%ProgramData%\\chocolatey\\bin\\wt.exe",
+    "chocoToolsRoot":    "%ProgramData%\\chocolatey\\lib\\wt\\tools\\WindowsTerminalPack",
+    "userLocalAppData":  "%LOCALAPPDATA%\\WindowsTerminal\\wt.exe"
   },
-  "verifyCommand": "ConEmu64",
+  "verifyCommand": "wt",
   "versionFlag": "-version",
   "fallbackTo32Bit": true
 }
