@@ -204,6 +204,11 @@ System-wide verbs:
                          --json   emit machine-readable JSON
   repair-all           Run install for every id whose health != ok
                          --only-drift   only repair ids in drift state
+  reset                Wipe .logs/ .resolved/ .installed/ from repo root for a fresh start
+                         --dry-run      preview only, do not delete
+                         --yes / -y     skip confirmation prompt
+                         --keep-logs    keep .logs/ (drop only .resolved + .installed)
+                         --keep-resolved / --keep-installed   keep that folder
 
 Fast download (aria2c-first, defaults splits=16, piece=1M):
   download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
