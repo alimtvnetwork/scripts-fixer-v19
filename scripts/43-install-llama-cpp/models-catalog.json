@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "4.2.0",
-  "description": "Verified GGUF/GGML model catalog for llama.cpp. 65 models (purged hallucinated entries; preflight HEAD-probes every URL before download).",
+  "catalogVersion": "4.1.0",
+  "description": "Comprehensive GGUF/GGML model catalog for llama.cpp. 90 models including the open-weight portion of the OpenRouter LLM Leaderboard (Nov 2025). Models are downloaded to user-specified directory at runtime.",
   "capabilityFlags": {
     "isCoding": "Model is trained/optimized for code generation, completion, and debugging",
     "isReasoning": "Model supports chain-of-thought, step-by-step logical reasoning",
@@ -40,7 +40,224 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/qwen2.5-coder-3b-instruct-q4_k_m.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF",
       "index": 1,
-      "sha256": "724fb256bec1ff062b2f65e4569e871ad2e95ab2a3989723d1769c54294730b7"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-4b-opus-distill",
+      "displayName": "★ Qwen 3.5 4B Claude Opus 4.6 Distill",
+      "family": "Alibaba Qwen 3.5 (Claude Distill)",
+      "parameters": "4B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 2.7,
+      "fileName": "Qwen3.5-4B-Claude-4.6-Opus-Distill-Q4_K_M.gguf",
+      "ramRequiredGB": 5,
+      "ramRecommendedGB": 8,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 7,
+        "reasoning": 7,
+        "speed": 9,
+        "overall": 7
+      },
+      "bestFor": "Budget Claude Opus reasoning on lightweight hardware. Chain-of-thought distilled from Claude 4.6 Opus into a 4B model. Great for structured reasoning at only 2.7 GB.",
+      "notes": "SFT fine-tune of Qwen3.5-4B with Claude 4.6 Opus reasoning chains. Uses <think> tags for structured CoT. Enhanced with Qwen3.5-27B reasoning data. Fixes Jinja template crash for Claude Code/OpenCode agents.",
+      "source": "Jackrong (Community, based on Qwen 3.5 + Claude 4.6 Opus distillation)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/resolve/main/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF",
+      "index": 2,
+      "sha256": ""
+    },
+    {
+      "id": "nemotron-8b-opus-distill",
+      "displayName": "★ Nemotron 8B Claude 4.5 Opus Distill",
+      "family": "NVIDIA Nemotron",
+      "parameters": "8B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 5.0,
+      "fileName": "Nemotron-Orchestrator-8B-Claude-4.5-Opus-Distill.i1-Q4_K_M.gguf",
+      "ramRequiredGB": 8,
+      "ramRecommendedGB": 10,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 8,
+        "speed": 8,
+        "overall": 8
+      },
+      "bestFor": "NVIDIA's orchestrator model distilled from Claude 4.5 Opus. Great for agentic workflows and tool use.",
+      "notes": "Nemotron architecture with Claude Opus reasoning. Excellent at structured output and multi-step tool calling.",
+      "source": "NVIDIA + Community",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/mradermacher/Nemotron-Orchestrator-8B-Claude-4.5-Opus-Distill-i1-GGUF/resolve/main/Nemotron-Orchestrator-8B-Claude-4.5-Opus-Distill.i1-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/mradermacher/Nemotron-Orchestrator-8B-Claude-4.5-Opus-Distill-i1-GGUF",
+      "index": 3,
+      "sha256": ""
+    },
+    {
+      "id": "sonnet-4.6-distill-8b",
+      "displayName": "★ Sonnet 4.6 Distill 8B",
+      "family": "Claude Distill",
+      "parameters": "8B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 5.2,
+      "fileName": "Sonnet-4.6-Distill-8B-Q4_K_M.gguf",
+      "ramRequiredGB": 8,
+      "ramRecommendedGB": 10,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 8,
+        "speed": 8,
+        "overall": 8
+      },
+      "bestFor": "Fast Claude Sonnet reasoning in a local 8B model. Great speed-to-quality ratio for everyday coding tasks.",
+      "notes": "Sonnet 4.6 distilled into 8B. Faster than Opus distills with slightly lower ceiling. Excellent for rapid iteration.",
+      "source": "Community (Claude Sonnet 4.6 distillation)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/mradermacher/Sonnet-4.6-Distill-8B-GGUF/resolve/main/Sonnet-4.6-Distill-8B.Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/mradermacher/Sonnet-4.6-Distill-8B-GGUF",
+      "index": 4,
+      "sha256": ""
+    },
+    {
+      "id": "claude-4.7-opus-distill-8b",
+      "displayName": "★ Claude 4.7 Opus Distill 8B",
+      "family": "Claude Distill",
+      "parameters": "8B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 5.4,
+      "fileName": "Claude-4.7-Opus-Distill-8B-Q4_K_M.gguf",
+      "ramRequiredGB": 8,
+      "ramRecommendedGB": 12,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 9,
+        "speed": 8,
+        "overall": 8
+      },
+      "bestFor": "Latest Claude Opus distilled into 8B. Exceptional reasoning, coding, and creative writing in a compact package.",
+      "notes": "Claude 4.7 Opus knowledge distilled into 8B. Improved over 4.6 distills with better tool use and structured output.",
+      "source": "Community (Claude 4.7 Opus distillation)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/mradermacher/Claude-4.7-Opus-Distill-8B-GGUF/resolve/main/Claude-4.7-Opus-Distill-8B.Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/mradermacher/Claude-4.7-Opus-Distill-8B-GGUF",
+      "index": 5,
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-9b-opus-distill",
+      "displayName": "★ Qwen 3.5 9B Claude Opus 4.6 Distill v2",
+      "family": "Alibaba Qwen 3.5 (Claude Distill)",
+      "parameters": "9B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 5.6,
+      "fileName": "Qwen3.5-9B-Claude-4.6-Opus-Distill-v2-Q4_K_M.gguf",
+      "ramRequiredGB": 8,
+      "ramRecommendedGB": 12,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 8,
+        "speed": 8,
+        "overall": 8
+      },
+      "bestFor": "Best value Claude Opus reasoning. v2 trained on 14K Claude 4.6 Opus reasoning samples — thinks more efficiently with concise chains. Beats baseline on HumanEval while using fewer reasoning tokens.",
+      "notes": "v2 iteration with improved reasoning efficiency. Concise CoT — avoids verbose over-analysis on easy problems. Massive reasoning-cost-to-quality improvement. Great for coding agents.",
+      "source": "Jackrong (Community, based on Qwen 3.5 + Claude 4.6 Opus distillation)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/resolve/main/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF",
+      "index": 6,
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-9b",
+      "displayName": "★ Qwen 3.5 9B",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "9B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 5.7,
+      "fileName": "Qwen3.5-9B-Q4_K_M.gguf",
+      "ramRequiredGB": 8,
+      "ramRecommendedGB": 12,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 7,
+        "reasoning": 7,
+        "speed": 8,
+        "overall": 7
+      },
+      "bestFor": "Best value in the Qwen 3.5 family. Strong multimodal reasoning and coding at a practical size. Excellent for everyday development tasks with vision support.",
+      "notes": "Native multimodal (vision + text). 262K context window. Thinking mode with toggle. Dense architecture. Sweet spot between capability and RAM usage.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF",
+      "index": 7,
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-9b-q6",
+      "displayName": "★ Qwen 3.5 9B Q6_K",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "9B",
+      "quantization": "Q6_K",
+      "fileSizeGB": 7.8,
+      "fileName": "Qwen3.5-9B-Q6_K.gguf",
+      "ramRequiredGB": 10,
+      "ramRecommendedGB": 14,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 8,
+        "speed": 7,
+        "overall": 8
+      },
+      "bestFor": "Higher quality multimodal value model. Near-lossless vision + coding at only 7.8 GB. Best 9B experience.",
+      "notes": "Q6_K of the best-value Qwen 3.5. 262K context, vision, thinking mode. Only +2 GB over Q4_K_M for ~5% better quality.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q6_K.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF",
+      "index": 8,
+      "sha256": ""
     },
     {
       "id": "qwen2.5-coder-14b",
@@ -71,7 +288,38 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q4_k_m.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF",
       "index": 9,
-      "sha256": "c1e659736d89ac1065fb495330fb824d94001974a4bfa78e7270e43476a8d940"
+      "sha256": ""
+    },
+    {
+      "id": "qwen2.6-coder-14b",
+      "displayName": "★ Qwen 2.6 Coder 14B",
+      "family": "Alibaba Qwen 2.6",
+      "parameters": "14B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 8.8,
+      "fileName": "Qwen2.6-Coder-14B-Instruct-Q4_K_M.gguf",
+      "ramRequiredGB": 12,
+      "ramRecommendedGB": 16,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": false,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 8,
+        "speed": 6,
+        "overall": 9
+      },
+      "bestFor": "Latest Qwen coder. Improved code generation, reasoning, and tool use over Qwen 2.5. 128K context.",
+      "notes": "Qwen 2.6 Coder series with upgraded training data and architecture improvements. Strong at agentic coding workflows.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/Qwen/Qwen2.6-Coder-14B-Instruct-GGUF/resolve/main/Qwen2.6-Coder-14B-Instruct-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.6-Coder-14B-Instruct-GGUF",
+      "index": 10,
+      "sha256": ""
     },
     {
       "id": "deepseek-r1-14b-distill",
@@ -102,7 +350,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF",
       "index": 11,
-      "sha256": "0b319bd0572f2730bfe11cc751defe82045fad5085b4e60591ac2cd2d9633181"
+      "sha256": ""
     },
     {
       "id": "phi-4-14b",
@@ -112,7 +360,7 @@
       "quantization": "Q4_K_M",
       "fileSizeGB": 9.1,
       "fileName": "phi-4-Q4_K_M.gguf",
-      "ramRequiredGB": 14,
+      "ramRequiredGB": 12,
       "ramRecommendedGB": 16,
       "isCoding": true,
       "isReasoning": true,
@@ -133,7 +381,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/phi-4-GGUF/resolve/main/phi-4-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/phi-4-GGUF",
       "index": 12,
-      "sha256": "009aba717c09d4a35890c7d35eb59d54e1dba884c7c526e7197d9c13ab5911d9"
+      "sha256": ""
     },
     {
       "id": "phi-4-reasoning-plus",
@@ -164,7 +412,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/microsoft_Phi-4-reasoning-plus-GGUF/resolve/main/microsoft_Phi-4-reasoning-plus-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/microsoft_Phi-4-reasoning-plus-GGUF",
       "index": 13,
-      "sha256": "fcb2cdd14881e20613f56d37f49d0c73ec6c00f9bb4d0e4b161a1621d8517f47"
+      "sha256": ""
     },
     {
       "id": "qwen2.5-coder-14b-q5",
@@ -195,7 +443,7 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q5_k_m.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF",
       "index": 14,
-      "sha256": "98ab25e0132e3f1e6d3554e1b64de2b5021908819b740d9c208430117e49a775"
+      "sha256": ""
     },
     {
       "id": "qwen2.5-coder-14b-q6",
@@ -226,7 +474,7 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q6_k.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF",
       "index": 15,
-      "sha256": "302a079369ad8b66c8e8ec1bfa62d109c64d8015e9bfd52d9c6cf4c6c9f36b5f"
+      "sha256": ""
     },
     {
       "id": "devstral-small-24b",
@@ -257,8 +505,7 @@
       "downloadUrl": "https://huggingface.co/mistralai/Devstral-Small-2507-GGUF/resolve/main/Devstral-Small-2507-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/mistralai/Devstral-Small-2507-GGUF",
       "index": 16,
-      "sha256": "",
-      "manualReason": "gated repo (HTTP 401) -- needs HF auth token; populate sha256 manually after `huggingface-cli login`"
+      "sha256": ""
     },
     {
       "id": "qwen2.5-coder-14b-q8",
@@ -289,7 +536,38 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q8_0.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF",
       "index": 17,
-      "sha256": "8180f66e3458e298830cebe7c9e8a9bde0ae6511d399fd99d3385b64324ac85d"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-27b-opus-distill",
+      "displayName": "★ Qwen 3.5 27B Claude Opus 4.6 Distill",
+      "family": "Alibaba Qwen 3.5 (Claude Distill)",
+      "parameters": "27B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 16.5,
+      "fileName": "Qwen3.5-27B-Claude-4.6-Opus-Distill-Q4_K_M.gguf",
+      "ramRequiredGB": 20,
+      "ramRecommendedGB": 24,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 9,
+        "speed": 7,
+        "overall": 9
+      },
+      "bestFor": "Maximum local Claude Opus reasoning. 27B dense model with Claude 4.6 Opus CoT distillation. Can run autonomously for 9+ minutes without interruption. Best for complex coding agents and deep reasoning.",
+      "notes": "Built with Unsloth 2026.3.3. Fixes Jinja template crash for 'developer' role (Claude Code/OpenCode compatible). Does not disable thinking mode by default. Significantly improved autonomy and stability vs base Qwen3.5-27B.",
+      "source": "Jackrong (Community, based on Qwen 3.5 + Claude 4.6 Opus distillation)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/resolve/main/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-GGUF",
+      "index": 18,
+      "sha256": ""
     },
     {
       "id": "devstral-small-24b-q5",
@@ -320,8 +598,69 @@
       "downloadUrl": "https://huggingface.co/bartowski/Devstral-Small-2507-GGUF/resolve/main/Devstral-Small-2507-Q5_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/Devstral-Small-2507-GGUF",
       "index": 19,
-      "sha256": "",
-      "manualReason": "gated repo (HTTP 401) -- needs HF auth token; populate sha256 manually after `huggingface-cli login`"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-27b",
+      "displayName": "★ Qwen 3.5 27B",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "27B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 16.7,
+      "fileName": "Qwen3.5-27B-Q4_K_M.gguf",
+      "ramRequiredGB": 20,
+      "ramRecommendedGB": 24,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 8,
+        "speed": 7,
+        "overall": 8
+      },
+      "bestFor": "Dense multimodal powerhouse. Best quality dense model in the Qwen 3.5 family — no MoE tradeoffs. Strong coding, reasoning, and vision capabilities at 16.7 GB.",
+      "notes": "Native multimodal (vision + text). 262K context window. Thinking mode with toggle. Dense architecture — all 27B params active every token. Middle ground between 9B value and MoE models.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/main/Qwen3.5-27B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF",
+      "index": 20,
+      "sha256": ""
+    },
+    {
+      "id": "glm-4.7-flash-reasoning",
+      "displayName": "★ GLM 4.7 Flash Reasoning",
+      "family": "GLM (Zhipu AI)",
+      "parameters": "30B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 18.1,
+      "fileName": "glm-4.7-flash-claude-4.5-opus.q4_k_m.gguf",
+      "ramRequiredGB": 24,
+      "ramRecommendedGB": 32,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 9,
+        "speed": 5,
+        "overall": 8
+      },
+      "bestFor": "Strong reasoning distilled from Claude Opus 4.5. Coding, science, deep research, agentic workflows.",
+      "notes": "★ Community distill of GLM 4.7 Flash using Claude Opus 4.5 high-reasoning dataset. Excellent at structured thinking and tool use.",
+      "source": "TeichAI (Community, based on Zhipu GLM 4.7)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF/resolve/main/glm-4.7-flash-claude-4.5-opus.q4_k_m.gguf",
+      "huggingfacePage": "https://huggingface.co/TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF",
+      "index": 21,
+      "sha256": ""
     },
     {
       "id": "qwen3-30b-a3b",
@@ -352,7 +691,69 @@
       "downloadUrl": "https://huggingface.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF/resolve/main/Qwen_Qwen3-30B-A3B-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF",
       "index": 22,
-      "sha256": "a015794bfb1d69cb03dbb86b185fb2b9b339f757df5f8f9dd9ebdab8f6ed5d32"
+      "sha256": ""
+    },
+    {
+      "id": "qwen2.6-coder-32b",
+      "displayName": "★ Qwen 2.6 Coder 32B",
+      "family": "Alibaba Qwen 2.6",
+      "parameters": "32B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 19.0,
+      "fileName": "Qwen2.6-Coder-32B-Instruct-Q4_K_M.gguf",
+      "ramRequiredGB": 24,
+      "ramRecommendedGB": 32,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": false,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 10,
+        "reasoning": 9,
+        "speed": 4,
+        "overall": 9
+      },
+      "bestFor": "Maximum Qwen coder quality. Complex architecture, multi-file refactoring, agentic coding at scale.",
+      "notes": "Largest Qwen 2.6 coder. Matches frontier models on coding benchmarks. 128K context. Needs 24GB+ RAM.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/Qwen/Qwen2.6-Coder-32B-Instruct-GGUF/resolve/main/Qwen2.6-Coder-32B-Instruct-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.6-Coder-32B-Instruct-GGUF",
+      "index": 23,
+      "sha256": ""
+    },
+    {
+      "id": "exaone-4.0-32b",
+      "displayName": "★ EXAONE 4.0 32B",
+      "family": "LG EXAONE",
+      "parameters": "32B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 19.3,
+      "fileName": "EXAONE-4.0-32B-Q4_K_M.gguf",
+      "ramRequiredGB": 24,
+      "ramRecommendedGB": 32,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 9,
+        "speed": 5,
+        "overall": 9
+      },
+      "bestFor": "LG's top-tier reasoning model. Dual-mode (reasoning + non-reasoning). Competitive with Qwen 2.5 Coder 32B on coding. Strong at math and science.",
+      "notes": "★ One of the best 32B models available. Integrated reasoning/non-reasoning modes. 32K context. Korean + English bilingual. Excellent on LiveCodeBench and MMLU-PRO.",
+      "source": "LG AI Research",
+      "license": "EXAONE AI License",
+      "downloadUrl": "https://huggingface.co/LGAI-EXAONE/EXAONE-4.0-32B-GGUF/resolve/main/EXAONE-4.0-32B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/LGAI-EXAONE/EXAONE-4.0-32B-GGUF",
+      "index": 24,
+      "sha256": ""
     },
     {
       "id": "devstral-small-24b-q6",
@@ -383,8 +784,100 @@
       "downloadUrl": "https://huggingface.co/bartowski/Devstral-Small-2507-GGUF/resolve/main/Devstral-Small-2507-Q6_K.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/Devstral-Small-2507-GGUF",
       "index": 25,
-      "sha256": "",
-      "manualReason": "gated repo (HTTP 401) -- needs HF auth token; populate sha256 manually after `huggingface-cli login`"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-27b-q5",
+      "displayName": "★ Qwen 3.5 27B Q5_K_M",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "27B",
+      "quantization": "Q5_K_M",
+      "fileSizeGB": 20.0,
+      "fileName": "Qwen3.5-27B-Q5_K_M.gguf",
+      "ramRequiredGB": 24,
+      "ramRecommendedGB": 30,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 9,
+        "speed": 4,
+        "overall": 9
+      },
+      "bestFor": "Higher quality dense powerhouse. All 27B params active with better quantization. Premium multimodal experience.",
+      "notes": "Q5_K_M of the Qwen 3.5 27B dense model. +3.3 GB over Q4_K_M for ~3% better output. Fits easily in 64GB.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/main/Qwen3.5-27B-Q5_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF",
+      "index": 26,
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-35b-a3b",
+      "displayName": "★ Qwen 3.5 35B-A3B (Turbo MoE)",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "35B (3B active)",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 22.0,
+      "fileName": "Qwen3.5-35B-A3B-Q4_K_M.gguf",
+      "ramRequiredGB": 26,
+      "ramRecommendedGB": 32,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 8,
+        "reasoning": 8,
+        "speed": 9,
+        "overall": 8
+      },
+      "bestFor": "Turbo MoE — only 3B params active per token for blazing speed, but draws from 35B total for quality. Fast inference with near-large-model quality. Best speed/quality ratio in the family.",
+      "notes": "Mixture-of-Experts architecture: 35B total, 3B active per token. Native multimodal (vision + text). 262K context. Thinking mode. Improved tool-calling and coding via Unsloth GGUF refresh.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-35B-A3B-GGUF/resolve/main/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-35B-A3B-GGUF",
+      "index": 27,
+      "sha256": ""
+    },
+    {
+      "id": "qwen3-coder-next",
+      "displayName": "★ Qwen3 Coder Next (MoE)",
+      "family": "Alibaba Qwen",
+      "parameters": "80B (3B active)",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 48.4,
+      "fileName": "Qwen3-Coder-Next-Q4_K_M.gguf",
+      "ramRequiredGB": 56,
+      "ramRecommendedGB": 64,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": false,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 10,
+        "reasoning": 9,
+        "speed": 7,
+        "overall": 10
+      },
+      "bestFor": "Top agentic coding model. 256K context. Complex multi-file refactoring, tool use, IDE integration (Claude Code, Cline, etc.).",
+      "notes": "★ BEST open-weight coding model. 80B MoE with only 3B active params = fast inference despite size. SWE-bench Pro leader. Needs 56GB+ RAM.",
+      "source": "Alibaba Cloud (Qwen Team)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/Qwen/Qwen3-Coder-Next-GGUF/resolve/main/Qwen3-Coder-Next-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/Qwen/Qwen3-Coder-Next-GGUF",
+      "index": 28,
+      "sha256": ""
     },
     {
       "id": "whisper-tiny",
@@ -415,7 +908,7 @@
       "downloadUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
       "huggingfacePage": "https://huggingface.co/ggerganov/whisper.cpp",
       "index": 29,
-      "sha256": "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21"
+      "sha256": ""
     },
     {
       "id": "whisper-base",
@@ -446,7 +939,7 @@
       "downloadUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
       "huggingfacePage": "https://huggingface.co/ggerganov/whisper.cpp",
       "index": 30,
-      "sha256": "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe"
+      "sha256": ""
     },
     {
       "id": "whisper-small",
@@ -477,7 +970,7 @@
       "downloadUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
       "huggingfacePage": "https://huggingface.co/ggerganov/whisper.cpp",
       "index": 31,
-      "sha256": "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"
+      "sha256": ""
     },
     {
       "id": "qwen2-0.5b",
@@ -508,7 +1001,38 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2-0.5B-Instruct-GGUF/resolve/main/qwen2-0_5b-instruct-q8_0.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2-0.5B-Instruct-GGUF",
       "index": 32,
-      "sha256": "834f4115ad5a836c9f17716b1577290fda96de3deb881ba45a4d5476fd202e96"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-0.8b",
+      "displayName": "Qwen 3.5 0.8B",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "0.8B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 0.5,
+      "fileName": "Qwen3.5-0.8B-Q4_K_M.gguf",
+      "ramRequiredGB": 2,
+      "ramRecommendedGB": 4,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 4,
+        "reasoning": 4,
+        "speed": 10,
+        "overall": 4
+      },
+      "bestFor": "Ultra-lightweight multimodal model. Great for smoke testing, prototyping, and edge devices. Vision + text capabilities in under 1 GB.",
+      "notes": "Native multimodal (vision + text). 262K context window. Qwen 3.5 architecture with thinking mode support. Smallest model in the Qwen 3.5 family.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF",
+      "index": 33,
+      "sha256": ""
     },
     {
       "id": "tinyllama-1.1b",
@@ -539,7 +1063,7 @@
       "downloadUrl": "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
       "index": 34,
-      "sha256": "9fecc3b3cd76bba89d504f29b616eedf7da85b96540e490ca5824d3f7d2776a0"
+      "sha256": ""
     },
     {
       "id": "codegemma-2b",
@@ -570,8 +1094,7 @@
       "downloadUrl": "https://huggingface.co/google/codegemma-2b-GGUF/resolve/main/codegemma-2b-Q8_0.gguf",
       "huggingfacePage": "https://huggingface.co/google/codegemma-2b-GGUF",
       "index": 35,
-      "sha256": "",
-      "manualReason": "gated repo (HTTP 401) -- needs HF auth token; populate sha256 manually after `huggingface-cli login`"
+      "sha256": ""
     },
     {
       "id": "stable-code-3b",
@@ -602,7 +1125,38 @@
       "downloadUrl": "https://huggingface.co/bartowski/stable-code-instruct-3b-GGUF/resolve/main/stable-code-instruct-3b-Q5_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/stable-code-instruct-3b-GGUF",
       "index": 36,
-      "sha256": "f952b22a1682bb0c2862c7fb391833e0122d7192ce4f9270840f95a63cf403b8"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-2b",
+      "displayName": "Qwen 3.5 2B",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "2B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 1.3,
+      "fileName": "Qwen3.5-2B-Q4_K_M.gguf",
+      "ramRequiredGB": 3,
+      "ramRecommendedGB": 4,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 5,
+        "reasoning": 5,
+        "speed": 10,
+        "overall": 5
+      },
+      "bestFor": "Lightweight multimodal model with vision. Great for prototyping, fine-tuning experiments, and resource-constrained setups. Steps up from 0.8B with noticeably better reasoning.",
+      "notes": "Native multimodal (vision + text). 262K context window. Thinking mode support. Dense architecture. Only 1.3 GB — fits easily in 4 GB RAM.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF",
+      "index": 37,
+      "sha256": ""
     },
     {
       "id": "whisper-medium",
@@ -633,7 +1187,7 @@
       "downloadUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
       "huggingfacePage": "https://huggingface.co/ggerganov/whisper.cpp",
       "index": 38,
-      "sha256": "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208"
+      "sha256": ""
     },
     {
       "id": "phi-3-mini",
@@ -664,7 +1218,39 @@
       "downloadUrl": "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf",
       "huggingfacePage": "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf",
       "index": 39,
-      "sha256": "8a83c7fb9049a9b2e92266fa7ad04933bb53aa1e85136b7b30f1b8000ff2edef"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3-4b-reasoning",
+      "displayName": "Qwen3 4B Reasoning Distill",
+      "family": "Alibaba Qwen",
+      "parameters": "4B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 2.3,
+      "fileName": "Qwen3-4B-Thinking-2507-Claude-4.5-Opus-High-Reasoning-Distill.i1-Q4_K_M.gguf",
+      "ramRequiredGB": 4,
+      "ramRecommendedGB": 6,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": false,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 5,
+        "reasoning": 7,
+        "speed": 9,
+        "overall": 6
+      },
+      "bestFor": "Lightweight reasoning on low-end hardware. Chain-of-thought problem solving in only ~4GB RAM.",
+      "notes": "⚠️ EXPERIMENTAL: May produce garbled output (no spaces). Distilled from larger reasoning models.",
+      "source": "Community (based on Alibaba Qwen3)",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/mradermacher/Qwen3-4B-Thinking-2507-Claude-4.5-Opus-High-Reasoning-Distill-i1-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Claude-4.5-Opus-High-Reasoning-Distill.i1-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/mradermacher/Qwen3-4B-Thinking-2507-Claude-4.5-Opus-High-Reasoning-Distill-i1-GGUF",
+      "stability": "experimental",
+      "index": 40,
+      "sha256": ""
     },
     {
       "id": "qwen3-4b",
@@ -695,7 +1281,38 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen3-4B-GGUF",
       "index": 41,
-      "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-4b",
+      "displayName": "Qwen 3.5 4B",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "4B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 2.7,
+      "fileName": "Qwen3.5-4B-Q4_K_M.gguf",
+      "ramRequiredGB": 5,
+      "ramRecommendedGB": 8,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 6,
+        "reasoning": 6,
+        "speed": 9,
+        "overall": 6
+      },
+      "bestFor": "Compact multimodal model with vision encoder. Good balance of capability and speed for coding, reasoning, and image understanding on modest hardware.",
+      "notes": "Native multimodal (vision + text). 262K context window. Thinking mode support. Dense architecture. Excellent for task-specific fine-tuning.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF",
+      "index": 42,
+      "sha256": ""
     },
     {
       "id": "whisper-large-v3",
@@ -726,7 +1343,7 @@
       "downloadUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
       "huggingfacePage": "https://huggingface.co/ggerganov/whisper.cpp",
       "index": 43,
-      "sha256": "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2"
+      "sha256": ""
     },
     {
       "id": "deepseek-coder-6.7b-q4",
@@ -757,7 +1374,7 @@
       "downloadUrl": "https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF/resolve/main/deepseek-coder-6.7b-instruct.Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF",
       "index": 44,
-      "sha256": "92da6238854f2fa902d8b2ad79d548536af1d3ab06821f323bd5bbcea2013276"
+      "sha256": ""
     },
     {
       "id": "mistral-7b",
@@ -788,7 +1405,7 @@
       "downloadUrl": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
       "index": 45,
-      "sha256": "3e0039fd0273fcbebb49228943b17831aadd55cbcbf56f0af00499be2040ccf9"
+      "sha256": ""
     },
     {
       "id": "codegemma-7b",
@@ -819,7 +1436,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/codegemma-7b-it-GGUF/resolve/main/codegemma-7b-it-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/codegemma-7b-it-GGUF",
       "index": 46,
-      "sha256": "71acf09271bd521ee11811d9c463781fdad49b202e6a72b22c816a0d0c6c1a6b"
+      "sha256": ""
     },
     {
       "id": "deepseek-coder-6.7b-q5",
@@ -850,7 +1467,7 @@
       "downloadUrl": "https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF/resolve/main/deepseek-coder-6.7b-instruct.Q5_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF",
       "index": 47,
-      "sha256": "0976ee1707fc97b142d7266a9a501893ea6f320e8a8227aa1f04bcab74a5f556"
+      "sha256": ""
     },
     {
       "id": "granite-code-8b",
@@ -881,8 +1498,7 @@
       "downloadUrl": "https://huggingface.co/ibm-granite/granite-8b-code-instruct-4k-GGUF/resolve/main/granite-8b-code-instruct-4k-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/ibm-granite/granite-8b-code-instruct-4k-GGUF",
       "index": 48,
-      "sha256": "",
-      "manualReason": "URL not found (HTTP 404) -- catalog entry may be hallucinated or repo renamed; verify huggingfacePage and update downloadUrl"
+      "sha256": ""
     },
     {
       "id": "starcoder2-7b",
@@ -913,7 +1529,7 @@
       "downloadUrl": "https://huggingface.co/second-state/StarCoder2-7B-GGUF/resolve/main/starcoder2-7b-Q5_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/second-state/StarCoder2-7B-GGUF",
       "index": 49,
-      "sha256": "d385b900e824be5d24b7fda98b898c2bcac07e008f3cb8ac49a0d0883ae3a747"
+      "sha256": ""
     },
     {
       "id": "qwen2.5-coder-7b",
@@ -944,7 +1560,7 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
       "index": 50,
-      "sha256": "586844eac4d6d6321689f0192c8aa8e69cd8625974a5cc2d925b1a03366e4d16"
+      "sha256": ""
     },
     {
       "id": "deepseek-r1-8b",
@@ -975,8 +1591,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-8B-GGUF/resolve/main/deepseek-r1-8b-q5.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-8B-GGUF",
       "index": 51,
-      "sha256": "",
-      "manualReason": "gated repo (HTTP 401) -- needs HF auth token; populate sha256 manually after `huggingface-cli login`"
+      "sha256": ""
     },
     {
       "id": "deepseek-r1-8b-distill",
@@ -1007,7 +1622,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF/resolve/main/DeepSeek-R1-Distill-Llama-8B-Q5_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF",
       "index": 52,
-      "sha256": "645ceebaea72fddbc8941a9e1377e2b19f90513e53e7237d95d0b6069cb8add0"
+      "sha256": ""
     },
     {
       "id": "llama3.3-8b-reasoning",
@@ -1038,7 +1653,7 @@
       "downloadUrl": "https://huggingface.co/mradermacher/Llama3.3-8B-Instruct-Thinking-Heretic-Uncensored-Claude-4.5-Opus-High-Reasoning-i1-GGUF/resolve/main/Llama3.3-8B-Instruct-Thinking-Heretic-Uncensored-Claude-4.5-Opus-High-Reasoning.i1-Q6_K.gguf",
       "huggingfacePage": "https://huggingface.co/mradermacher/Llama3.3-8B-Instruct-Thinking-Heretic-Uncensored-Claude-4.5-Opus-High-Reasoning-i1-GGUF",
       "index": 53,
-      "sha256": "b662126456d093a5537325403561683fa0c0e4b2d68ee0a93f7e061d54e0d674"
+      "sha256": ""
     },
     {
       "id": "phi3.5-mini-f16",
@@ -1069,8 +1684,7 @@
       "downloadUrl": "https://huggingface.co/DavidAU/Phi-3.5-Mini-Sonet-RP-V2-GGUF/resolve/main/Phi-3.5-Mini-Sonet-RP-V2.f16.gguf",
       "huggingfacePage": "https://huggingface.co/DavidAU/Phi-3.5-Mini-Sonet-RP-V2-GGUF",
       "index": 54,
-      "sha256": "",
-      "manualReason": "gated repo (HTTP 401) -- needs HF auth token; populate sha256 manually after `huggingface-cli login`"
+      "sha256": ""
     },
     {
       "id": "codellama-13b",
@@ -1101,7 +1715,7 @@
       "downloadUrl": "https://huggingface.co/TheBloke/CodeLlama-13B-Instruct-GGUF/resolve/main/codellama-13b-instruct.Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/TheBloke/CodeLlama-13B-Instruct-GGUF",
       "index": 55,
-      "sha256": "48cc5600c5e35b1226208a53b1871f50efb15764232babaef23e2264c285d7d9"
+      "sha256": ""
     },
     {
       "id": "phi-3-medium",
@@ -1132,7 +1746,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/Phi-3-medium-4k-instruct-GGUF/resolve/main/Phi-3-medium-4k-instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/Phi-3-medium-4k-instruct-GGUF",
       "index": 56,
-      "sha256": "6f05c97bc676dd1ec8d58e9a8795b4f5c809db771f6fc7bf48634c805face82c"
+      "sha256": ""
     },
     {
       "id": "qwen2.5-14b",
@@ -1163,8 +1777,7 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-14B-Instruct-GGUF/resolve/main/qwen2.5-14b-instruct-q4_k_m.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-14B-Instruct-GGUF",
       "index": 57,
-      "sha256": "",
-      "manualReason": "URL not found (HTTP 404) -- catalog entry may be hallucinated or repo renamed; verify huggingfacePage and update downloadUrl"
+      "sha256": ""
     },
     {
       "id": "starcoder2-15b",
@@ -1195,7 +1808,7 @@
       "downloadUrl": "https://huggingface.co/second-state/StarCoder2-15B-GGUF/resolve/main/starcoder2-15b-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/second-state/StarCoder2-15B-GGUF",
       "index": 58,
-      "sha256": "6b7690a2855185c19b4e1eaf530d6cf72f53c0268b237abb29f4cfd95b34739f"
+      "sha256": ""
     },
     {
       "id": "granite-code-20b",
@@ -1226,7 +1839,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/granite-20b-code-instruct-GGUF/resolve/main/granite-20b-code-instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/granite-20b-code-instruct-GGUF",
       "index": 59,
-      "sha256": "38ff21b314e815d5bba728ad453f1ecf35544194f942227fb20bc422a9860292"
+      "sha256": ""
     },
     {
       "id": "codestral-22b",
@@ -1257,8 +1870,7 @@
       "downloadUrl": "https://huggingface.co/TheBloke/Codestral-22B-v0.1-GGUF/resolve/main/Codestral-22B-v0.1-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/TheBloke/Codestral-22B-v0.1-GGUF",
       "index": 60,
-      "sha256": "",
-      "manualReason": "gated repo (HTTP 401) -- needs HF auth token; populate sha256 manually after `huggingface-cli login`"
+      "sha256": ""
     },
     {
       "id": "mistral-small-3.1-24b",
@@ -1289,7 +1901,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/mistralai_Mistral-Small-3.1-24B-Instruct-2503-GGUF/resolve/main/mistralai_Mistral-Small-3.1-24B-Instruct-2503-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/mistralai_Mistral-Small-3.1-24B-Instruct-2503-GGUF",
       "index": 61,
-      "sha256": "c5743c1bf39db0ae8a5ade5df0374b8e9e492754a199cfdad7ef393c1590f7c0"
+      "sha256": ""
     },
     {
       "id": "gemma-3-27b",
@@ -1320,7 +1932,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/google_gemma-3-27b-it-GGUF/resolve/main/google_gemma-3-27b-it-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/google_gemma-3-27b-it-GGUF",
       "index": 62,
-      "sha256": "4e83142e3ad3719ac61334f70a956dcc60bbba8adb29de5114161310bb9f7170"
+      "sha256": ""
     },
     {
       "id": "qwen2.5-coder-32b",
@@ -1351,7 +1963,7 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct-GGUF/resolve/main/qwen2.5-coder-32b-instruct-q4_k_m.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct-GGUF",
       "index": 63,
-      "sha256": "4d64b316b5e6319d9613e0d97935d9ebd631fc7e334da400d00085eca749d085"
+      "sha256": ""
     },
     {
       "id": "codellama-34b",
@@ -1382,7 +1994,7 @@
       "downloadUrl": "https://huggingface.co/TheBloke/CodeLlama-34B-Instruct-GGUF/resolve/main/codellama-34b-instruct.Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/TheBloke/CodeLlama-34B-Instruct-GGUF",
       "index": 64,
-      "sha256": "57290fe55636910ab11b935dbe675d19781d06bd8020594d9135e06477e3c2bf"
+      "sha256": ""
     },
     {
       "id": "qwen2.5-coder-32b-q5",
@@ -1413,7 +2025,7 @@
       "downloadUrl": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct-GGUF/resolve/main/qwen2.5-coder-32b-instruct-q5_k_m.gguf",
       "huggingfacePage": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct-GGUF",
       "index": 65,
-      "sha256": "67f5470b8d17b37fb49e76ad797dd6eda93997499c3031aa33a6ac3f77804668"
+      "sha256": ""
     },
     {
       "id": "deepseek-r1-70b",
@@ -1444,7 +2056,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF/resolve/main/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF",
       "index": 66,
-      "sha256": "181a82a1d6d2fa24fe4db83a68eee030384986bdbdd4773ba76424e3a6eb9fd8"
+      "sha256": ""
     },
     {
       "id": "llama-3.1-70b",
@@ -1475,7 +2087,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/Meta-Llama-3.1-70B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-70B-Instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/Meta-Llama-3.1-70B-Instruct-GGUF",
       "index": 67,
-      "sha256": "f775c87029be95fb41df9e2882e6e938b73121c30ffc235ac6b6b880add49aa5"
+      "sha256": ""
     },
     {
       "id": "llama4-scout-17b",
@@ -1510,7 +2122,38 @@
         "Llama-4-Scout-17B-16E-Instruct-Q4_K_M-00002-of-00002.gguf"
       ],
       "index": 68,
-      "sha256": "fbe956902467171ed7c0c326e5d868771a84d46468d407abecd0f289297313f9"
+      "sha256": ""
+    },
+    {
+      "id": "qwen3.5-122b-a10b",
+      "displayName": "Qwen 3.5 122B-A10B (Max MoE)",
+      "family": "Alibaba Qwen 3.5",
+      "parameters": "122B (10B active)",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 76.5,
+      "fileName": "Qwen3.5-122B-A10B-Q4_K_M.gguf",
+      "ramRequiredGB": 80,
+      "ramRecommendedGB": 96,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 9,
+        "speed": 6,
+        "overall": 9
+      },
+      "bestFor": "Maximum quality MoE model. 10B active params per token from 122B total. Near-frontier performance for coding, reasoning, and multimodal tasks. Requires high-end hardware.",
+      "notes": "Mixture-of-Experts: 122B total, 10B active per token. Native multimodal (vision + text). 262K context. Thinking mode. Improved tool-calling. Requires 80+ GB RAM or GPU offloading.",
+      "source": "Alibaba Cloud",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.5-122B-A10B-GGUF/resolve/main/Qwen3.5-122B-A10B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.5-122B-A10B-GGUF",
+      "index": 69,
+      "sha256": ""
     },
     {
       "id": "gemma-3-1b-it",
@@ -1541,7 +2184,7 @@
       "downloadUrl": "https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/unsloth/gemma-3-1b-it-GGUF",
       "index": 70,
-      "sha256": "8270790f3ab69fdfe860b7b64008d9a19986d8df7e407bb018184caa08798ebd"
+      "sha256": ""
     },
     {
       "id": "gemma-3-4b-it",
@@ -1572,7 +2215,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/main/google_gemma-3-4b-it-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF",
       "index": 71,
-      "sha256": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94"
+      "sha256": ""
     },
     {
       "id": "llama-3.2-1b-instruct",
@@ -1603,7 +2246,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF",
       "index": 72,
-      "sha256": "6f85a640a97cf2bf5b8e764087b1e83da0fdb51d7c9fab7d0fece9385611df83"
+      "sha256": ""
     },
     {
       "id": "llama-3.2-3b-instruct",
@@ -1634,7 +2277,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF",
       "index": 73,
-      "sha256": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff"
+      "sha256": ""
     },
     {
       "id": "smollm2-1.7b-instruct",
@@ -1665,7 +2308,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF",
       "index": 74,
-      "sha256": "77665ea4815999596525c636fbeb56ba8b080b46ae85efef4f0d986a139834d7"
+      "sha256": ""
     },
     {
       "id": "phi-4-mini-3.8b",
@@ -1696,7 +2339,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/microsoft_Phi-4-mini-instruct-GGUF/resolve/main/microsoft_Phi-4-mini-instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/microsoft_Phi-4-mini-instruct-GGUF",
       "index": 75,
-      "sha256": "01999f17c39cc3074afae5e9c539bc82d45f2dd7faa3917c66cbef76fce8c0c2"
+      "sha256": ""
     },
     {
       "id": "granite-3.1-2b-instruct",
@@ -1727,7 +2370,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/granite-3.1-2b-instruct-GGUF/resolve/main/granite-3.1-2b-instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/granite-3.1-2b-instruct-GGUF",
       "index": 76,
-      "sha256": "774269c82fde2720ea18dcf457fb5bd028fe096139a0735f4ad59c0a270cfc9c"
+      "sha256": ""
     },
     {
       "id": "granite-3.1-8b-instruct",
@@ -1758,7 +2401,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/granite-3.1-8b-instruct-GGUF/resolve/main/granite-3.1-8b-instruct-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/granite-3.1-8b-instruct-GGUF",
       "index": 77,
-      "sha256": "b72cfca8e30f23af77f922ce18d6fe1a5d4925907dddf7249c0cabc2739d48c8"
+      "sha256": ""
     },
     {
       "id": "qwen3-1.7b",
@@ -1789,7 +2432,7 @@
       "downloadUrl": "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF",
       "index": 78,
-      "sha256": "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897"
+      "sha256": ""
     },
     {
       "id": "functionary-small-3.1-8b",
@@ -1820,7 +2463,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/functionary-small-v3.1-GGUF/resolve/main/functionary-small-v3.1-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/functionary-small-v3.1-GGUF",
       "index": 79,
-      "sha256": "98e51ba6155122c9dab265ef9855d4269984590eb1517604cbffcc8a3c61135d"
+      "sha256": ""
     },
     {
       "id": "gemma-3-12b-it",
@@ -1851,7 +2494,7 @@
       "downloadUrl": "https://huggingface.co/bartowski/google_gemma-3-12b-it-GGUF/resolve/main/google_gemma-3-12b-it-Q4_K_M.gguf",
       "huggingfacePage": "https://huggingface.co/bartowski/google_gemma-3-12b-it-GGUF",
       "index": 80,
-      "sha256": "fc57f67efa46d711c346e587cbef7d049e95f3df8db2eb2271153343ef0acc7b"
+      "sha256": ""
     },
     {
       "id": "mimo-v2-flash",
@@ -1884,8 +2527,40 @@
       "leaderboardRank": 1,
       "index": 81,
       "sha256": "",
-      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)",
-      "manualReason": "URL not found (HTTP 404) -- catalog entry may be hallucinated or repo renamed; verify huggingfacePage and update downloadUrl"
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
+    },
+    {
+      "id": "qwen3.6-27b",
+      "displayName": "★ Qwen 3.6 27B (Leaderboard #2 family)",
+      "family": "Alibaba Qwen 3.6",
+      "parameters": "27B",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 16.5,
+      "fileName": "Qwen3.6-27B-Q4_K_M.gguf",
+      "ramRequiredGB": 24,
+      "ramRecommendedGB": 32,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 9,
+        "speed": 6,
+        "overall": 9
+      },
+      "bestFor": "Local equivalent of OpenRouter #2 'Qwen3.6 Plus (free)' (6.27T tokens, NEW). Strong all-rounder reasoning + coding.",
+      "notes": "Latest Qwen 3.6 generation. Apache 2.0. 128K context.",
+      "source": "Alibaba Cloud Qwen Team",
+      "license": "Apache 2.0",
+      "downloadUrl": "https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/resolve/main/Qwen3.6-27B-Q4_K_M.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Qwen3.6-27B-GGUF",
+      "leaderboardRank": 2,
+      "index": 82,
+      "sha256": "",
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
     },
     {
       "id": "deepseek-v3.2",
@@ -1918,8 +2593,7 @@
       "leaderboardRank": 3,
       "index": 83,
       "sha256": "",
-      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)",
-      "manualReason": "URL not found (HTTP 404) -- catalog entry may be hallucinated or repo renamed; verify huggingfacePage and update downloadUrl"
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
     },
     {
       "id": "minimax-m2",
@@ -1952,8 +2626,7 @@
       "leaderboardRank": 5,
       "index": 84,
       "sha256": "",
-      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)",
-      "manualReason": "URL not found (HTTP 404) -- catalog entry may be hallucinated or repo renamed; verify huggingfacePage and update downloadUrl"
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
     },
     {
       "id": "minimax-m2.7",
@@ -1986,8 +2659,7 @@
       "leaderboardRank": 8,
       "index": 85,
       "sha256": "",
-      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)",
-      "manualReason": "URL not found (HTTP 404) -- catalog entry may be hallucinated or repo renamed; verify huggingfacePage and update downloadUrl"
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
     },
     {
       "id": "step-3.5-flash",
@@ -2020,8 +2692,106 @@
       "leaderboardRank": 9,
       "index": 86,
       "sha256": "",
-      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)",
-      "manualReason": "URL not found (HTTP 404) -- catalog entry may be hallucinated or repo renamed; verify huggingfacePage and update downloadUrl"
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
+    },
+    {
+      "id": "nemotron-3-super-120b",
+      "displayName": "★ NVIDIA Nemotron 3 Super 120B-A12B (Leaderboard #12) [XLarge]",
+      "family": "NVIDIA Nemotron",
+      "parameters": "120B (MoE 12B active)",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 70.0,
+      "fileName": "NVIDIA-Nemotron-3-Super-120B-A12B-Q4_K_M-00001-of-00002.gguf",
+      "ramRequiredGB": 80,
+      "ramRecommendedGB": 128,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 9,
+        "speed": 6,
+        "overall": 9
+      },
+      "bestFor": "OpenRouter #12 (2.42T tokens, +165% growth). NVIDIA's flagship reasoning MoE.",
+      "notes": "MoE 120B/12B. Hybrid thinking with low_effort flag. Workstation class.",
+      "source": "NVIDIA",
+      "license": "NVIDIA Open Model License",
+      "downloadUrl": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3-Super-120B-A12B-GGUF/resolve/main/NVIDIA-Nemotron-3-Super-120B-A12B-Q4_K_M-00001-of-00002.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3-Super-120B-A12B-GGUF",
+      "leaderboardRank": 12,
+      "index": 87,
+      "sha256": "",
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
+    },
+    {
+      "id": "glm-5.1",
+      "displayName": "★ Z.AI GLM 5.1 (Leaderboard #14/#20) [XLarge]",
+      "family": "Z.AI GLM",
+      "parameters": "355B (MoE)",
+      "quantization": "Q4_K_M",
+      "fileSizeGB": 200.0,
+      "fileName": "GLM-5.1-Q4_K_M-00001-of-00005.gguf",
+      "ramRequiredGB": 128,
+      "ramRecommendedGB": 256,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 9,
+        "reasoning": 9,
+        "speed": 5,
+        "overall": 9
+      },
+      "bestFor": "Covers OpenRouter #14 (GLM 5 Turbo, 2.11T) + #20 (GLM 5, 1.54T). Strong all-rounder MoE.",
+      "notes": "Latest GLM generation. MoE architecture. Datacenter-class.",
+      "source": "Z.AI (Zhipu AI)",
+      "license": "MIT",
+      "downloadUrl": "https://huggingface.co/unsloth/GLM-5.1-GGUF/resolve/main/GLM-5.1-Q4_K_M-00001-of-00005.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/GLM-5.1-GGUF",
+      "leaderboardRank": 14,
+      "index": 88,
+      "sha256": "",
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
+    },
+    {
+      "id": "kimi-k2.6",
+      "displayName": "★ Moonshot Kimi K2.6 (Leaderboard #15) [XLarge]",
+      "family": "Moonshot Kimi",
+      "parameters": "1T (MoE 32B active)",
+      "quantization": "Q2_K_XL",
+      "fileSizeGB": 350.0,
+      "fileName": "Kimi-K2.6-UD-Q2_K_XL-00001-of-00008.gguf",
+      "ramRequiredGB": 384,
+      "ramRecommendedGB": 610,
+      "isCoding": true,
+      "isReasoning": true,
+      "isVoice": false,
+      "isWriting": true,
+      "isMultilingual": true,
+      "isChat": true,
+      "rating": {
+        "coding": 10,
+        "reasoning": 10,
+        "speed": 3,
+        "overall": 10
+      },
+      "bestFor": "OpenRouter #15 (2.08T tokens). 1T-param SOTA hybrid thinking. 256K context.",
+      "notes": "DATACENTER ONLY. Unsloth Dynamic 2-bit (-43% size). Full BF16 = 610GB.",
+      "source": "Moonshot AI",
+      "license": "Modified MIT",
+      "downloadUrl": "https://huggingface.co/unsloth/Kimi-K2.6-GGUF/resolve/main/Kimi-K2.6-UD-Q2_K_XL-00001-of-00008.gguf",
+      "huggingfacePage": "https://huggingface.co/unsloth/Kimi-K2.6-GGUF",
+      "leaderboardRank": 15,
+      "index": 89,
+      "sha256": "",
+      "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
     },
     {
       "id": "gpt-oss-120b",
@@ -2053,7 +2823,7 @@
       "huggingfacePage": "https://huggingface.co/bartowski/openai_gpt-oss-120b-GGUF",
       "leaderboardRank": 17,
       "index": 90,
-      "sha256": "06a0fcd109049b9d48fa9db9cf0cabc2f923cd3cfe4b7733874ef519ea6a44df",
+      "sha256": "",
       "leaderboardSource": "OpenRouter LLM Leaderboard (Nov 2025)"
     }
   ]

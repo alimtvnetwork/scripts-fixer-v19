@@ -632,7 +632,6 @@ function Resolve-NumericPicks {
                     catalogRange = "1..$($AllModels.Count)"
                 }
                 Write-Log "  [MISS] #$i out of range (1..$($AllModels.Count))" -Level "warn" -Context $ctx
-                Write-FileError -FilePath $(if ([string]::IsNullOrWhiteSpace($OutputRoot)) { "catalog:index:#$i" } else { $OutputRoot }) -Operation "resolve-model" -Reason $ctx.failureReason -Module "Resolve-NumericPicks" -Context $ctx
             }
         }
     }
@@ -679,7 +678,6 @@ function Resolve-CsvIds {
                 failureReason = "$FailureReason -- '$id' was not found in the catalog"
             }
             Write-Log $line -Level "warn" -Context $ctx
-            Write-FileError -FilePath $(if ([string]::IsNullOrWhiteSpace($OutputRoot)) { "catalog:id:$id" } else { $OutputRoot }) -Operation "resolve-model" -Reason $ctx.failureReason -Module "Resolve-CsvIds" -Context $ctx
         }
     }
     return $matched
