@@ -3689,7 +3689,7 @@ if ($hasCommand) {
     $isBareReportCommand  = $normalizedCommand -in @("report", "install-report", "installreport", "reports")
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareModelsDownloadCommand = $normalizedCommand -in @("models-download","model-download","modelsdownload","modeldownload","models-dl","model-dl","models-install","model-install","models-pull","model-pull")
-    $isBareInstallCommand = $normalizedCommand -eq "install"
+    # (isBareInstallCommand already set above at line 3679)
     $isBareMenuCommand    = $normalizedCommand -in @("menu","menus","context-menu","contextmenu","ctx-menu","ctxmenu")
     $isBareOsCommand      = $normalizedCommand -eq "os"
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
@@ -3974,7 +3974,32 @@ if ($hasCommand) {
             exit 1
         }
 
-        # ── Profile-name shortcut ─────────────────────────────────────────
+        # ── 'install model <ids>' shortcut ──────────────────────────────
+        # Forward to the models orchestrator (download mode, standalone GGUF).
+        # CSV ids are preserved as a single token so the orchestrator parser
+        # handles them. Strips the leading 'model'/'models' verb.
+        $modelInstallFirst = "$($Install[0])".Trim().ToLower()
+        $isModelInstallShortcut = $modelInstallFirst -in @("model","models")
+        if ($isModelInstallShortcut) {
+            $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
+            $isModelsScriptPresent = Test-Path $modelsScript
+            if (-not $isModelsScriptPresent) {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "Models dispatcher missing at: $modelsScript"
+                exit 1
+            }
+            $mdArgs = @("download")
+            if ($Install.Count -gt 1) {
+                foreach ($mdArg in $Install[1..($Install.Count - 1)]) {
+                    if ($null -ne $mdArg -and "$mdArg".Length -gt 0) { $mdArgs += "$mdArg" }
+                }
+            }
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Routing 'install $modelInstallFirst' to models dispatcher (download mode)" -ForegroundColor DarkGray
+            & $modelsScript @mdArgs
+            exit $LASTEXITCODE
+        }
+
         # Allow `install minimal` (or any profile name / alias) to route to the
         # profile dispatcher, in addition to the existing `install profile-minimal`.
         # Only triggers when the FIRST token is unambiguously a profile name --
@@ -4141,31 +4166,6 @@ if ($hasCommand) {
         }
         & $modelsScript @mdArgs
         exit 0
-    } elseif ($isBareInstallCommand) {
-        # ── 'install <keyword|model> ...' command ────────────────────────
-        # Special-case: 'install model <ids>' delegates to the models
-        # orchestrator (download mode, standalone GGUF). Anything else
-        # falls through into the normal keyword install pipeline below.
-        $installArgs = @($Install | Where-Object { $_ })
-        $firstInstallArg = if ($installArgs.Count -gt 0) { "$($installArgs[0])".Trim().ToLower() } else { "" }
-        $isModelInstallShortcut = $firstInstallArg -in @("model","models")
-        if ($isModelInstallShortcut) {
-            Show-VersionHeader
-            $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
-            $mdArgs = @("download")
-            if ($installArgs.Count -gt 1) {
-                foreach ($mdArg in $installArgs[1..($installArgs.Count - 1)]) {
-                    if ($null -ne $mdArg -and "$mdArg".Length -gt 0) { $mdArgs += "$mdArg" }
-                }
-            }
-            & $modelsScript @mdArgs
-            exit $LASTEXITCODE
-        }
-        # Generic 'install <keyword(s)>' -- forward to the keyword pipeline
-        # by stripping the 'install' verb and re-routing into $Install.
-        $Install = $installArgs
-        # Fall through: leave $Command consumed; the install-keyword block
-        # at the bottom of this file will pick up $Install as-is.
     } elseif ($isBareMenuCommand) {
         # ── 'menu <verb> [target] [-y]' context-menu dispatcher ──────────
         #   menu install [target]    install context menu(s)
