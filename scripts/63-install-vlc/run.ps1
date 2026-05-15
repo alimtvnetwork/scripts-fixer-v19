@@ -61,6 +61,7 @@ try {
         }
         "repair" {
             Repair-VlcAssociations -VlcConfig $config.vlc -LogMessages $logMessages
+            Set-VlcPreferences      -VlcConfig $config.vlc -LogMessages $logMessages | Out-Null
             Write-Log $logMessages.messages.setupComplete -Level "success"
         }
         default {
