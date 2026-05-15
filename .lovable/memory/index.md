@@ -1,5 +1,5 @@
 # Memory: index.md
-Updated: today
+Updated: today (1.5.28 — standalone models-download)
 
 # Project Memory
 
