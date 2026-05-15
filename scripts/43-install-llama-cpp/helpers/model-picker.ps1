@@ -659,6 +659,26 @@ function Install-SelectedModels {
     $skippedCount    = 0
     $failedCount     = 0
 
+    function New-ModelLogContext {
+        param(
+            [Parameter(Mandatory)] $Model,
+            [string]$OutputPath,
+            [string]$FailureReason,
+            [string]$RequestedModel,
+            [string]$CatalogPathHint = "scripts/43-install-llama-cpp/models-catalog.json"
+        )
+
+        $requested = if ([string]::IsNullOrWhiteSpace($RequestedModel)) { $Model.id } else { $RequestedModel }
+        return [ordered]@{
+            requestedModel = $requested
+            requestedModelName = $Model.displayName
+            modelUrl = $Model.downloadUrl
+            outputPath = $OutputPath
+            catalogPath = $CatalogPathHint
+            failureReason = $FailureReason
+        }
+    }
+
     # Progress tracking helpers (spec: per-model download progress indicator)
     function Format-Bar {
         param([int]$Done, [int]$Total, [int]$Width = 20)
@@ -736,10 +756,11 @@ function Install-SelectedModels {
                 404 { "404 Not Found -- this catalog entry points to a non-existent file" }
                 default { "preflight HEAD failed (status=$pfCode) -- URL likely invalid" }
             }
-            Write-Log "  [$($pfModel.index)] [ FAIL ] $($pfModel.displayName) -- $pfReason" -Level "error"
+            $pfCtx = New-ModelLogContext -Model $pfModel -OutputPath $pf.OutputPath -FailureReason $pfReason
+            Write-Log "  [$($pfModel.index)] [ FAIL ] $($pfModel.displayName) -- $pfReason" -Level "error" -Context $pfCtx
             Write-Log "          URL: $($pfModel.downloadUrl)" -Level "error"
             Write-Log "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json" -Level "error"
-            Write-FileError -FilePath $pfModel.downloadUrl -Operation "preflight-head" -Reason $pfReason -Module "Install-SelectedModels"
+            Write-FileError -FilePath $pf.OutputPath -Operation "preflight-head" -Reason $pfReason -Module "Install-SelectedModels" -Context $pfCtx
             $preflightFailed++
             $failedCount++
         }
@@ -829,9 +850,11 @@ function Install-SelectedModels {
                 try { $batchFileBytes = (Get-Item -LiteralPath $outputPath).Length } catch { $batchFileBytes = 0 }
             }
             if ($batchFileBytes -le 0) {
-                Write-Log "  [$($model.index)] [POST-CHECK FAIL] batch reported success but '$outputPath' is missing/empty -- falling back to sequential retry" -Level "warn"
+                $batchVerifyReason = "batch downloader exit=ok but file missing/zero-byte -- falling back to sequential retry"
+                $batchVerifyCtx = New-ModelLogContext -Model $model -OutputPath $outputPath -FailureReason $batchVerifyReason
+                Write-Log "  [$($model.index)] [POST-CHECK FAIL] batch reported success but '$outputPath' is missing/empty -- falling back to sequential retry" -Level "warn" -Context $batchVerifyCtx
                 Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
-                Write-FileError -FilePath $outputPath -Operation "batch-post-verify" -Reason "batch downloader exit=ok but file missing/zero-byte (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
+                Write-FileError -FilePath $outputPath -Operation "batch-post-verify" -Reason "$batchVerifyReason (url=$($model.downloadUrl))" -Module "Install-SelectedModels" -Context $batchVerifyCtx
                 $isBatchHit   = $false
                 $isDownloadOk = $false
             }
@@ -865,10 +888,11 @@ function Install-SelectedModels {
                     404 { "404 Not Found -- this catalog entry points to a non-existent file" }
                     default { "preflight HEAD failed (status=$preflightCode) -- URL likely invalid" }
                 }
-                Write-Log "  [$($model.index)] [ FAIL ] $($model.displayName) -- $reason" -Level "error"
+                $preflightCtx = New-ModelLogContext -Model $model -OutputPath $outputPath -FailureReason $reason
+                Write-Log "  [$($model.index)] [ FAIL ] $($model.displayName) -- $reason" -Level "error" -Context $preflightCtx
                 Write-Log "          URL: $($model.downloadUrl)" -Level "error"
                 Write-Log "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json" -Level "error"
-                Write-FileError -FilePath $model.downloadUrl -Operation "preflight-head" -Reason $reason -Module "Install-SelectedModels"
+                Write-FileError -FilePath $outputPath -Operation "preflight-head" -Reason $reason -Module "Install-SelectedModels" -Context $preflightCtx
                 $failedCount++
                 $processedGB += [double]$model.fileSizeGB
                 continue
@@ -922,22 +946,28 @@ function Install-SelectedModels {
                 }
 
                 if ($rc -and -not $isFileLanded) {
-                    Write-Log "  [$($model.index)] [POST-CHECK FAIL] downloader reported success but '$outputPath' is missing or empty (size=$fileBytes B) -- attempt $attempt/$maxFileRetries" -Level "warn"
+                    $postVerifyReason = "downloader exit=ok but file missing/zero-byte on attempt $attempt/$maxFileRetries"
+                    $postVerifyCtx = New-ModelLogContext -Model $model -OutputPath $outputPath -FailureReason $postVerifyReason
+                    Write-Log "  [$($model.index)] [POST-CHECK FAIL] downloader reported success but '$outputPath' is missing or empty (size=$fileBytes B) -- attempt $attempt/$maxFileRetries" -Level "warn" -Context $postVerifyCtx
                     Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
-                    Write-FileError -FilePath $outputPath -Operation "post-download-verify" -Reason "downloader exit=ok but file missing/zero-byte (attempt $attempt/$maxFileRetries, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
+                    Write-FileError -FilePath $outputPath -Operation "post-download-verify" -Reason "$postVerifyReason (url=$($model.downloadUrl))" -Module "Install-SelectedModels" -Context $postVerifyCtx
                 } elseif (-not $rc) {
-                    Write-Log "  [$($model.index)] [DOWNLOAD FAIL] $($model.displayName) -- attempt $attempt/$maxFileRetries (downloader rc=fail)" -Level "warn"
+                    $attemptReason = "downloader returned failure on attempt $attempt/$maxFileRetries"
+                    $attemptCtx = New-ModelLogContext -Model $model -OutputPath $outputPath -FailureReason $attemptReason
+                    Write-Log "  [$($model.index)] [DOWNLOAD FAIL] $($model.displayName) -- attempt $attempt/$maxFileRetries (downloader rc=fail)" -Level "warn" -Context $attemptCtx
                     Write-Log "          URL: $($model.downloadUrl)" -Level "warn"
-                    Write-FileError -FilePath $outputPath -Operation "download-attempt" -Reason "downloader returned failure (attempt $attempt/$maxFileRetries, url=$($model.downloadUrl))" -Module "Install-SelectedModels"
+                    Write-FileError -FilePath $outputPath -Operation "download-attempt" -Reason "$attemptReason (url=$($model.downloadUrl))" -Module "Install-SelectedModels" -Context $attemptCtx
                 }
             }
         }
 
         if (-not $isDownloadOk) {
-            Write-Log "  [$($model.index)] FAILED: $($model.displayName)" -Level "error"
+            $finalFailReason = "Download failed after $maxFileRetries attempts"
+            $finalFailCtx = New-ModelLogContext -Model $model -OutputPath $outputPath -FailureReason $finalFailReason
+            Write-Log "  [$($model.index)] FAILED: $($model.displayName)" -Level "error" -Context $finalFailCtx
             Write-Log "          URL: $($model.downloadUrl)" -Level "error"
             Write-Log "          Target: $outputPath" -Level "error"
-            Write-FileError -FilePath $outputPath -Operation "download" -Reason "Download failed after $maxFileRetries attempts (url=$($model.downloadUrl))" -Module "Install-SelectedModels"
+            Write-FileError -FilePath $outputPath -Operation "download" -Reason "$finalFailReason (url=$($model.downloadUrl))" -Module "Install-SelectedModels" -Context $finalFailCtx
             $failedCount++
             $processedGB += [double]$model.fileSizeGB
             continue
