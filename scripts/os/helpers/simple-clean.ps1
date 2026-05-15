@@ -96,16 +96,19 @@ function Invoke-Step {
 
 # Step 1: WU download cache (existing single-category runner)
 Invoke-Step "Windows Update download cache" {
-    $args = @("-Category","wu-download")
-    if ($dryRun)  { $args += "--dry-run" }
-    if ($autoYes) { $args += "--yes" }
-    & $runner @args
+    # NOTE: never use $args here -- it is a PowerShell automatic variable
+    # inside scriptblocks and splatting it can mis-bind -Category to the
+    # literal string '-Category'. Use a distinct name.
+    $runnerArgs = @("-Category","wu-download")
+    if ($dryRun)  { $runnerArgs += "--dry-run" }
+    if ($autoYes) { $runnerArgs += "--yes" }
+    & $runner @runnerArgs
 }
 
 # Step 2: Temp dirs
 Invoke-Step "Temp directories" {
-    $args = @("-NoConfirm")
-    if ($autoYes) { $args += "-Yes" }
+    $tempArgs = @("-NoConfirm")
+    if ($autoYes) { $tempArgs += "-Yes" }
     if ($dryRun) {
         # temp-clean has no native dry-run; emulate by reporting sizes only.
         Write-Host "  [DRY-RUN] Sizes only (no deletions):" -ForegroundColor Yellow
@@ -125,16 +128,16 @@ Invoke-Step "Temp directories" {
             }
         }
     } else {
-        & $tempBin @args
+        & $tempBin @tempArgs
     }
 }
 
 # Step 3: Event logs
 Invoke-Step "Windows event logs" {
-    $args = @("-Category","event-logs")
-    if ($dryRun)  { $args += "--dry-run" }
-    if ($autoYes) { $args += "--yes" }
-    & $runner @args
+    $runnerArgs = @("-Category","event-logs")
+    if ($dryRun)  { $runnerArgs += "--dry-run" }
+    if ($autoYes) { $runnerArgs += "--yes" }
+    & $runner @runnerArgs
 }
 
 # Step 4: PSReadLine history (inline -- no helper needed)
