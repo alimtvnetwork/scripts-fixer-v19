@@ -47,6 +47,8 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 - [Universal context menu](mem://features/universal-context-menu) — Cross-OS right-click spec (spec/55) — Windows registry + macOS Quick Actions + Linux .desktop/KIO/Thunar; shared catalog at scripts/shared/context-menu-actions.json; `os context-menu {install|uninstall|list|restore}` dispatcher; covers install-models-here, OS update, startup add/remove, default app, ENV/BIN add, ConEmu+tweaks open-here
 - [Fast download helper](mem://features/fast-download) — Shared aria2c wrapper (Win+Linux): defaults splits=16/piece=1M, `run download|url <url> [<dir>] [-s N] [-p SIZE]` dispatcher command, aria2c bundled in minimal+terminal profiles, used by all model pulls
 - [Models dispatcher $Args→$Rest rename](mem://features/models-args-rename) — CODE RED: `$Args` is a PowerShell automatic; using it as a script-param under StrictMode + advanced param block silently dropped splatted positionals, breaking `models-download <n>`. Renamed to `$Rest` (and helper to `$Argv`). Never name a param `$Args`.
+- [Reset command](mem://features/reset-command) — `reset` verb on Windows + Linux wipes .logs/, .resolved/, .installed/ for fresh start; supports --dry-run / --yes / --keep-* flags
+- [Download URL logging](mem://features/download-url-logging) — CODE RED extension: every model-download failure path logs upstream URL + target on console and in *-error.json (Win + Linux)
 
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).
