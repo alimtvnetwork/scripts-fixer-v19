@@ -4136,8 +4136,145 @@ if ($hasCommand) {
         }
         & $modelsScript @mdArgs
         exit 0
+    } elseif ($isBareInstallCommand) {
+        # ── 'install <keyword|model> ...' command ────────────────────────
+        # Special-case: 'install model <ids>' delegates to the models
+        # orchestrator (download mode, standalone GGUF). Anything else
+        # falls through into the normal keyword install pipeline below.
+        $installArgs = @($Install | Where-Object { $_ })
+        $firstInstallArg = if ($installArgs.Count -gt 0) { "$($installArgs[0])".Trim().ToLower() } else { "" }
+        $isModelInstallShortcut = $firstInstallArg -in @("model","models")
+        if ($isModelInstallShortcut) {
+            Show-VersionHeader
+            $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
+            $mdArgs = @("download")
+            if ($installArgs.Count -gt 1) {
+                foreach ($mdArg in $installArgs[1..($installArgs.Count - 1)]) {
+                    if ($null -ne $mdArg -and "$mdArg".Length -gt 0) { $mdArgs += "$mdArg" }
+                }
+            }
+            & $modelsScript @mdArgs
+            exit $LASTEXITCODE
+        }
+        # Generic 'install <keyword(s)>' -- forward to the keyword pipeline
+        # by stripping the 'install' verb and re-routing into $Install.
+        $Install = $installArgs
+        # Fall through: leave $Command consumed; the install-keyword block
+        # at the bottom of this file will pick up $Install as-is.
+    } elseif ($isBareMenuCommand) {
+        # ── 'menu <verb> [target] [-y]' context-menu dispatcher ──────────
+        #   menu install [target]    install context menu(s)
+        #   menu uninstall [target]  uninstall context menu(s)
+        #   menu list                list available targets
+        #   menu help                usage
+        # Targets: all (default) | pwsh | wt | conemu | vscode | sf
+        Show-VersionHeader
+        $menuArgs = @($Install | Where-Object { $_ })
+        $menuVerb   = if ($menuArgs.Count -gt 0) { "$($menuArgs[0])".Trim().ToLower() } else { "" }
+        $menuTarget = if ($menuArgs.Count -gt 1) { "$($menuArgs[1])".Trim().ToLower() } else { "all" }
+        $menuRest   = if ($menuArgs.Count -gt 2) { @($menuArgs[2..($menuArgs.Count - 1)]) } else { @() }
+
+        # Map target alias → script id (or 'bundle' for the 57 dispatcher)
+        $menuTargetMap = @{
+            "all"           = "bundle"; "bundle" = "bundle"; "everything" = "bundle"
+            "pwsh"          = 31; "powershell" = 31; "ps" = 31
+            "wt"            = 64; "windows-terminal" = 64; "terminal" = 64
+            "conemu"        = 59
+            "vscode"        = 52; "vs-code" = 52; "code" = 52
+            "sf"            = 53; "scripts-fixer" = 53; "fixer" = 53
+        }
+
+        $menuTargetsList = "all | pwsh | wt | conemu | vscode | sf"
+        $menuVerbHelp = @(
+            "Usage: .\run.ps1 menu <verb> [target] [-y]",
+            "",
+            "Verbs:",
+            "  install [target]    Install right-click context menu entries",
+            "  uninstall [target]  Remove context menu entries (snapshots first)",
+            "  list                Show available targets",
+            "  help                Show this message",
+            "",
+            "Targets: $menuTargetsList   (default: all)",
+            "",
+            "Examples:",
+            "  .\run.ps1 menu install all -y       # install every menu, no prompts",
+            "  .\run.ps1 menu install pwsh         # PowerShell submenu only",
+            "  .\run.ps1 menu install wt           # Windows Terminal submenu",
+            "  .\run.ps1 menu install conemu       # ConEmu submenu",
+            "  .\run.ps1 menu uninstall conemu     # snapshot + remove ConEmu menu"
+        )
+
+        if ($menuVerb -in @("","help","--help","-h","-help","/?","?")) {
+            $menuVerbHelp | ForEach-Object { Write-Host $_ }
+            exit 0
+        }
+
+        if ($menuVerb -eq "list") {
+            Write-Host ""
+            Write-Host "  Context-menu targets" -ForegroundColor Cyan
+            Write-Host "  --------------------"
+            Write-Host "    all      All of the below (uses bundle dispatcher script 57)"
+            Write-Host "    pwsh     PowerShell 7 submenu (script 31)"
+            Write-Host "    wt       Windows Terminal submenu (script 64)"
+            Write-Host "    conemu   ConEmu submenu (script 59)"
+            Write-Host "    vscode   VS Code folder right-click (script 52)"
+            Write-Host "    sf       Scripts Fixer right-click (script 53)"
+            Write-Host ""
+            exit 0
+        }
+
+        if ($menuVerb -notin @("install","uninstall","remove","rollback")) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "menu: unknown verb '$menuVerb'. Try 'menu help'."
+            exit 64
+        }
+
+        if (-not $menuTargetMap.ContainsKey($menuTarget)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "menu: unknown target '$menuTarget'. Valid: $menuTargetsList"
+            exit 64
+        }
+
+        $targetSpec = $menuTargetMap[$menuTarget]
+        $isBundleTarget = "$targetSpec" -eq "bundle"
+        $resolvedVerb = if ($menuVerb -eq "remove") { "uninstall" } else { $menuVerb }
+
+        # Build forwarded args (verb + any tail, e.g. --dry-run, --yes)
+        $forwardArgs = @($resolvedVerb) + $menuRest
+        if ($Y) { $forwardArgs += "--yes" }
+
+        if ($isBundleTarget) {
+            $bundleScript = Join-Path $RootDir "scripts\57-context-menu-bundle\run.ps1"
+            $isBundlePresent = Test-Path $bundleScript
+            if (-not $isBundlePresent) {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "menu: bundle dispatcher missing at: $bundleScript"
+                exit 1
+            }
+            & $bundleScript @forwardArgs
+            exit $LASTEXITCODE
+        }
+
+        $targetId = [int]$targetSpec
+        $targetIdPadded = "{0:D2}" -f $targetId
+        $targetDir = Get-ChildItem -Path (Join-Path $RootDir "scripts") -Directory |
+            Where-Object { $_.Name -like "$targetIdPadded-*" } |
+            Select-Object -First 1
+        if (-not $targetDir) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "menu: script directory for id $targetIdPadded not found under $RootDir\scripts"
+            exit 1
+        }
+        $targetScript = Join-Path $targetDir.FullName "run.ps1"
+        $isTargetScriptPresent = Test-Path $targetScript
+        if (-not $isTargetScriptPresent) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "menu: run.ps1 missing for target '$menuTarget'. Path: $targetScript"
+            exit 1
+        }
+        & $targetScript @forwardArgs
+        exit $LASTEXITCODE
     } elseif ($normalizedCommand -in @("download","url","fast-download","fastdownload")) {
-        # ── Fast download command: aria2c-first wrapper ──────────────────
         #   .\run.ps1 download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
         #   .\run.ps1 url      <url> [<dir>] [-s N] [-p SIZE]   (alias)
         # Defaults: splits=16, piece=1M, dir=$PWD.
