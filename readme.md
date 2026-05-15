@@ -128,7 +128,8 @@ Audit mode, health checks, settings sync, context-menu repair, and CI-tested ver
 | `uninstall protonvpn` / `reinstall protonvpn` | Standard install/uninstall/reinstall flow; `.installed/protonvpn.json` updated each time. | — |
 | `status` | Dashboard of every tool currently recorded in `.installed/`. | `list-installed`, `installed` |
 | `report [--since=24h\|7d\|all] [--open]` | Timestamped JSON + HTML report of install / uninstall / reinstall actions, cross-referenced with `.installed/` records. Output goes to `.reports/`. | `install-report`, `reports` |
-| `vscode-context-menu install` / `uninstall` | Thin wrapper around script 52 — adds/removes the Windows folder right-click "Open with Code" entry. | `vscode-menu`, `vscode-contextmenu` |
+| `menu install [target] [-y]` / `menu uninstall [target]` / `menu list` | Canonical context-menu manager. Targets: `all` (default, bundle script 57) \| `pwsh` (31) \| `wt` (64) \| `conemu` (59) \| `vscode` (52) \| `sf` (53). Uninstall snapshots affected `HKCR` keys to a `.reg` file before removing. Pass `-y` to skip per-target prompts. | `menus`, `context-menu`, plus legacy `vscode-context-menu`, `pwsh-context-menu`, `conemu-context-menu`, `wt-context-menu` |
+| `install model <ids>` | Standalone-GGUF model installer. Same dispatcher as `models-download <ids>` — downloads each id (or comma-separated list) into `<DEV_DIR>\models` as plain `.gguf`. | `models-download`, `model-install` |
 | `install pin-taskbar` | Pin every supported app (ConEmu, Notepad++, Notepad, Chrome, VS Code) to the Windows taskbar. Aliases: `taskbar-pin`, `pin-all`. | script #62 |
 | `install pin-terminal` | Pin only the terminal-profile apps (ConEmu, Notepad++, Notepad, Chrome). | — |
 | `install pin-vscode` / `pin-chrome` / `pin-conemu` / `pin-notepadpp` / `pin-notepad` | Pin a single app to the taskbar. | `pin-code` = `pin-vscode`, `pin-npp` = `pin-notepadpp` |

@@ -172,6 +172,8 @@ for their own subcommands (`install`, `pull`, `models`, `uninstall`).
 
 **models-download contract**: numeric picks, CSV ids, and Ollama slug aliases are all normalized to standalone GGUF ids first. If no GGUF alias exists, the model is skipped with a warning. Download mode never shells out to `ollama`, never writes Ollama blob layouts, and always saves GGUF files to the resolved shared models folder.
 
+**`install model <ids>` shortcut**: top-level alias parsed in `run.ps1` -- `install model 93` and `install model 93,94,95` both forward to `scripts\models\run.ps1 download <ids>` (same standalone-GGUF guarantee as `models-download`). The `install` verb is stripped before delegation; CSV is preserved as a single token so the orchestrator's existing parser handles it.
+
 ## Examples
 
 ```powershell
