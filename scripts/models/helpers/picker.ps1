@@ -719,7 +719,7 @@ function Invoke-BackendInstall {
             # No `ollama` binary, no daemon, no `& $script pull` required.
             $paths     = Get-ModelDownloadPaths -Config $Config -ScriptsRoot $ScriptsRoot
             $targetDir = $paths.Ollama
-            Write-Log ("[ollama] standalone direct-registry pull -> {0}" -f $targetDir) -Level "info"
+            Write-Log ("[ollama] standalone registry download target -> {0}" -f $targetDir) -Level "info"
             $slugs = @($group.Group | ForEach-Object { $_.id })
             $ok = Invoke-OllamaRegistryPull -Slugs $slugs -TargetRoot $targetDir
             if (-not $ok) {
