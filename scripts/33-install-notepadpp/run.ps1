@@ -13,8 +13,11 @@ param(
     [string]$Path,
 
     [switch]$Help,
-    [ValidateSet("install+settings", "settings-only", "install-only")]
-    [string]$Mode = ""
+    [ValidateSet("install+settings", "settings-only", "install-only", "font-only")]
+    [string]$Mode = "",
+
+    [string]$FontName = "",
+    [int]$FontSize = 0
 )
 
 # -- Resolve mode: param > env var > default -----------------------------------
