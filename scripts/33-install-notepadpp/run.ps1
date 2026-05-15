@@ -13,8 +13,11 @@ param(
     [string]$Path,
 
     [switch]$Help,
-    [ValidateSet("install+settings", "settings-only", "install-only")]
-    [string]$Mode = ""
+    [ValidateSet("install+settings", "settings-only", "install-only", "font-only")]
+    [string]$Mode = "",
+
+    [string]$FontName = "",
+    [int]$FontSize = 0
 )
 
 # -- Resolve mode: param > env var > default -----------------------------------
@@ -79,6 +82,15 @@ if ($isUninstall) {
 $isExport = $Command.ToLower() -eq "export"
 if ($isExport) {
     Export-NotepadPPSettings -LogMessages $logMessages
+    return
+}
+
+# -- Font-only command (also reachable via -Mode font-only or 'font' command) --
+$isFont = ($Command.ToLower() -eq "font") -or ($Mode -eq "font-only")
+if ($isFont) {
+    $resolvedName = if (-not [string]::IsNullOrWhiteSpace($FontName)) { $FontName } else { $config.notepadpp.font.name }
+    $resolvedSize = if ($FontSize -gt 0) { $FontSize } else { [int]$config.notepadpp.font.size }
+    $ok = Set-NotepadPPFont -FontName $resolvedName -FontSize $resolvedSize -LogMessages $logMessages
     return
 }
 
