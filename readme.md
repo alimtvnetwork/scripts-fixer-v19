@@ -925,6 +925,8 @@ Z.AI GLM 5.1, Moonshot Kimi K2.6, OpenAI gpt-oss-120b. Closed-source
 API models (Claude, GPT-5.4, Gemini, Grok) are intentionally excluded
 because they cannot be downloaded as GGUF files.
 
+By default, model payloads land under the normal shared dev root at `<dev-dir>\models`. That `<dev-dir>` comes from the same script-wide resolution order: `$env:DEV_DIR`, then saved `./run.ps1 path`, then the standard smart default dev path. Use `./run.ps1 models path`, `MODELS_DIR`, `LLAMA_MODELS_DIR`, or `OLLAMA_MODELS` only when you explicitly want an override.
+
 ### Quick install
 
 ```powershell
@@ -2251,11 +2253,13 @@ E:\dev-tool\
   python\      # Python install + PYTHONUSERBASE (Scripts/)
   pnpm\        # pnpm store
   llama-cpp\   # llama.cpp binaries (CUDA, AVX2, KoboldCPP)
-  llama-models\# GGUF model files
+  models\      # downloaded GGUF + Ollama-format model payloads
   ollama\      # Ollama installer cache
 ```
 
-Ollama models default to `<dev-dir>\ollama-models` (configurable via `OLLAMA_MODELS` env var).
+Model downloads default to `<dev-dir>\models`. The same shared dev-dir resolver is used here too: `$env:DEV_DIR` first, then saved `./run.ps1 path`, then the normal smart default dev path.
+
+Backend-specific overrides are still available via `LLAMA_MODELS_DIR` and `OLLAMA_MODELS`, and a shared override via `MODELS_DIR`.
 
 Override with: `.\run.ps1 -I 12 -- -Path F:\dev-tool`
 

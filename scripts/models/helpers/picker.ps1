@@ -191,6 +191,11 @@ function Resolve-EffectiveDevDir {
     #>
     $envDir = $env:DEV_DIR
     if (-not [string]::IsNullOrWhiteSpace($envDir)) { return $envDir }
+    if (Get-Command Resolve-DevDir -ErrorAction SilentlyContinue) {
+        try {
+            return (Resolve-DevDir)
+        } catch {}
+    }
     if (Get-Command Get-SavedDevPath -ErrorAction SilentlyContinue) {
         try {
             $saved = Get-SavedDevPath
@@ -217,10 +222,15 @@ function Get-ModelDownloadPaths {
         [Parameter(Mandatory)] [string]$ScriptsRoot
     )
 
+    $savedDevDir = $null
+    if (Get-Command Get-SavedDevPath -ErrorAction SilentlyContinue) {
+        try { $savedDevDir = Get-SavedDevPath } catch {}
+    }
     $devDir = Resolve-EffectiveDevDir
     $hasDevDir = -not [string]::IsNullOrWhiteSpace($devDir)
     $devDirSource = if (-not [string]::IsNullOrWhiteSpace($env:DEV_DIR)) { "env" }
-                    elseif ($hasDevDir) { "saved" }
+                    elseif (-not [string]::IsNullOrWhiteSpace($savedDevDir)) { "saved" }
+                    elseif ($hasDevDir) { "default" }
                     else { "unset" }
 
     # Per-backend default subfolders -- now both default to 'models'
@@ -266,14 +276,15 @@ function Get-ModelDownloadPaths {
 
         if ($hasDevDir) {
             $p = (Join-Path $devDir $Sub)
-            return @{ Path = $p; All = @($p); Source = "DEV_DIR/$Sub" }
+            return @{ Path = $p; All = @($p); Source = "$devDirSource/$Sub" }
         }
-        # Fallback default so downloads have a real path even when DEV_DIR is unset.
-        $defaultBase = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'dev' }
-                       elseif ($env:HOME)    { Join-Path $env:HOME 'dev' }
-                       else                  { Join-Path (Get-Location).Path 'dev' }
+        # Fallback default so downloads follow the shared scripts default dev dir.
+        $defaultBase = if ($hasDevDir) { $devDir }
+                       elseif (Get-Command Get-SafeDevDirFallback -ErrorAction SilentlyContinue) { Get-SafeDevDirFallback }
+                       elseif ($env:SystemDrive) { Join-Path $env:SystemDrive 'dev-tool' }
+                       else { Join-Path (Get-Location).Path 'dev-tool' }
         $p = Join-Path $defaultBase $Sub
-        return @{ Path = $p; All = @($p); Source = "default(DEV_DIR unset)/$Sub" }
+        return @{ Path = $p; All = @($p); Source = "default-dev-dir/$Sub" }
     }
 
     $llama  = _ResolveOne -BackendKey 'llama'  -EnvName 'LLAMA_MODELS_DIR' -Sub $llamaSub
@@ -743,7 +754,7 @@ function Invoke-BackendInstall {
             . (Join-Path $sharedDir "aria2c-batch.ps1")
             . (Join-Path $llamaScriptDir "helpers\model-picker.ps1")
 
-            $devDir  = if ($env:DEV_DIR) { $env:DEV_DIR } else { "$env:USERPROFILE\dev" }
+            $devDir  = Resolve-EffectiveDevDir
             $baseDir = Join-Path $devDir $llamaCfg.devDirSubfolder
 
             # HARD GUARD: snapshot the llama.cpp binary dir before the run so
