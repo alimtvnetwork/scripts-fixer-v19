@@ -8,21 +8,16 @@ That coupling is wrong. Downloading model **weights** must be a disjoint operati
 ## Hard rules (carry into memory)
 1. `models-download` / `models download` MUST NEVER require Ollama or llama.cpp to be present.
 2. It MUST NEVER install or fetch runtime binaries.
-3. It only fetches weights into the configured model dirs.
-4. Wiring weights to a runtime is a separate, explicit command (out of scope here).
+3. It MUST resolve every requested model to a standalone `.gguf` file in `<DEV_DIR>\models`.
+4. If an Ollama catalog entry has no GGUF alias, skip it with a clear warning instead of downloading Ollama blobs.
+5. Wiring weights to a runtime is a separate, explicit command (out of scope here).
 
 ## Fix
 
-### Windows — `scripts/models/helpers/picker.ps1` `Invoke-BackendInstall`
-- **llama.cpp branch**: delete the `Get-Command llama-cli` / `llama-server` / DEV_DIR scan presence guard. Direct GGUF download via aria2c already works without llama.cpp installed. Keep the existing `MODELS_DOWNLOAD_NO_BINARIES=1` sentinel + post-run binary-leak diff.
-- **Ollama branch**: replace the `Get-Command ollama` guard + `& $script pull` dispatch with a new direct-registry puller `Invoke-OllamaRegistryPull`:
-  - Resolve target dir from `Get-ModelDownloadPaths` (Ollama scope) — no daemon required.
-  - For each slug `name[:tag]` (default tag `latest`):
-    1. `GET https://registry.ollama.ai/v2/library/<name>/manifests/<tag>` with `Accept: application/vnd.docker.distribution.manifest.v2+json`.
-    2. For each `layers[]` + `config` blob, `GET https://registry.ollama.ai/v2/library/<name>/blobs/<digest>` → save to `<ollama-dir>/blobs/sha256-<hex>` (sha256 verified, resumable via aria2c when available, fallback `Invoke-WebRequest -Resume`).
-    3. Write the manifest JSON to `<ollama-dir>/manifests/registry.ollama.ai/library/<name>/<tag>`.
-  - This matches the on-disk layout the Ollama daemon expects, so a later `-I 42` install picks the weights up automatically.
-  - Every failure logs upstream URL + target path + reason via `Write-FileError` (CODE RED contract).
+### Windows — `scripts/models/helpers/picker.ps1`
+- Normalize numeric picks, CSV ids, and Ollama slug aliases through a shared standalone-GGUF resolver before dispatch.
+- Route `Invoke-BackendInstall` to a single GGUF-only path that writes into `<DEV_DIR>\models`.
+- Keep the existing `MODELS_DOWNLOAD_NO_BINARIES=1` sentinel + post-run binary-leak diff so `models-download` never leaks runtime installs.
 
 ### Linux — `scripts-linux/models/run.sh` (and helper)
 Mirror the same two changes:
