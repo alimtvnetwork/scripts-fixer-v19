@@ -30,6 +30,11 @@ if ((Test-Path $_retryPath) -and -not (Get-Command Invoke-DownloadWithRetry -Err
     . $_retryPath
 }
 
+$_pbarPath = Join-Path $_sharedDir "progress-bar.ps1"
+if ((Test-Path $_pbarPath) -and -not (Get-Command Invoke-Aria2WithProgressBar -ErrorAction SilentlyContinue)) {
+    . $_pbarPath
+}
+
 function ConvertTo-Aria2PieceSize {
     <#
         aria2c's --min-split-size / -k must be >= 1M. Accept human strings
@@ -137,21 +142,15 @@ function Invoke-FastDownload {
         "--timeout=60",
         "--continue=true",
         "--auto-file-renaming=false",
-        "--console-log-level=warn",
-        "--summary-interval=5",
+        "--console-log-level=error",
+        "--show-console-readout=false",
+        "--summary-interval=1",
         "-d", $outDir,
         "-o", $outFileName,
         $Uri
     )
 
-    $exitCode = -1
-    try {
-        $process = Start-Process -FilePath "aria2c.exe" -ArgumentList $arguments -NoNewWindow -Wait -PassThru
-        $exitCode = $process.ExitCode
-    } catch {
-        Write-FileError -FilePath $OutFile -Operation "aria2c-spawn" -Reason $_.Exception.Message -Module "Invoke-FastDownload"
-        $exitCode = -1
-    }
+    $exitCode = Invoke-Aria2WithProgressBar -Arguments $arguments -Label $displayLabel
 
     $isExitOk = $exitCode -eq 0
     if (-not $isExitOk) {
