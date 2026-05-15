@@ -12,6 +12,20 @@
 #  + reason via Write-FileError.
 # --------------------------------------------------------------------------
 
+$__modelsHelpersDir = Split-Path -Parent $PSCommandPath
+$__scriptsRoot = Split-Path -Parent (Split-Path -Parent $__modelsHelpersDir)
+$__sharedDir = Join-Path $__scriptsRoot "shared"
+
+$__loggingPath = Join-Path $__sharedDir "logging.ps1"
+if ((Test-Path $__loggingPath) -and -not (Get-Command Write-Log -ErrorAction SilentlyContinue)) {
+    . $__loggingPath
+}
+
+$__fastDownloadPath = Join-Path $__sharedDir "fast-download.ps1"
+if ((Test-Path $__fastDownloadPath) -and -not (Get-Command Invoke-FastDownload -ErrorAction SilentlyContinue)) {
+    . $__fastDownloadPath
+}
+
 function _Parse-OllamaSlug {
     param([Parameter(Mandatory)] [string]$Slug)
     $s = $Slug.Trim()
@@ -49,20 +63,10 @@ function _Download-OllamaBlob {
         }
     }
 
-    $aria = Get-Command aria2c -ErrorAction SilentlyContinue
     $tmp  = "$Target.part"
-    $ok   = $false
     try {
-        if ($aria) {
-            $args = @("-x","16","-s","16","-k","1M","--continue=true",
-                      "--auto-file-renaming=false","--allow-overwrite=true",
-                      "-d", $dir, "-o", (Split-Path -Leaf $tmp), $Url)
-            & aria2c @args | Out-Null
-            $ok = (Test-Path $tmp)
-        } else {
-            Invoke-WebRequest -Uri $Url -OutFile $tmp -UseBasicParsing -ErrorAction Stop
-            $ok = (Test-Path $tmp)
-        }
+        $label = "ollama blob $(Split-Path -Leaf $Target)"
+        $ok = Invoke-FastDownload -Uri $Url -OutFile $tmp -Label $label
         if (-not $ok) { throw "downloaded file not found at $tmp" }
 
         if ($ExpectedSha256) {
@@ -76,8 +80,8 @@ function _Download-OllamaBlob {
     } catch {
         $reason = "$_"
         if (Get-Command Write-FileError -ErrorAction SilentlyContinue) {
-            Write-FileError -Operation "download-attempt" -Path $Target -Reason $reason `
-                -Context @{ downloadUrl = $Url; outputPath = $Target }
+            Write-FileError -FilePath $Target -Operation "download-attempt" -Reason $reason -Module "_Download-OllamaBlob" `
+                -Context @{ downloadUrl = $Url; outputPath = $Target; tempPath = $tmp; downloader = "Invoke-FastDownload (aria2c-first)" }
         } else {
             Write-Log ("Blob download failed -- url={0} target={1} reason={2}" -f $Url, $Target, $reason) -Level "error"
         }
