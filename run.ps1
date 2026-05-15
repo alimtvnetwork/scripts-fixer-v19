@@ -2882,6 +2882,7 @@ if ($_isEarlyHelp) {
             @{ K = "doctor";        D = "Doctor / diagnostics commands" },
             @{ K = "logs";          D = "Log inspection (--tail, --grep, --since, --errors)" },
             @{ K = "report";        D = "Install report generation" },
+            @{ K = "reset";         D = "Wipe .logs/.resolved/.installed for a fresh start (--dry-run, --yes, --keep-logs)" },
             @{ K = "path";          D = "Default dev directory commands" },
             @{ K = "models";        D = "Ollama / local model management" },
             @{ K = "git-tools";     D = "git-tools dispatcher subcommands" },
