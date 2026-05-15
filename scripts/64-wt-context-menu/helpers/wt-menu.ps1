@@ -42,48 +42,34 @@ function Resolve-WtPath {
 
     Write-Log ($LogMessages.messages.wtNotFound -replace '\{command\}', $VerifyCommand) -Level "warn"
 
-    # 2. Known install locations (in priority order)
+    # 2. Known install locations -- WindowsApps stub first (per-user MSIX), then choco shim.
     $candidates = @(
-        $WtPaths.programFiles,
-        $WtPaths.programFilesX86,
-        $WtPaths.chocoShim,
-        $WtPaths.userLocalAppData
+        $WtPaths.userWindowsApps,
+        $WtPaths.chocoShim
     )
-
-    # Choco lib root usually contains wt.exe under a versioned WindowsTerminalPack folder
-    $chocoTools = [System.Environment]::ExpandEnvironmentVariables($WtPaths.chocoToolsRoot)
-    if (Test-Path $chocoTools) {
-        $candidates += (Join-Path $chocoTools "wt.exe")
-        if ($FallbackTo32Bit) {
-            $candidates += (Join-Path $chocoTools "WindowsTerminal.exe")
-        }
-    }
-
     foreach ($raw in $candidates) {
         if ([string]::IsNullOrWhiteSpace($raw)) { continue }
         $expanded = [System.Environment]::ExpandEnvironmentVariables($raw)
         Write-Log ($LogMessages.messages.searchingPath -replace '\{path\}', $expanded) -Level "info"
-        if (Test-Path $expanded) {
+        if (Test-Path -LiteralPath $expanded) {
             Write-Log ($LogMessages.messages.foundAtPath -replace '\{path\}', $expanded) -Level "success"
             return $expanded
         }
         Write-Log ($LogMessages.messages.pathNotFound -replace '\{path\}', $expanded) -Level "warn"
     }
 
-    # 3. 32-bit fallback in standard locations
-    if ($FallbackTo32Bit) {
-        $fallbacks = @(
-            "C:\Program Files\WindowsTerminal\WindowsTerminal.exe",
-            "C:\Program Files (x86)\WindowsTerminal\WindowsTerminal.exe"
-        )
-        foreach ($fb in $fallbacks) {
-            Write-Log ($LogMessages.messages.searchingPath -replace '\{path\}', $fb) -Level "info"
-            if (Test-Path $fb) {
-                Write-Log ($LogMessages.messages.foundAtPath -replace '\{path\}', $fb) -Level "success"
-                return $fb
+    # 3. Glob versioned WindowsApps install (Microsoft.WindowsTerminal_*)
+    $globPattern = $WtPaths.programFiles
+    if (-not [string]::IsNullOrWhiteSpace($globPattern)) {
+        Write-Log ($LogMessages.messages.searchingPath -replace '\{path\}', $globPattern) -Level "info"
+        try {
+            $hit = Get-ChildItem -Path $globPattern -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) {
+                Write-Log ($LogMessages.messages.foundAtPath -replace '\{path\}', $hit.FullName) -Level "success"
+                return $hit.FullName
             }
-            Write-Log ($LogMessages.messages.pathNotFound -replace '\{path\}', $fb) -Level "warn"
-        }
+        } catch { }
+        Write-Log ($LogMessages.messages.pathNotFound -replace '\{path\}', $globPattern) -Level "warn"
     }
 
     Write-Log $LogMessages.messages.noExeFound -Level "error"
