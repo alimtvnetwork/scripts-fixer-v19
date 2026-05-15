@@ -1,9 +1,9 @@
 {
-  "_comment": "Script 64 -- WindowsTerminal right-click context menu. 'Open Here' (no elevation) is listed first; 'Open as Admin' second (UAC via Start-Process -Verb RunAs).",
+  "_comment": "Script 64 -- Windows Terminal right-click context menu. 'Open Here' (no elevation) is listed first; 'Open as Admin' second (UAC via Start-Process -Verb RunAs). Mirrors scripts 31 (PowerShell) + 59 (ConEmu).",
   "enabled": true,
   "menu": {
     "parentKeyName": "WindowsTerminalMenu",
-    "parentLabel": "WindowsTerminal",
+    "parentLabel": "Windows Terminal",
     "iconMode": "wt"
   },
   "modes": {
@@ -14,8 +14,8 @@
         "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\WindowsTerminalMenu\\shell\\01-OpenHere"
       },
       "commandArgs": {
-        "directory":  "\"{exe}\" -Dir \"%V\"",
-        "background": "\"{exe}\" -Dir \"%V\""
+        "directory":  "\"{exe}\" -d \"%V\"",
+        "background": "\"{exe}\" -d \"%V\""
       }
     },
     "admin": {
@@ -25,8 +25,8 @@
         "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\WindowsTerminalMenu\\shell\\02-OpenAsAdmin"
       },
       "commandArgs": {
-        "directory":  "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-Dir','%V'\"",
-        "background": "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-Dir','%V'\""
+        "directory":  "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-d','%V'\"",
+        "background": "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-d','%V'\""
       },
       "runas": true,
       "extended": false
@@ -34,13 +34,11 @@
   },
   "enabledModes": ["normal", "admin"],
   "wtPaths": {
-    "programFiles":      "C:\\Program Files\\WindowsTerminal\\wt.exe",
-    "programFilesX86":   "C:\\Program Files (x86)\\WindowsTerminal\\wt.exe",
-    "chocoShim":         "%ProgramData%\\chocolatey\\bin\\wt.exe",
-    "chocoToolsRoot":    "%ProgramData%\\chocolatey\\lib\\wt\\tools\\WindowsTerminalPack",
-    "userLocalAppData":  "%LOCALAPPDATA%\\WindowsTerminal\\wt.exe"
+    "userWindowsApps":  "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe",
+    "programFiles":     "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal*\\wt.exe",
+    "chocoShim":        "%ProgramData%\\chocolatey\\bin\\wt.exe"
   },
   "verifyCommand": "wt",
-  "versionFlag": "-version",
-  "fallbackTo32Bit": true
+  "versionFlag": "--version",
+  "fallbackTo32Bit": false
 }
