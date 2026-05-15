@@ -122,9 +122,11 @@ function Complete-DownloadProgressBar {
     param([switch]$Success, [string]$Label = "")
 
     if ($script:_pbarLastLen -gt 0) {
-        Write-Host ""
+        Write-Host ""    # newline after the in-place bar
+        Write-Host ""    # blank line below for bottom padding
         $script:_pbarLastLen = 0
     }
+    $script:_pbarFirstRender = $true
 }
 
 function Invoke-Aria2WithProgressBar {
