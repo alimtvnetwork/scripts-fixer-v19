@@ -85,6 +85,15 @@ if ($isExport) {
     return
 }
 
+# -- Font-only command (also reachable via -Mode font-only or 'font' command) --
+$isFont = ($Command.ToLower() -eq "font") -or ($Mode -eq "font-only")
+if ($isFont) {
+    $resolvedName = if (-not [string]::IsNullOrWhiteSpace($FontName)) { $FontName } else { $config.notepadpp.font.name }
+    $resolvedSize = if ($FontSize -gt 0) { $FontSize } else { [int]$config.notepadpp.font.size }
+    $ok = Set-NotepadPPFont -FontName $resolvedName -FontSize $resolvedSize -LogMessages $logMessages
+    return
+}
+
 # -- Git pull ------------------------------------------------------------------
 Invoke-GitPull
 
