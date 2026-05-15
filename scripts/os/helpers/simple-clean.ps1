@@ -96,10 +96,13 @@ function Invoke-Step {
 
 # Step 1: WU download cache (existing single-category runner)
 Invoke-Step "Windows Update download cache" {
-    $args = @("-Category","wu-download")
-    if ($dryRun)  { $args += "--dry-run" }
-    if ($autoYes) { $args += "--yes" }
-    & $runner @args
+    # NOTE: never use $args here -- it is a PowerShell automatic variable
+    # inside scriptblocks and splatting it can mis-bind -Category to the
+    # literal string '-Category'. Use a distinct name.
+    $runnerArgs = @("-Category","wu-download")
+    if ($dryRun)  { $runnerArgs += "--dry-run" }
+    if ($autoYes) { $runnerArgs += "--yes" }
+    & $runner @runnerArgs
 }
 
 # Step 2: Temp dirs
