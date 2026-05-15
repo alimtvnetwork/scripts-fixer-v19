@@ -739,6 +739,7 @@ case "${VERB:-help}" in
     log_ok "reset complete -- next run starts fresh."
     exit 0
     ;;
+  list) registry_list_all | column -t -s$'\t' ;;
   health)      verb_health ;;
   repair-all)  verb_repair_all ;;
   startup-passthrough)
