@@ -4108,7 +4108,7 @@ if ($hasCommand) {
     } elseif ($isBareModelsCommand) {
         Show-VersionHeader
         $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
-        & $modelsScript @Install
+        & $modelsScript -Rest $Install
         exit 0
     } elseif ($isBareModelsDownloadCommand) {
         # ── 'models-download <ids|numbers>'  →  shortcut for 'models download ...'
@@ -4729,7 +4729,7 @@ if ($hasInstallKeywords) {
 if ($M) {
     Show-VersionHeader
     $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
-    & $modelsScript @Install
+    & $modelsScript -Rest $Install
     exit 0
 }
 
