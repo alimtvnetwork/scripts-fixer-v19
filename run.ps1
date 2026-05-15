@@ -2882,6 +2882,7 @@ if ($_isEarlyHelp) {
             @{ K = "doctor";        D = "Doctor / diagnostics commands" },
             @{ K = "logs";          D = "Log inspection (--tail, --grep, --since, --errors)" },
             @{ K = "report";        D = "Install report generation" },
+            @{ K = "reset";         D = "Wipe .logs/.resolved/.installed for a fresh start (--dry-run, --yes, --keep-logs)" },
             @{ K = "path";          D = "Default dev directory commands" },
             @{ K = "models";        D = "Ollama / local model management" },
             @{ K = "git-tools";     D = "git-tools dispatcher subcommands" },
@@ -3225,7 +3226,7 @@ if ($_isEarlyHelp) {
     $_completionPool = @(
         'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
         'menu','context-menu','profile','install','uninstall','update',
-        'self-update','settings','export','os','doctor','logs','report',
+        'self-update','settings','export','os','doctor','logs','report','reset',
         'path','models','models-download','download','url','git','git-tools','gsa','mysql','postgresql',
         'mariadb','mongodb','redis','sqlite','node','python','docker',
         'kubernetes','java','dotnet','rust','go','php','obs','npp','wt',
@@ -3678,6 +3679,7 @@ if ($hasCommand) {
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
+    $isBareResetCommand   = $normalizedCommand -in @("reset","fresh","fresh-start","wipe-state","clear-state")
     $isBareHelpCommand    = $normalizedCommand -in @("help", "--help", "-help", "/?", "?")
     $isBareScriptId = $normalizedCommand -match '^\d+$'
 
@@ -3733,6 +3735,90 @@ if ($hasCommand) {
         }
     }
 
+
+    if ($isBareResetCommand) {
+        Show-VersionHeader
+        $resetArgs = @()
+        if ($null -ne $Install) { $resetArgs = @($Install | Where-Object { $_ }) }
+        $isDryRun = $false
+        $isAssumeYes = $Y
+        $keepLogs = $false; $keepResolved = $false; $keepInstalled = $false
+        $extraTargets = @()
+        foreach ($a in $resetArgs) {
+            switch -regex ("$a".Trim().ToLower()) {
+                '^(--dry-run|-dry-run|--preview)$' { $isDryRun = $true }
+                '^(--yes|-yes|-y|--force|-force)$' { $isAssumeYes = $true }
+                '^--keep-logs$'      { $keepLogs = $true }
+                '^--keep-resolved$'  { $keepResolved = $true }
+                '^--keep-installed$' { $keepInstalled = $true }
+                default { $extraTargets += $a }
+            }
+        }
+
+        $targets = @()
+        if (-not $keepLogs)      { $targets += @{ Name = ".logs";      Path = (Join-Path $RootDir ".logs") } }
+        if (-not $keepResolved)  { $targets += @{ Name = ".resolved";  Path = (Join-Path $RootDir ".resolved") } }
+        if (-not $keepInstalled) { $targets += @{ Name = ".installed"; Path = (Join-Path $RootDir ".installed") } }
+
+        Write-Host ""
+        Write-Host "  ===== reset: wipe state for fresh start =====" -ForegroundColor Cyan
+        Write-Host "  Repo root: " -NoNewline; Write-Host $RootDir -ForegroundColor White
+        Write-Host ""
+        $hasAnything = $false
+        foreach ($t in $targets) {
+            $exists = Test-Path $t.Path
+            $sizeInfo = ""
+            $count = 0
+            if ($exists) {
+                try {
+                    $items = Get-ChildItem -Path $t.Path -Recurse -Force -ErrorAction SilentlyContinue
+                    $count = ($items | Measure-Object).Count
+                    $bytes = ($items | Where-Object { -not $_.PSIsContainer } | Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
+                    if (-not $bytes) { $bytes = 0 }
+                    $sizeInfo = ("{0} item(s), {1:N1} KB" -f $count, ($bytes / 1KB))
+                    $hasAnything = $true
+                } catch { $sizeInfo = "unreadable" }
+                Write-Host ("  [{0}] {1,-12} -> {2}  ({3})" -f "WIPE", $t.Name, $t.Path, $sizeInfo) -ForegroundColor Yellow
+            } else {
+                Write-Host ("  [{0}] {1,-12} -> {2}  (does not exist)" -f "SKIP", $t.Name, $t.Path) -ForegroundColor DarkGray
+            }
+        }
+        Write-Host ""
+        if (-not $hasAnything) {
+            Write-Host "  Nothing to remove -- repo is already in a fresh-start state." -ForegroundColor Green
+            exit 0
+        }
+        if ($isDryRun) {
+            Write-Host "  [DRY-RUN] No files were removed. Re-run without --dry-run to apply." -ForegroundColor Cyan
+            exit 0
+        }
+        if (-not $isAssumeYes) {
+            Write-Host "  Type 'yes' to wipe the folders listed above, anything else to abort: " -NoNewline -ForegroundColor Yellow
+            $reply = Read-Host
+            if ($reply -notin @("y","Y","yes","YES","Yes")) {
+                Write-Host "  Aborted by operator (reply='$reply'). No changes made." -ForegroundColor Yellow
+                exit 1
+            }
+        }
+        $hadFailure = $false
+        foreach ($t in $targets) {
+            if (-not (Test-Path $t.Path)) { continue }
+            try {
+                Remove-Item -Path $t.Path -Recurse -Force -ErrorAction Stop
+                Write-Host ("  [ OK ] removed {0}" -f $t.Path) -ForegroundColor Green
+            } catch {
+                $hadFailure = $true
+                Write-Host ("  [FAIL] could not remove {0} -- {1}" -f $t.Path, $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        Write-Host ""
+        if ($hadFailure) {
+            Write-Host "  reset finished with errors. See messages above." -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "  reset complete -- next run starts fresh." -ForegroundColor Green
+        exit 0
+    }
 
     if ($isBareOsCommand) {
         Show-VersionHeader

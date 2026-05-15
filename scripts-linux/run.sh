@@ -167,6 +167,10 @@ while [ $# -gt 0 ]; do
     # pinned sha256 BEFORE execution, then runs it through bash.
     coding-guidelines|clean-code|cg|cc|code-guide)
         VERB="remote-install"; REMOTE_KEY="coding-guidelines"; shift; break ;;
+    # ---- top-level: reset state (.logs / .resolved / .installed) -------
+    # Wipes per-run state from the repo root so the next run starts fresh.
+    reset|fresh|fresh-start|wipe-state|clear-state)
+        VERB="reset"; shift; RESET_REST=("$@"); break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
@@ -200,6 +204,11 @@ System-wide verbs:
                          --json   emit machine-readable JSON
   repair-all           Run install for every id whose health != ok
                          --only-drift   only repair ids in drift state
+  reset                Wipe .logs/ .resolved/ .installed/ from repo root for a fresh start
+                         --dry-run      preview only, do not delete
+                         --yes / -y     skip confirmation prompt
+                         --keep-logs    keep .logs/ (drop only .resolved + .installed)
+                         --keep-resolved / --keep-installed   keep that folder
 
 Fast download (aria2c-first, defaults splits=16, piece=1M):
   download <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
@@ -654,6 +663,86 @@ case "${VERB:-help}" in
     . "$ROOT/_shared/remote-installers/remote-install.sh"
     remote_install "$descriptor"
     exit $?
+    ;;
+  reset)
+    # Wipe per-run state from the repo root so the next run starts fresh.
+    # Targets: .logs/  .resolved/  .installed/  (all under PROJECT_ROOT = $ROOT/..).
+    # Flags: --dry-run | --yes/-y | --keep-logs | --keep-resolved | --keep-installed
+    PROJECT_ROOT="$(cd "$ROOT/.." && pwd)"
+    rs_dry=0; rs_yes=0; rs_keep_logs=0; rs_keep_resolved=0; rs_keep_installed=0
+    for _a in "${RESET_REST[@]:-}"; do
+      case "$_a" in
+        --dry-run|-dry-run|--preview) rs_dry=1 ;;
+        --yes|-y|-yes|--force)        rs_yes=1 ;;
+        --keep-logs)                  rs_keep_logs=1 ;;
+        --keep-resolved)              rs_keep_resolved=1 ;;
+        --keep-installed)             rs_keep_installed=1 ;;
+        "") ;;
+        *) log_warn "reset: ignoring unknown arg '$_a'" ;;
+      esac
+    done
+
+    rs_targets=()
+    [ "$rs_keep_logs"      = 0 ] && rs_targets+=(".logs")
+    [ "$rs_keep_resolved"  = 0 ] && rs_targets+=(".resolved")
+    [ "$rs_keep_installed" = 0 ] && rs_targets+=(".installed")
+
+    printf '\n  ===== reset: wipe state for fresh start =====\n' >&2
+    printf '  Repo root: %s\n\n' "$PROJECT_ROOT" >&2
+    rs_any=0
+    for name in "${rs_targets[@]}"; do
+      p="$PROJECT_ROOT/$name"
+      if [ -e "$p" ]; then
+        n=$(find "$p" -mindepth 1 2>/dev/null | wc -l | tr -d ' ')
+        sz=$(du -sh "$p" 2>/dev/null | awk '{print $1}')
+        printf '  [WIPE] %-12s -> %s  (%s items, %s)\n' "$name" "$p" "$n" "${sz:-?}" >&2
+        rs_any=1
+      else
+        printf '  [SKIP] %-12s -> %s  (does not exist)\n' "$name" "$p" >&2
+      fi
+    done
+    printf '\n' >&2
+
+    if [ "$rs_any" = 0 ]; then
+      log_ok "Nothing to remove -- repo is already in a fresh-start state."
+      exit 0
+    fi
+    if [ "$rs_dry" = 1 ]; then
+      log_info "[DRY-RUN] No files were removed. Re-run without --dry-run to apply."
+      exit 0
+    fi
+    if [ "$rs_yes" != 1 ]; then
+      if [ ! -t 0 ] && [ ! -r /dev/tty ]; then
+        log_warn "No TTY available and --yes was not passed -- aborting."
+        exit 1
+      fi
+      printf "  Type 'yes' to wipe the folders listed above, anything else to abort: " >&2
+      reply=""
+      if [ -r /dev/tty ]; then IFS= read -r reply </dev/tty || reply=""
+      else IFS= read -r reply || reply=""; fi
+      case "$reply" in
+        y|Y|yes|YES|Yes) ;;
+        *) log_warn "Aborted by operator (reply='$reply'). No changes made."; exit 1 ;;
+      esac
+    fi
+
+    rs_fail=0
+    for name in "${rs_targets[@]}"; do
+      p="$PROJECT_ROOT/$name"
+      [ -e "$p" ] || continue
+      if rm -rf -- "$p" 2>/dev/null; then
+        log_ok "removed $p"
+      else
+        log_file_error "$p" "rm -rf failed during reset"
+        rs_fail=1
+      fi
+    done
+    if [ "$rs_fail" = 1 ]; then
+      log_err "reset finished with errors. See messages above."
+      exit 1
+    fi
+    log_ok "reset complete -- next run starts fresh."
+    exit 0
     ;;
   list) registry_list_all | column -t -s$'\t' ;;
   health)      verb_health ;;
