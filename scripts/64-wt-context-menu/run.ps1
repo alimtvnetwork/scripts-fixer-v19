@@ -227,8 +227,8 @@ if ($isAllSuccessful) {
 # uses the same Directory\Background handler as 'background', so we map the
 # 'empty-folder' test to that registry path too.)
 $null = Invoke-RightClickVerification `
-    -Tool         'WindowsTerminal' `
-    -EntryLabel   'WindowsTerminal' `
+    -Tool         'Windows Terminal' `
+    -EntryLabel   'Windows Terminal' `
     -RetryCommand ".\run.ps1 -I 64 install" `
     -NonInteractive:$NonInteractive `
     -AssumeYes:$AssumeYes
