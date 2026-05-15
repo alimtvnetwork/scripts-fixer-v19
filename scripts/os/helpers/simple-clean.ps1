@@ -41,11 +41,14 @@ Initialize-Logging -ScriptName "OS Clean (simple)"
 
 # ---------- Parse flags ----------
 $dryRun = $false
-$autoYes = $false
+# Honor the global yes-flag env var set by run.ps1 / yes-flag.ps1 so that
+# `.\run.ps1 os clean -y` (and any other dispatcher path that swallows -y
+# via PowerShell's parameter binder) always skips the confirmation prompt.
+$autoYes = ($env:SCRIPTS_FIXER_YES -eq '1')
 foreach ($a in $Argv) {
     $low = "$a".Trim().ToLower()
     if ($low -in @("--dry-run","-dry-run","dry-run","--dryrun","-n")) { $dryRun = $true }
-    elseif ($low -in @("--yes","-yes","-y","yes")) { $autoYes = $true }
+    elseif ($low -in @("--yes","-yes","-y","yes","/y","/yes","--non-interactive","--noninteractive","--headless","--assume-yes","-assumeyes","--auto-yes","-autoyes")) { $autoYes = $true }
 }
 
 Write-Host ""
