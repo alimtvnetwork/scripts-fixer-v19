@@ -293,20 +293,38 @@ try {
         $all += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
 
         $isNumeric = $csv -match '^[\d,\s\-]+$'
+        $defaultOutputRoot = if ($downloadPaths -and $downloadPaths.PSObject.Properties['Llama']) { $downloadPaths.Llama } else { $null }
         $matched = if ($isNumeric) {
-            Resolve-NumericPicks -Csv $csv -AllModels $all
+            Resolve-NumericPicks -Csv $csv -AllModels $all -OutputRoot $defaultOutputRoot -FailureReason "No matching models for numeric selection"
         } else {
-            Resolve-CsvIds -Csv $csv -AllModels $all -LogMessages $logMessages
+            Resolve-CsvIds -Csv $csv -AllModels $all -LogMessages $logMessages -OutputRoot $defaultOutputRoot -FailureReason "No matching models for requested id"
         }
 
         $matched = @($matched | Where-Object { $null -ne $_ })
         if ($matched.Count -eq 0) {
             if ($isNumeric) {
                 $maxIdx = $all.Count
-                Write-Log "No matching models for '$csv'. Catalog has $maxIdx model(s) -- valid index range is 1..$maxIdx." -Level "error"
+                $missCtx = [ordered]@{
+                    requestedInput = $csv
+                    requestedModel = $csv
+                    requestedModelName = "(numeric selection not found)"
+                    modelUrl = $null
+                    outputPath = $defaultOutputRoot
+                    failureReason = "No matching models for numeric selection -- valid index range is 1..$maxIdx"
+                    catalogRange = "1..$maxIdx"
+                }
+                Write-Log "No matching models for '$csv'. Catalog has $maxIdx model(s) -- valid index range is 1..$maxIdx." -Level "error" -Context $missCtx
                 Write-Log "  Run '.\run.ps1 models list' to see numbered entries, or '.\run.ps1 models list --tags' for filters." -Level "info"
             } else {
-                Write-Log $logMessages.messages.csvNoneFound -Level "error"
+                $missCtx = [ordered]@{
+                    requestedInput = $csv
+                    requestedModel = $csv
+                    requestedModelName = "(id not found in catalog)"
+                    modelUrl = $null
+                    outputPath = $defaultOutputRoot
+                    failureReason = "No matching models for requested id"
+                }
+                Write-Log $logMessages.messages.csvNoneFound -Level "error" -Context $missCtx
                 Write-Log "  Run '.\run.ps1 models list' to see catalog ids." -Level "info"
             }
             return
@@ -442,9 +460,18 @@ try {
             $allModels += Get-BackendCatalog -Backend $b -Config $config -ScriptsRoot $scriptsRoot
         }
 
-        $matched = @(Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages | Where-Object { $null -ne $_ })
+        $defaultOutputRoot = if ($downloadPaths -and $downloadPaths.PSObject.Properties['Llama']) { $downloadPaths.Llama } else { $null }
+        $matched = @(Resolve-CsvIds -Csv $csv -AllModels $allModels -LogMessages $logMessages -OutputRoot $defaultOutputRoot -FailureReason "No matching models for requested id" | Where-Object { $null -ne $_ })
         if ($matched.Count -eq 0) {
-            Write-Log $logMessages.messages.csvNoneFound -Level "error"
+            $missCtx = [ordered]@{
+                requestedInput = $csv
+                requestedModel = $csv
+                requestedModelName = "(id not found in catalog)"
+                modelUrl = $null
+                outputPath = $defaultOutputRoot
+                failureReason = "No matching models for requested id"
+            }
+            Write-Log $logMessages.messages.csvNoneFound -Level "error" -Context $missCtx
             return
         }
         Show-ModelDownloadPaths -Paths $downloadPaths

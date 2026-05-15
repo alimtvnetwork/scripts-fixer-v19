@@ -92,7 +92,9 @@ function Write-Log {
         [Parameter(Position = 1)]
         [string]$Status = "info",
 
-        [string]$Level
+        [string]$Level,
+
+        [object]$Context
     )
 
     # ------------------------------------------------------------------
@@ -247,6 +249,20 @@ function Write-Log {
                 gitBranch      = $idGitBranch
                 scriptName     = $logName
             }
+            if ($null -ne $Context) {
+                try {
+                    if ($Context -is [System.Collections.IDictionary]) {
+                        $event.context = [ordered]@{}
+                        foreach ($key in $Context.Keys) {
+                            $event.context[[string]$key] = $Context[$key]
+                        }
+                    } else {
+                        $event.context = $Context
+                    }
+                } catch {
+                    $event.context = [string]$Context
+                }
+            }
 
             # Lazily ensure the event arrays exist (re-sourcing logging.ps1
             # in the same session can leave them in an unexpected state on
@@ -287,7 +303,9 @@ function Write-FileError {
 
         [string]$Module,
 
-        [string]$Fallback
+        [string]$Fallback,
+
+        [object]$Context
     )
 
     # Defensive scrub: drop \r-progress noise from Reason/Fallback before they
@@ -306,6 +324,9 @@ function Write-FileError {
         "read", "write", "copy", "move", "inject", "load", "extract", "resolve",
         "install", "delete", "execute", "download", "parse",
         "backup", "checksum", "create", "fetch", "mkdir", "symlink", "verify",
+        "resolve-model", "preflight-head", "batch-post-verify", "post-download-verify",
+        "download-attempt", "remove-stale", "preflight-locate", "preflight-stat",
+        "preflight-read", "preflight-exec",
         "configure-pnpm-store", "create-pnpm-store-dir", "probe-prefix-drive",
         "probe-prefix-write", "create-prefix-dir", "resolve-npm", "npm-mkdir-prefix",
         "resolve-root", "validate", "validate-goroot-layout", "set-goroot",
@@ -355,6 +376,20 @@ function Write-FileError {
         gitSha         = $script:_LogIdentity.gitSha
         gitBranch      = $script:_LogIdentity.gitBranch
         scriptName     = $script:_LogName
+    }
+    if ($null -ne $Context) {
+        try {
+            if ($Context -is [System.Collections.IDictionary]) {
+                $fileErrorEvent.context = [ordered]@{}
+                foreach ($key in $Context.Keys) {
+                    $fileErrorEvent.context[[string]$key] = $Context[$key]
+                }
+            } else {
+                $fileErrorEvent.context = $Context
+            }
+        } catch {
+            $fileErrorEvent.context = [string]$Context
+        }
     }
     $script:_LogEvents.Add($fileErrorEvent) | Out-Null
     $script:_LogErrors.Add($fileErrorEvent) | Out-Null

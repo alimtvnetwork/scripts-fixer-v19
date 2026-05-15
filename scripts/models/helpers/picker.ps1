@@ -605,7 +605,9 @@ function Resolve-NumericPicks {
     #>
     param(
         [Parameter(Mandatory)] [string]$Csv,
-        [Parameter(Mandatory)] [array]$AllModels
+        [Parameter(Mandatory)] [array]$AllModels,
+        [string]$OutputRoot,
+        [string]$FailureReason = "Requested numeric selection did not match any catalog entry"
     )
     $picks = @()
     $tokens = $Csv -split '[,\s]+' | Where-Object { $_.Length -gt 0 }
@@ -619,7 +621,19 @@ function Resolve-NumericPicks {
         } elseif ($t -match '^\d+$') {
             $i = [int]$t
             if ($i -ge 1 -and $i -le $AllModels.Count) { $picks += $AllModels[$i - 1] }
-            else { Write-Log "  [MISS] #$i out of range (1..$($AllModels.Count))" -Level "warn" }
+            else {
+                $ctx = [ordered]@{
+                    requestedInput = $Csv
+                    requestedModel = "#$i"
+                    requestedModelName = "(numeric index $i not found)"
+                    modelUrl = $null
+                    outputPath = if ([string]::IsNullOrWhiteSpace($OutputRoot)) { $null } else { $OutputRoot }
+                    failureReason = "$FailureReason -- index $i is out of range (1..$($AllModels.Count))"
+                    catalogRange = "1..$($AllModels.Count)"
+                }
+                Write-Log "  [MISS] #$i out of range (1..$($AllModels.Count))" -Level "warn" -Context $ctx
+                Write-FileError -FilePath $(if ([string]::IsNullOrWhiteSpace($OutputRoot)) { "catalog:index:#$i" } else { $OutputRoot }) -Operation "resolve-model" -Reason $ctx.failureReason -Module "Resolve-NumericPicks" -Context $ctx
+            }
         }
     }
     return $picks
@@ -634,7 +648,9 @@ function Resolve-CsvIds {
     param(
         [Parameter(Mandatory)] [string]$Csv,
         [Parameter(Mandatory)] [array]$AllModels,
-        [Parameter(Mandatory)] [PSObject]$LogMessages
+        [Parameter(Mandatory)] [PSObject]$LogMessages,
+        [string]$OutputRoot,
+        [string]$FailureReason = "Requested model id did not match any catalog entry"
     )
 
     $ids = $Csv -split '[,\s]+' | Where-Object { $_.Length -gt 0 }
@@ -654,7 +670,16 @@ function Resolve-CsvIds {
             $matched += $hit
         } else {
             $line = $LogMessages.messages.csvUnknown -replace '\{id\}', $id
-            Write-Log $line -Level "warn"
+            $ctx = [ordered]@{
+                requestedInput = $Csv
+                requestedModel = $id
+                requestedModelName = "(not found in catalog)"
+                modelUrl = $null
+                outputPath = if ([string]::IsNullOrWhiteSpace($OutputRoot)) { $null } else { $OutputRoot }
+                failureReason = "$FailureReason -- '$id' was not found in the catalog"
+            }
+            Write-Log $line -Level "warn" -Context $ctx
+            Write-FileError -FilePath $(if ([string]::IsNullOrWhiteSpace($OutputRoot)) { "catalog:id:$id" } else { $OutputRoot }) -Operation "resolve-model" -Reason $ctx.failureReason -Module "Resolve-CsvIds" -Context $ctx
         }
     }
     return $matched
