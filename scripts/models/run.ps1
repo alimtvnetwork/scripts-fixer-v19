@@ -274,7 +274,6 @@ try {
                 return
             }
 
-            Show-ModelDownloadPaths -Paths $downloadPaths
             Invoke-BackendInstall -Models $matched -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
             Show-ModelDownloadPaths -Paths $downloadPaths
             Write-Log $logMessages.messages.complete -Level "success"
@@ -329,7 +328,6 @@ try {
             }
             return
         }
-        Show-ModelDownloadPaths -Paths $downloadPaths
         Invoke-BackendInstall -Models $matched -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
         Show-ModelDownloadPaths -Paths $downloadPaths
         Write-Log $logMessages.messages.complete -Level "success"
@@ -474,7 +472,6 @@ try {
             Write-Log $logMessages.messages.csvNoneFound -Level "error" -Context $missCtx
             return
         }
-        Show-ModelDownloadPaths -Paths $downloadPaths
         Invoke-BackendInstall -Models $matched -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
         Show-ModelDownloadPaths -Paths $downloadPaths
         Write-Log $logMessages.messages.complete -Level "success"

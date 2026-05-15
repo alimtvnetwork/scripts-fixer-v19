@@ -67,7 +67,7 @@
     "backendQuit": "    [Q] Quit",
     "backendPrompt": "  Choose backend [1/2/3/Q]",
     "noBackendSelected": "No backend selected. Aborting.",
-    "dispatching": "  Dispatching to {backend}...",
+    "dispatching": "  Download route: {backend}",
     "csvResolveStart": "Resolving {count} model id(s) against catalogs...",
     "csvResolved": "  [OK]   {id} -> {backend}",
     "csvUnknown": "  [MISS] {id} -- not found in any catalog",
@@ -84,6 +84,6 @@
     "uninstallForceSkip": "  -Force flag set: skipping confirmation prompt.",
     "uninstallPartial": "Uninstall finished with one or more failures -- review the log above.",
     "uninstallComplete": "Uninstall complete.",
-    "complete": "Models setup complete."
+    "complete": "Model download flow complete."
   }
 }
