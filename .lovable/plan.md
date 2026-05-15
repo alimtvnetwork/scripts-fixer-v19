@@ -94,3 +94,23 @@ Wired beside the existing `models` / `update` / `path` cases. Help text updated 
 - Changing the model catalog or per-model URLs.
 - BitTorrent/IPFS sources.
 - Cross-host load balancing.
+---
+
+## Completed (v1.5.25 – v1.5.27)
+
+- ✅ Fix `Count` property crash at `scripts/models/run.ps1:302` (guard non-array results).
+- ✅ Replace generic "no match" message with `Catalog has N model(s) -- valid index range is 1..N` in `scripts/models/helpers/picker.ps1`.
+- ✅ CODE RED: log upstream URL on every model-download failure path (Windows `model-picker.ps1` + Linux `model-pull.sh`).
+- ✅ Linux smoke test for post-download verify retry: `scripts-linux/43-install-llama-cpp/tests/post-download-verify-retry.test.sh` (9/9 PASS).
+- ✅ Add `reset` / `fresh` / `wipe-state` command on both dispatchers (Windows + Linux) with `--dry-run`, `--yes`, `--keep-logs`, `--keep-resolved`, `--keep-installed`.
+
+## Pending (carried into next session)
+
+- ⏳ Live smoke (Windows): `.\run.ps1 reset --dry-run` then `.\run.ps1 reset -y`.
+- ⏳ Live smoke (Linux): `./scripts-linux/run.sh reset --dry-run` then `./scripts-linux/run.sh reset -y`.
+- ⏳ Live smoke: `models-download 93` (range message) and `models-download 5` (real download path).
+- ⏳ Mid-download deletion smoke: confirm post-condition retry loop fires + per-attempt `.logs/models-orchestrator.json` flush (Windows + Linux).
+- ⏳ Notepad++ taskbar pin triage: waiting for user to paste tail of `.logs/33-install-notepadpp.json` and `.logs/62-pin-taskbar.json` from the failing run.
+- ⏳ Carried: `Invoke-Pester scripts\43-install-llama-cpp\tests\` on Windows.
+- ⏳ Carried: `os clean` vs `os advance-clean` smoke.
+- ⏳ Carried: `.\run.ps1 doctor --self-check`.
