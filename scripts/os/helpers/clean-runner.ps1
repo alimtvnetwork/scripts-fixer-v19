@@ -28,6 +28,18 @@ $script:LogMessages = $logMessages
 
 Initialize-Logging -ScriptName "OS Clean: $Category"
 
+# Defensive guard: if the caller mis-splatted args (e.g. used the
+# automatic $args variable inside a scriptblock), $Category may end up
+# bound to a literal flag like '-Category'. Refuse early with a clear
+# diagnostic that prints the full argv we actually received, so the
+# real call site can be located.
+if ($Category -match '^-' -or [string]::IsNullOrWhiteSpace($Category) -or $Category -match '^\s') {
+    $argvDump = if ($Argv) { ($Argv | ForEach-Object { "'$_'" }) -join ' ' } else { '<empty>' }
+    Write-Log "Invalid -Category value '$Category' passed to clean-runner.ps1. Remaining argv: $argvDump. Likely a caller used `$args inside a scriptblock and splatted it (rename to e.g. `$runnerArgs)." -Level "fail"
+    Save-LogFile -Status "fail"
+    exit 1
+}
+
 $dryRun = Test-DryRunSwitch -Argv $Argv
 $autoYes = Test-YesSwitch -Argv $Argv
 $days = Get-DaysArg -Argv $Argv -Default 30
