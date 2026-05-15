@@ -9,23 +9,23 @@
     "normal": {
       "contextMenuLabel": "Open Here",
       "registryPaths": {
-        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellMenu\\shell\\OpenHere",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellMenu\\shell\\OpenHere"
+        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellMenu\\shell\\01-OpenHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellMenu\\shell\\01-OpenHere"
       },
       "commandArgs": {
-        "directory": "\"{exe}\" -NoExit -Command \"Set-Location -LiteralPath '%V'\"",
-        "background": "\"{exe}\" -NoExit -Command \"Set-Location -LiteralPath '%V'\""
+        "directory": "\"{exe}\" -NoExit -NoProfile -Command \"Set-Location -LiteralPath '%V'\"",
+        "background": "\"{exe}\" -NoExit -NoProfile -Command \"Set-Location -LiteralPath '%V'\""
       }
     },
     "admin": {
       "contextMenuLabel": "Open as Admin",
       "registryPaths": {
-        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellMenu\\shell\\OpenAsAdmin",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellMenu\\shell\\OpenAsAdmin"
+        "directory": "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\PowerShellMenu\\shell\\02-OpenAsAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\PowerShellMenu\\shell\\02-OpenAsAdmin"
       },
       "commandArgs": {
-        "directory": "\"{exe}\" -NoExit -Command \"Set-Location -LiteralPath '%V'\"",
-        "background": "\"{exe}\" -NoExit -Command \"Set-Location -LiteralPath '%V'\""
+        "directory": "\"{exe}\" -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-NoExit','-NoProfile','-Command',\\\"Set-Location -LiteralPath '%V'\\\"\"",
+        "background": "\"{exe}\" -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-NoExit','-NoProfile','-Command',\\\"Set-Location -LiteralPath '%V'\\\"\""
       },
       "runas": true,
       "extended": false

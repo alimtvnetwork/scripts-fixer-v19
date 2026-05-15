@@ -1,5 +1,5 @@
 {
-  "_comment": "Script 59 -- ConEmu right-click context menu. Adds 'Open ConEmu Here' (normal + admin) to folder + folder background menus. Mirrors script 31 (PowerShell Here).",
+  "_comment": "Script 59 -- ConEmu right-click context menu. 'Open Here' (no elevation) is listed first; 'Open as Admin' second (UAC via Start-Process -Verb RunAs).",
   "enabled": true,
   "menu": {
     "parentKeyName": "ConEmuMenu",
@@ -10,8 +10,8 @@
     "normal": {
       "contextMenuLabel": "Open Here",
       "registryPaths": {
-        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\OpenHere",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\OpenHere"
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\01-OpenHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\01-OpenHere"
       },
       "commandArgs": {
         "directory":  "\"{exe}\" -Dir \"%V\"",
@@ -21,12 +21,12 @@
     "admin": {
       "contextMenuLabel": "Open as Admin",
       "registryPaths": {
-        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\OpenAsAdmin",
-        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\OpenAsAdmin"
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\02-OpenAsAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\02-OpenAsAdmin"
       },
       "commandArgs": {
-        "directory":  "\"{exe}\" -Dir \"%V\"",
-        "background": "\"{exe}\" -Dir \"%V\""
+        "directory":  "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-Dir','%V'\"",
+        "background": "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-Dir','%V'\""
       },
       "runas": true,
       "extended": false
