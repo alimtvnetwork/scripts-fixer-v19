@@ -21,7 +21,15 @@
     "uninstallSuccess": "VLC uninstalled successfully.",
     "uninstallFailed": "VLC uninstall failed: {error}",
     "reinstallStart": "Performing full VLC reinstall (uninstall + fresh install + association repair)...",
-    "reinstallSuccess": "VLC reinstall complete."
+    "reinstallSuccess": "VLC reinstall complete.",
+    "prefsDisabled": "VLC preferences sync disabled in config -- skipping",
+    "prefsStart": "Applying VLC preferences (resume playback, etc.) for {scope}...",
+    "prefsScopeUser": "user '{user}' -> {path}",
+    "prefsCreated": "Created vlcrc: {path}",
+    "prefsUpdated": "Updated {key}={value} in {path}",
+    "prefsAlreadySet": "{key}={value} already set in {path}",
+    "prefsFailed": "Failed to update vlcrc {path}: {error}",
+    "prefsSummary": "Preferences -- updated: {updated} / unchanged: {unchanged} / failed: {failed}"
   },
   "help": {
     "commands": {

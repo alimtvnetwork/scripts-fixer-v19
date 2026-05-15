@@ -6,6 +6,14 @@
     "name": "VLC",
     "desc": "VLC media player (Chocolatey, 64-bit)",
     "skipDevDirPrompt": true,
+    "preferences": {
+      "_comment": "Post-install vlcrc tweaks. continue-playback: 0=never, 1=ask, 2=always resume.",
+      "enabled": true,
+      "applyToAllUsers": true,
+      "settings": {
+        "continue-playback": "2"
+      }
+    },
     "associationRepair": {
       "enabled": true,
       "stripOneInstance": true,

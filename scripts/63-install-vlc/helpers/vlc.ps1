@@ -61,7 +61,117 @@ function Install-Vlc {
     }
 
     Repair-VlcAssociations -VlcConfig $VlcConfig -LogMessages $LogMessages -ResolvedExe $existing | Out-Null
+    Set-VlcPreferences      -VlcConfig $VlcConfig -LogMessages $LogMessages | Out-Null
     return $true
+}
+
+function Get-VlcUserProfilePaths {
+    param([switch]$AllUsers)
+
+    $paths = @()
+    if ($AllUsers) {
+        $usersRoot = Join-Path $env:SystemDrive "Users"
+        if (Test-Path -LiteralPath $usersRoot) {
+            Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                $name = $_.Name
+                if ($name -in @('Public','Default','Default User','All Users','WDAGUtilityAccount')) { return }
+                $appData = Join-Path $_.FullName 'AppData\Roaming'
+                if (Test-Path -LiteralPath $appData) {
+                    $paths += [pscustomobject]@{ User = $name; VlcDir = (Join-Path $appData 'vlc') }
+                }
+            }
+        }
+    }
+    if ($paths.Count -eq 0 -and $env:APPDATA) {
+        $paths += [pscustomobject]@{ User = $env:USERNAME; VlcDir = (Join-Path $env:APPDATA 'vlc') }
+    }
+    return ,$paths
+}
+
+function Set-VlcrcSetting {
+    param(
+        [Parameter(Mandatory)] [string]$VlcrcPath,
+        [Parameter(Mandatory)] [string]$Key,
+        [Parameter(Mandatory)] [string]$Value
+    )
+    $line = "$Key=$Value"
+    if (-not (Test-Path -LiteralPath $VlcrcPath)) {
+        $dir = Split-Path -Parent $VlcrcPath
+        if (-not (Test-Path -LiteralPath $dir)) {
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        }
+        Set-Content -LiteralPath $VlcrcPath -Value $line -Encoding UTF8
+        return 'created'
+    }
+    $content = Get-Content -LiteralPath $VlcrcPath -ErrorAction Stop
+    $pattern = '^\s*#?\s*' + [regex]::Escape($Key) + '\s*='
+    $matched = $false
+    $changed = $false
+    $newContent = foreach ($l in $content) {
+        if (-not $matched -and $l -match $pattern) {
+            $matched = $true
+            if ($l -ne $line) { $changed = $true; $line } else { $l }
+        } else { $l }
+    }
+    if (-not $matched) {
+        $newContent = @($content) + $line
+        $changed = $true
+    }
+    if ($changed) {
+        Set-Content -LiteralPath $VlcrcPath -Value $newContent -Encoding UTF8
+        return 'updated'
+    }
+    return 'unchanged'
+}
+
+function Set-VlcPreferences {
+    param(
+        [Parameter(Mandatory)] $VlcConfig,
+        [Parameter(Mandatory)] $LogMessages
+    )
+    $msgs = $LogMessages.messages
+
+    $prefs = $null
+    if ($VlcConfig.PSObject.Properties.Name -contains 'preferences') {
+        $prefs = $VlcConfig.preferences
+    }
+    if (-not $prefs -or -not $prefs.enabled) {
+        Write-Log $msgs.prefsDisabled -Level "warn"
+        return
+    }
+
+    $allUsers = [bool]$prefs.applyToAllUsers
+    $scope = if ($allUsers) { "all users" } else { "current user" }
+    Write-Log ($msgs.prefsStart -replace '\{scope\}', $scope) -Level "info"
+
+    $targets = Get-VlcUserProfilePaths -AllUsers:$allUsers
+    $settings = @{}
+    foreach ($p in $prefs.settings.PSObject.Properties) { $settings[$p.Name] = [string]$p.Value }
+
+    $updated = 0; $unchanged = 0; $failed = 0
+    foreach ($t in $targets) {
+        $vlcrc = Join-Path $t.VlcDir 'vlcrc'
+        Write-Log ($msgs.prefsScopeUser -replace '\{user\}', $t.User -replace '\{path\}', $vlcrc) -Level "info"
+        foreach ($kv in $settings.GetEnumerator()) {
+            try {
+                $result = Set-VlcrcSetting -VlcrcPath $vlcrc -Key $kv.Key -Value $kv.Value
+                switch ($result) {
+                    'created'   { Write-Log ($msgs.prefsCreated -replace '\{path\}', $vlcrc) -Level "success"; $updated++ }
+                    'updated'   { Write-Log (($msgs.prefsUpdated -replace '\{key\}', $kv.Key) -replace '\{value\}', $kv.Value -replace '\{path\}', $vlcrc) -Level "success"; $updated++ }
+                    'unchanged' { Write-Log (($msgs.prefsAlreadySet -replace '\{key\}', $kv.Key) -replace '\{value\}', $kv.Value -replace '\{path\}', $vlcrc) -Level "info"; $unchanged++ }
+                }
+            } catch {
+                Write-Log (($msgs.prefsFailed -replace '\{path\}', $vlcrc) -replace '\{error\}', $_.Exception.Message) -Level "warn"
+                $failed++
+            }
+        }
+    }
+
+    $summary = $msgs.prefsSummary `
+        -replace '\{updated\}', $updated `
+        -replace '\{unchanged\}', $unchanged `
+        -replace '\{failed\}', $failed
+    Write-Log $summary -Level "info"
 }
 
 function Repair-VlcAssociations {
