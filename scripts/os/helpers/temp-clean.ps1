@@ -101,15 +101,18 @@ function Invoke-TempSweep {
         [int]$StepNum
     )
 
-    $result = [ordered]@{
-        Step   = $StepNum
-        Label  = $Label
-        Path   = $Path
-        Count  = 0
-        Bytes  = 0
-        Locked = 0
+    # NOTE: use [pscustomobject], NOT [ordered]@{} -- ordered dictionaries
+    # expose a read-only .Count property that shadows our key, causing
+    # "The property 'Count' cannot be found on this object" under StrictMode.
+    $result = [pscustomobject]@{
+        Step          = $StepNum
+        Label         = $Label
+        Path          = $Path
+        Count         = 0
+        Bytes         = [long]0
+        Locked        = 0
         LockedDetails = @()
-        Status = "ok"
+        Status        = "ok"
     }
 
     if (-not (Test-Path $Path)) {
