@@ -167,6 +167,10 @@ while [ $# -gt 0 ]; do
     # pinned sha256 BEFORE execution, then runs it through bash.
     coding-guidelines|clean-code|cg|cc|code-guide)
         VERB="remote-install"; REMOTE_KEY="coding-guidelines"; shift; break ;;
+    # ---- top-level: reset state (.logs / .resolved / .installed) -------
+    # Wipes per-run state from the repo root so the next run starts fresh.
+    reset|fresh|fresh-start|wipe-state|clear-state)
+        VERB="reset"; shift; RESET_REST=("$@"); break ;;
     *)
         # `./run.sh install wordpress [args]` lands here AFTER install was consumed.
         # Re-route it through the wp passthrough so the user-friendly form works.
