@@ -3689,7 +3689,7 @@ if ($hasCommand) {
     $isBareReportCommand  = $normalizedCommand -in @("report", "install-report", "installreport", "reports")
     $isBareModelsCommand  = $normalizedCommand -eq "models" -or $normalizedCommand -eq "model"
     $isBareModelsDownloadCommand = $normalizedCommand -in @("models-download","model-download","modelsdownload","modeldownload","models-dl","model-dl","models-install","model-install","models-pull","model-pull")
-    $isBareInstallCommand = $normalizedCommand -eq "install"
+    # (isBareInstallCommand already set above at line 3679)
     $isBareMenuCommand    = $normalizedCommand -in @("menu","menus","context-menu","contextmenu","ctx-menu","ctxmenu")
     $isBareOsCommand      = $normalizedCommand -eq "os"
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
