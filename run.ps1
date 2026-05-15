@@ -603,6 +603,17 @@ function Show-RootHelpRaw {
     Write-Host "    $("install conemu+menu".PadRight($kc))" -NoNewline; Write-Host "Same as conemu-menu (alias) [48,59]" -ForegroundColor DarkGray
     Write-Host "    $("install conemu-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as conemu-menu (alias) [48,59]" -ForegroundColor DarkGray
     Write-Host ""
+    Write-Host "      Windows Terminal context menu:" -ForegroundColor DarkYellow
+    Write-Host "    $("install wt-menu".PadRight($kc))" -NoNewline; Write-Host "Windows Terminal submenu with 'Open Here' + 'Open as Admin' for folder/background right-click [37,64]" -ForegroundColor DarkGray
+    Write-Host "    $("install wt-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as wt-menu (alias) [37,64]" -ForegroundColor DarkGray
+    Write-Host "    $("install terminal-menu".PadRight($kc))" -NoNewline; Write-Host "Same as wt-menu (alias) [37,64]" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "      All right-click context menus (PowerShell + ConEmu + Windows Terminal):" -ForegroundColor DarkYellow
+    Write-Host "    $("install context-menu".PadRight($kc))" -NoNewline; Write-Host "Run script 57 bundle: prompt per menu (or pass -y / --yes for all) [57]" -ForegroundColor DarkGray
+    Write-Host "    $("install context".PadRight($kc))" -NoNewline; Write-Host "Search alias for the bundle [57]" -ForegroundColor DarkGray
+    Write-Host "    $("install menu".PadRight($kc))" -NoNewline; Write-Host "Search alias for the bundle [57]" -ForegroundColor DarkGray
+    Write-Host "    $("install right-click".PadRight($kc))" -NoNewline; Write-Host "Search alias for the bundle [57]" -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "      Scripts Fixer cascading right-click menu (script 53):" -ForegroundColor DarkYellow
     Write-Host "    $("install os-context-menu".PadRight($kc))" -NoNewline; Write-Host "Install full 'Scripts Fixer v{ver}' cascading right-click menu (file/folder/bg/desktop) [53]" -ForegroundColor DarkGray
     Write-Host "    $("install context-menu-all".PadRight($kc))" -NoNewline; Write-Host "Same as os-context-menu (alias) [53]" -ForegroundColor DarkGray

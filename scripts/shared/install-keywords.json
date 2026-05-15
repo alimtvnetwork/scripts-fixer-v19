@@ -328,6 +328,34 @@
       48,
       59
     ],
+    "wt-menu": [
+      37,
+      64
+    ],
+    "wt-context-menu": [
+      37,
+      64
+    ],
+    "windows-terminal-menu": [
+      37,
+      64
+    ],
+    "windows-terminal-context-menu": [
+      37,
+      64
+    ],
+    "terminal-context-menu": [
+      37,
+      64
+    ],
+    "terminal-menu": [
+      37,
+      64
+    ],
+    "wt+menu": [
+      37,
+      64
+    ],
     "context-menu-bundle": [
       57
     ],
@@ -335,6 +363,24 @@
       57
     ],
     "fix-menus": [
+      57
+    ],
+    "context": [
+      57
+    ],
+    "menu": [
+      57
+    ],
+    "menus": [
+      57
+    ],
+    "right-click": [
+      57
+    ],
+    "right-click-menu": [
+      57
+    ],
+    "rightclick": [
       57
     ],
     "context-menu-all": [

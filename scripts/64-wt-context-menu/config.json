@@ -1,0 +1,44 @@
+{
+  "_comment": "Script 64 -- Windows Terminal right-click context menu. 'Open Here' (no elevation) is listed first; 'Open as Admin' second (UAC via Start-Process -Verb RunAs). Mirrors scripts 31 (PowerShell) + 59 (ConEmu).",
+  "enabled": true,
+  "menu": {
+    "parentKeyName": "WindowsTerminalMenu",
+    "parentLabel": "Windows Terminal",
+    "iconMode": "wt"
+  },
+  "modes": {
+    "normal": {
+      "contextMenuLabel": "Open Here",
+      "registryPaths": {
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\WindowsTerminalMenu\\shell\\01-OpenHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\WindowsTerminalMenu\\shell\\01-OpenHere"
+      },
+      "commandArgs": {
+        "directory":  "\"{exe}\" -d \"%V\"",
+        "background": "\"{exe}\" -d \"%V\""
+      }
+    },
+    "admin": {
+      "contextMenuLabel": "Open as Admin",
+      "registryPaths": {
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\WindowsTerminalMenu\\shell\\02-OpenAsAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\WindowsTerminalMenu\\shell\\02-OpenAsAdmin"
+      },
+      "commandArgs": {
+        "directory":  "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-d','%V'\"",
+        "background": "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-d','%V'\""
+      },
+      "runas": true,
+      "extended": false
+    }
+  },
+  "enabledModes": ["normal", "admin"],
+  "wtPaths": {
+    "userWindowsApps":  "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe",
+    "programFiles":     "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal*\\wt.exe",
+    "chocoShim":        "%ProgramData%\\chocolatey\\bin\\wt.exe"
+  },
+  "verifyCommand": "wt",
+  "versionFlag": "--version",
+  "fallbackTo32Bit": false
+}

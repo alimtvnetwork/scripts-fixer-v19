@@ -31,6 +31,21 @@
       "uninstallArgs": [
         "uninstall"
       ]
+    },
+    {
+      "id": "wt-context-menu",
+      "scriptId": "64",
+      "folder": "64-wt-context-menu",
+      "title": "Windows Terminal submenu (Open Here + Open as Admin)",
+      "description": "Adds a 'Windows Terminal' submenu with 'Open Here' and 'Open as Admin' to folder + folder background right-click menus.",
+      "registryTargets": [
+        "HKCR\\Directory\\shell\\WindowsTerminalMenu",
+        "HKCR\\Directory\\Background\\shell\\WindowsTerminalMenu"
+      ],
+      "installArgs": [],
+      "uninstallArgs": [
+        "uninstall"
+      ]
     }
   ]
 }
