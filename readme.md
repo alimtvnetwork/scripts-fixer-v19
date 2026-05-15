@@ -916,7 +916,7 @@ Hugging Face URLs, RAM math, or quantization codes.
 | Backend | Catalog | What it does | Entry point |
 |---|---|---|---|
 | **llama.cpp** | [`models-list.md`](scripts/43-install-llama-cpp/models-list.md) — **90 GGUF models, 33 families** | Hardware-aware picker. 4-filter chain (RAM → Size → Speed → Capability). Direct GGUF download + verify. | `.\run.ps1 install llama-cpp` |
-| **Ollama** | [`config.json`](scripts/42-install-ollama/config.json) — daemon-managed pulls | Daemon-based pull/push. Slug install (`llama3.2`, `qwen2.5-coder`, `deepseek-r1:8b`). Auto-detects existing models on uninstall. | `.\run.ps1 install ollama` |
+| **Ollama** | [`config.json`](scripts/42-install-ollama/config.json) — runtime slug catalog | Runtime install/run flow for slug-based models (`llama3.2`, `qwen2.5-coder`, `deepseek-r1:8b`). Auto-detects existing models on uninstall. | `.\run.ps1 install ollama` |
 
 The catalog includes the **open-weight portion of the OpenRouter LLM
 Leaderboard (Nov 2025)** — MiMo-V2-Flash, Qwen 3.6, DeepSeek V3.2,
@@ -925,7 +925,7 @@ Z.AI GLM 5.1, Moonshot Kimi K2.6, OpenAI gpt-oss-120b. Closed-source
 API models (Claude, GPT-5.4, Gemini, Grok) are intentionally excluded
 because they cannot be downloaded as GGUF files.
 
-By default, model payloads land under the normal shared dev root at `<dev-dir>\models`. That `<dev-dir>` comes from the same script-wide resolution order: `$env:DEV_DIR`, then saved `./run.ps1 path`, then the standard smart default dev path. Use `./run.ps1 models path`, `MODELS_DIR`, `LLAMA_MODELS_DIR`, or `OLLAMA_MODELS` only when you explicitly want an override.
+By default, model payloads land under the normal shared dev root at `<dev-dir>\models`. `models-download` always saves standalone `.gguf` files there, even when you pick a model by number from the combined catalog or use an Ollama slug alias. That `<dev-dir>` comes from the same script-wide resolution order: `$env:DEV_DIR`, then saved `./run.ps1 path`, then the standard smart default dev path. Use `./run.ps1 models path`, `MODELS_DIR`, `LLAMA_MODELS_DIR`, or `OLLAMA_MODELS` only when you explicitly want an override.
 
 ### Quick install
 
@@ -2253,7 +2253,7 @@ E:\dev-tool\
   python\      # Python install + PYTHONUSERBASE (Scripts/)
   pnpm\        # pnpm store
   llama-cpp\   # llama.cpp binaries (CUDA, AVX2, KoboldCPP)
-  models\      # downloaded GGUF + Ollama-format model payloads
+  models\      # downloaded standalone GGUF model files
   ollama\      # Ollama installer cache
 ```
 
