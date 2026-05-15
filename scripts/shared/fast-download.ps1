@@ -30,6 +30,11 @@ if ((Test-Path $_retryPath) -and -not (Get-Command Invoke-DownloadWithRetry -Err
     . $_retryPath
 }
 
+$_pbarPath = Join-Path $_sharedDir "progress-bar.ps1"
+if ((Test-Path $_pbarPath) -and -not (Get-Command Invoke-Aria2WithProgressBar -ErrorAction SilentlyContinue)) {
+    . $_pbarPath
+}
+
 function ConvertTo-Aria2PieceSize {
     <#
         aria2c's --min-split-size / -k must be >= 1M. Accept human strings
