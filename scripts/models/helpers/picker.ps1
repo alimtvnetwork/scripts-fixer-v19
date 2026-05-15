@@ -754,6 +754,42 @@ function Invoke-BackendInstall {
     #                  later `-I 42` install picks them up automatically.
     . (Join-Path (Split-Path -Parent $PSCommandPath) "ollama-registry-pull.ps1")
 
+    # PREFERENCE: any model picked from the Ollama catalog that has a GGUF
+    # equivalent in the llama-cpp catalog gets rerouted, so 'models download'
+    # always prefers a plain GGUF file download over the Ollama blob layout.
+    # This handles the case where the user picks by NUMERIC INDEX from
+    # `models list` (which resolves directly to the ollama row), not just by
+    # typed id.
+    try {
+        $llamaCatalog = Get-BackendCatalog -Backend "llama-cpp" -Config $Config -ScriptsRoot $ScriptsRoot
+        $llamaIds = @{}
+        foreach ($lm in $llamaCatalog) { $llamaIds[$lm.id.ToLower()] = $lm }
+        $remapped = @()
+        foreach ($m in $Models) {
+            if ($m.backend -eq 'ollama') {
+                $needle = "$($m.id)".ToLower()
+                $candidates = @(
+                    ($needle -replace '^library/', '' -replace ':', '-'),
+                    ($needle -replace ':', '-'),
+                    $needle
+                ) | Select-Object -Unique
+                $alias = $null
+                foreach ($c in $candidates) {
+                    if ($llamaIds.ContainsKey($c)) { $alias = $llamaIds[$c]; break }
+                }
+                if ($alias) {
+                    Write-Log ("[route] '{0}' (ollama) -> GGUF alias '{1}' (llama-cpp)" -f $m.id, $alias.id) -Level "info"
+                    $remapped += $alias
+                    continue
+                }
+            }
+            $remapped += $m
+        }
+        $Models = $remapped
+    } catch {
+        Write-Log "GGUF-alias remap skipped: $_" -Level "warn"
+    }
+
     $byBackend = $Models | Group-Object backend
     foreach ($group in $byBackend) {
         $backend = $group.Name
