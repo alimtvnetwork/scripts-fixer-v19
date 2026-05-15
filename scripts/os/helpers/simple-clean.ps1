@@ -134,10 +134,10 @@ Invoke-Step "Temp directories" {
 
 # Step 3: Event logs
 Invoke-Step "Windows event logs" {
-    $args = @("-Category","event-logs")
-    if ($dryRun)  { $args += "--dry-run" }
-    if ($autoYes) { $args += "--yes" }
-    & $runner @args
+    $runnerArgs = @("-Category","event-logs")
+    if ($dryRun)  { $runnerArgs += "--dry-run" }
+    if ($autoYes) { $runnerArgs += "--yes" }
+    & $runner @runnerArgs
 }
 
 # Step 4: PSReadLine history (inline -- no helper needed)
