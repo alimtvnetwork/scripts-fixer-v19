@@ -101,93 +101,36 @@ function Invoke-OllamaRegistryPull {
         [Parameter(Mandatory)] [string]$TargetRoot
     )
 
-    $registry = "https://registry.ollama.ai"
-    $accept   = "application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
-
-    if (-not (Test-Path $TargetRoot)) {
-        try {
-            New-Item -ItemType Directory -Path $TargetRoot -Force | Out-Null
-        } catch {
-            Write-FileError -FilePath $TargetRoot -Operation "create-dir" -Reason "$_" -Module "Invoke-OllamaRegistryPull" `
-                -Context @{ outputPath = $TargetRoot }
-            throw
-        }
+    $pickerPath = Join-Path $__modelsHelpersDir "picker.ps1"
+    if (-not (Get-Command Resolve-StandaloneDownloadModels -ErrorAction SilentlyContinue) -and (Test-Path $pickerPath)) {
+        . $pickerPath
     }
-    $blobsDir = Join-Path $TargetRoot "blobs"
-    if (-not (Test-Path $blobsDir)) { New-Item -ItemType Directory -Path $blobsDir -Force | Out-Null }
 
-    $allOk = $true
+    $configPath = Join-Path (Join-Path $__scriptsRoot "models") "config.json"
+    if (-not (Test-Path $configPath)) {
+        Write-FileError -FilePath $configPath -Operation "load-config" -Reason "models orchestrator config.json not found" -Module "Invoke-OllamaRegistryPull"
+        return $false
+    }
 
-    foreach ($rawSlug in $Slugs) {
-        $parsed = _Parse-OllamaSlug -Slug $rawSlug
-        if (-not $parsed) { continue }
-
-        $manifestUrl  = "$registry/v2/$($parsed.Name)/manifests/$($parsed.Tag)"
-        $manifestDir  = Join-Path $TargetRoot ("manifests\registry.ollama.ai\" + ($parsed.Name -replace '/','\'))
-        $manifestPath = Join-Path $manifestDir $parsed.Tag
-
-        Write-Log ("[ollama] Downloading manifest {0} from {1}" -f $parsed.Display, $manifestUrl) -Level "info"
-
-        try {
-            $resp = Invoke-WebRequest -Uri $manifestUrl -Headers @{ Accept = $accept } `
-                        -UseBasicParsing -ErrorAction Stop
-            $manifestText = $resp.Content
-            $manifest = $manifestText | ConvertFrom-Json
-        } catch {
-            $reason = "$_"
-            Write-FileError -FilePath $manifestPath -Operation "fetch-manifest" -Reason $reason -Module "Invoke-OllamaRegistryPull" `
-                -Context @{
-                    requestedInput     = $rawSlug
-                    requestedModelName = $parsed.Display
-                    modelUrl           = $manifestUrl
-                    outputPath         = $manifestPath
-                    failureReason      = $reason
-                }
-            Write-Log ("  >> Failed to fetch manifest. Model: {0}  URL: {1}  Reason: {2}" -f $parsed.Display, $manifestUrl, $reason) -Level "error"
-            $allOk = $false
-            continue
-        }
-
-        # Collect blob digests (config + layers).
-        $digests = New-Object System.Collections.Generic.List[string]
-        if ($manifest.config -and $manifest.config.digest) { $digests.Add($manifest.config.digest) }
-        if ($manifest.layers) {
-            foreach ($layer in $manifest.layers) {
-                if ($layer.digest) { $digests.Add($layer.digest) }
+    $config = Get-Content $configPath -Raw | ConvertFrom-Json
+    $pseudoModels = @()
+    foreach ($slug in $Slugs) {
+        if (-not [string]::IsNullOrWhiteSpace("$slug")) {
+            $pseudoModels += [PSCustomObject]@{
+                id = "$slug"
+                displayName = "$slug"
+                backend = "ollama"
+                raw = $null
             }
-        }
-
-        $modelOk = $true
-        foreach ($d in $digests) {
-            # digest format: "sha256:<hex>" -- on-disk filename is "sha256-<hex>"
-            $hex = ($d -replace '^sha256:', '')
-            $blobFile = Join-Path $blobsDir ("sha256-" + $hex)
-            $blobUrl  = "$registry/v2/$($parsed.Name)/blobs/$d"
-            Write-Log ("[ollama] blob {0} -> {1}" -f $d, $blobFile) -Level "info"
-            $ok = _Download-OllamaBlob -Url $blobUrl -Target $blobFile -ExpectedSha256 $hex
-            if (-not $ok) {
-                $modelOk = $false
-                Write-Log ("  >> Blob download failed. Model: {0}  URL: {1}  Target: {2}" -f $parsed.Display, $blobUrl, $blobFile) -Level "error"
-            }
-        }
-
-        if ($modelOk) {
-            try {
-                if (-not (Test-Path $manifestDir)) { New-Item -ItemType Directory -Path $manifestDir -Force | Out-Null }
-                Set-Content -LiteralPath $manifestPath -Value $manifestText -Encoding UTF8
-                Write-Log ("[ollama]   manifest saved: {0}" -f $manifestPath) -Level "success"
-                Write-Log ("[ollama] {0} -- complete (standalone, no daemon)" -f $parsed.Display) -Level "success"
-            } catch {
-                $reason = "$_"
-                Write-FileError -FilePath $manifestPath -Operation "write-manifest" -Reason $reason -Module "Invoke-OllamaRegistryPull" `
-                    -Context @{ modelUrl = $manifestUrl; outputPath = $manifestPath }
-                $allOk = $false
-            }
-        } else {
-            $allOk = $false
-            Write-Log ("[ollama] {0} -- INCOMPLETE (one or more blobs failed)" -f $parsed.Display) -Level "error"
         }
     }
 
-    return $allOk
+    $resolved = @(Resolve-StandaloneDownloadModels -Models $pseudoModels -Config $config -ScriptsRoot $__scriptsRoot -OutputRoot $TargetRoot | Where-Object { $null -ne $_ })
+    if ($resolved.Count -eq 0) {
+        Write-Log "No standalone GGUF downloads could be resolved from legacy Ollama slugs." -Level "error"
+        return $false
+    }
+
+    Write-Log "[compat] Legacy Ollama registry helper rerouted to standalone GGUF download." -Level "info"
+    return (Invoke-StandaloneGgufDownload -Models $resolved -Config $config -ScriptsRoot $__scriptsRoot)
 }
