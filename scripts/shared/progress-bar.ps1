@@ -23,6 +23,8 @@ if ((Test-Path $_loggingPath) -and -not (Get-Command Write-Log -ErrorAction Sile
 # Track last rendered width so we can pad subsequent shorter lines and
 # fully overwrite the previous render.
 $script:_pbarLastLen = 0
+$script:_pbarFirstRender = $true
+$script:_pbarIndent = '      '   # left padding (indent) so the bar sits inset from the edge
 
 function Get-DownloadBarColor {
     param([int]$Percent)
