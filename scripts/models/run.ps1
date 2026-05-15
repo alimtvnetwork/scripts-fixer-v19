@@ -35,6 +35,7 @@ $scriptsRoot = Split-Path -Parent $scriptDir
 . (Join-Path $sharedDir "help.ps1")
 . (Join-Path $sharedDir "install-paths.ps1")
 . (Join-Path $sharedDir "dev-dir.ps1")
+. (Join-Path $sharedDir "disk-space.ps1")
 
 # -- Dot-source orchestrator helpers -----------------------------------------
 . (Join-Path $scriptDir "helpers\picker.ps1")
