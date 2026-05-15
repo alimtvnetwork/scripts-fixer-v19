@@ -296,3 +296,113 @@ function Uninstall-NotepadPP {
 
     Write-Log $LogMessages.messages.uninstallComplete -Level "success"
 }
+
+function Set-NotepadPPFont {
+    <#
+    .SYNOPSIS
+        Sets the global Notepad++ editor font + size by patching
+        %APPDATA%\Notepad++\stylers.xml (Default Style + Global override)
+        and enabling the Global override font/size flags in config.xml.
+    .DESCRIPTION
+        CODE RED: every file/path failure logs the exact path + reason via
+        Write-FileError. Backups are written next to the original as
+        <file>.bak.<timestamp>.
+    #>
+    param(
+        [Parameter(Mandatory)] [string] $FontName,
+        [Parameter(Mandatory)] [int]    $FontSize,
+        [Parameter(Mandatory)] $LogMessages
+    )
+
+    $appDataDir   = Join-Path $env:APPDATA "Notepad++"
+    $stylersPath  = Join-Path $appDataDir  "stylers.xml"
+    $configPath   = Join-Path $appDataDir  "config.xml"
+    $stamp        = Get-Date -Format "yyyyMMdd-HHmmss"
+
+    Write-Log ("Target font  : {0} (size {1})" -f $FontName, $FontSize) -Level "info"
+    Write-Log ("stylers.xml  : $stylersPath") -Level "info"
+    Write-Log ("config.xml   : $configPath")  -Level "info"
+
+    # -- 0. Warn if Notepad++ is currently running ---------------------------
+    $running = Get-Process -Name "notepad++" -ErrorAction SilentlyContinue
+    if ($running) {
+        Write-Log "Notepad++ is currently running -- close it before changes take effect." -Level "warn"
+    }
+
+    if (-not (Test-Path -LiteralPath $appDataDir)) {
+        Write-FileError -FilePath $appDataDir -Operation "read" `
+            -Reason "Notepad++ AppData folder missing -- launch Notepad++ once, then retry." `
+            -Module "Set-NotepadPPFont"
+        return $false
+    }
+
+    if (-not (Test-Path -LiteralPath $stylersPath)) {
+        Write-FileError -FilePath $stylersPath -Operation "read" `
+            -Reason "stylers.xml not found -- run 'install npp+settings' first or launch Notepad++ once." `
+            -Module "Set-NotepadPPFont"
+        return $false
+    }
+
+    # -- 1. Patch stylers.xml -----------------------------------------------
+    try {
+        Copy-Item -LiteralPath $stylersPath -Destination "$stylersPath.bak.$stamp" -Force
+        [xml]$styxml = Get-Content -LiteralPath $stylersPath -Raw
+    } catch {
+        Write-FileError -FilePath $stylersPath -Operation "parse" `
+            -Reason "Could not read/parse stylers.xml: $_" -Module "Set-NotepadPPFont"
+        return $false
+    }
+
+    $targets = @("Default Style", "Global override", "Current line background colour", "Selected text colour")
+    $patched = 0
+    $nodes = $styxml.SelectNodes("//GlobalStyles/WidgetStyle")
+    foreach ($n in $nodes) {
+        if ($targets -contains $n.name) {
+            $n.SetAttribute("fontName", $FontName)
+            $n.SetAttribute("fontSize", "$FontSize")
+            $patched++
+        }
+    }
+    if ($patched -eq 0) {
+        Write-FileError -FilePath $stylersPath -Operation "patch" `
+            -Reason "No <GlobalStyles>/<WidgetStyle> nodes matched -- file may be malformed." `
+            -Module "Set-NotepadPPFont"
+        return $false
+    }
+    try {
+        $styxml.Save($stylersPath)
+        Write-Log ("Patched {0} GlobalStyles node(s) in stylers.xml (backup: $stylersPath.bak.$stamp)" -f $patched) -Level "success"
+    } catch {
+        Write-FileError -FilePath $stylersPath -Operation "write" `
+            -Reason "Failed to save stylers.xml: $_" -Module "Set-NotepadPPFont"
+        return $false
+    }
+
+    # -- 2. Enable Global override flags in config.xml ----------------------
+    if (Test-Path -LiteralPath $configPath) {
+        try {
+            Copy-Item -LiteralPath $configPath -Destination "$configPath.bak.$stamp" -Force
+            [xml]$cfgxml = Get-Content -LiteralPath $configPath -Raw
+            $gov = $cfgxml.SelectSingleNode("//GUIConfigs/GUIConfig[@name='globalOverride']")
+            if ($null -eq $gov) {
+                $gov = $cfgxml.CreateElement("GUIConfig")
+                $gov.SetAttribute("name","globalOverride")
+                $cfgxml.SelectSingleNode("//GUIConfigs").AppendChild($gov) | Out-Null
+            }
+            $gov.SetAttribute("fontName","yes")
+            $gov.SetAttribute("fontSize","yes")
+            $gov.SetAttribute("enable","yes")
+            $cfgxml.Save($configPath)
+            Write-Log "Enabled globalOverride.fontName + fontSize in config.xml (backup: $configPath.bak.$stamp)" -Level "success"
+        } catch {
+            Write-FileError -FilePath $configPath -Operation "write" `
+                -Reason "Failed to update globalOverride flags in config.xml: $_" -Module "Set-NotepadPPFont"
+            # non-fatal -- stylers.xml change still applies to default style
+        }
+    } else {
+        Write-Log "config.xml not found at $configPath -- skipped globalOverride toggle (Default Style still updated)." -Level "warn"
+    }
+
+    Write-Log ("Notepad++ font set to '{0}' size {1}. Restart Notepad++ to see changes." -f $FontName, $FontSize) -Level "success"
+    return $true
+}
