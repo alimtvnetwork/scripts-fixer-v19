@@ -274,7 +274,12 @@ try {
                 return
             }
 
-            Invoke-BackendInstall -Models $matched -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
+            $resolvedStandalone = @(Resolve-StandaloneDownloadModels -Models $matched -Config $config -ScriptsRoot $scriptsRoot -OutputRoot $downloadPaths.Llama | Where-Object { $null -ne $_ })
+            if ($resolvedStandalone.Count -eq 0) {
+                Write-Log "No standalone GGUF downloads matched the supplied flags." -Level "warn"
+                return
+            }
+            Invoke-BackendInstall -Models $resolvedStandalone -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
             Show-ModelDownloadPaths -Paths $downloadPaths
             Write-Log $logMessages.messages.complete -Level "success"
             return
@@ -326,6 +331,11 @@ try {
                 Write-Log $logMessages.messages.csvNoneFound -Level "error" -Context $missCtx
                 Write-Log "  Run '.\run.ps1 models list' to see catalog ids." -Level "info"
             }
+            return
+        }
+        $matched = @(Resolve-StandaloneDownloadModels -Models $matched -Config $config -ScriptsRoot $scriptsRoot -OutputRoot $downloadPaths.Llama | Where-Object { $null -ne $_ })
+        if ($matched.Count -eq 0) {
+            Write-Log "No standalone GGUF downloads could be resolved from the requested selection." -Level "error"
             return
         }
         Invoke-BackendInstall -Models $matched -Config $config -ScriptsRoot $scriptsRoot -LogMessages $logMessages
