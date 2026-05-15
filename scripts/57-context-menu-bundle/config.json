@@ -18,24 +18,6 @@
       ]
     },
     {
-      "id": "vscode-folder-repair",
-      "scriptId": "52",
-      "folder": "52-vscode-folder-repair",
-      "title": "VS Code folder context menu repair",
-      "description": "Restores 'Open with Code' on folders, removes redundant file/background entries, and refreshes Explorer.",
-      "registryTargets": [
-        "HKCR\\Directory\\shell\\VSCode",
-        "HKCR\\Directory\\Background\\shell\\VSCode (cleaned)",
-        "HKCR\\*\\shell\\VSCode (cleaned)"
-      ],
-      "installArgs": [
-        "repair"
-      ],
-      "uninstallArgs": [
-        "rollback"
-      ]
-    },
-    {
       "id": "conemu-context-menu",
       "scriptId": "59",
       "folder": "59-conemu-context-menu",
