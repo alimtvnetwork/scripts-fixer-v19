@@ -331,12 +331,17 @@ function Show-RootHelpRaw {
     Write-Host "    $(".\run.ps1 models <ids>".PadRight($col))" -NoNewline; Write-Host "Direct install: CSV of model ids (auto-routes per backend)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 models list".PadRight($col))" -NoNewline; Write-Host "List all models from both catalogs" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 models-download <n|id>".PadRight($col))" -NoNewline; Write-Host "Top-level shortcut for 'models download ...'" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 install model <ids>".PadRight($col))" -NoNewline; Write-Host "Same shortcut: 'install model 93' or 'install model 93,94' (standalone GGUF)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 -M".PadRight($col))" -NoNewline; Write-Host "Shortcut for 'models'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> [<dir>]".PadRight($col))" -NoNewline; Write-Host "Fast download (aria2c, defaults -s 16 -p 1M); 'url' is alias" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> -s 12 -p 2M".PadRight($col))" -NoNewline; Write-Host "Override splits (per-server connections) and piece size" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 os <action>".PadRight($col))" -NoNewline; Write-Host "OS housekeeping: clean, temp-clean, hib-off, flp, add-user ('os -h' for full list)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 menu <verb> [target]".PadRight($col))" -NoNewline; Write-Host "Context-menu manager: install|uninstall|list|help; targets all|pwsh|wt|conemu|vscode|sf" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 menu install all -y".PadRight($col))" -NoNewline; Write-Host "Install every right-click menu (PowerShell, Windows Terminal, ConEmu, VS Code, SF)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 menu install pwsh|wt|conemu".PadRight($col))" -NoNewline; Write-Host "Install one menu only (PowerShell / Windows Terminal / ConEmu submenu)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 menu uninstall conemu".PadRight($col))" -NoNewline; Write-Host "Snapshot to .reg + remove a target's right-click entries" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 vscode-folder <action>".PadRight($col))" -NoNewline; Write-Host "VS Code folder-only context-menu repair ('vscode-folder help')" -ForegroundColor DarkGray
-    Write-Host "    $(".\run.ps1 vscode-context-menu install".PadRight($col))" -NoNewline; Write-Host "Add VS Code 'Open with Code' to Windows right-click menu (uninstall to remove)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 vscode-context-menu install".PadRight($col))" -NoNewline; Write-Host "Legacy alias for 'menu install vscode' (kept for back-compat)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 profile <name>".PadRight($col))" -NoNewline; Write-Host "Run a profile recipe (see 'Profiles' section below for list)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 install <profile>".PadRight($col))" -NoNewline; Write-Host "Same as above -- 'install minimal' == 'profile minimal'" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 profile list".PadRight($col))" -NoNewline; Write-Host "Show all available profiles with descriptions" -ForegroundColor DarkGray
