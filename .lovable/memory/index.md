@@ -54,3 +54,4 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).
 - [llama.cpp prebuilt (Linux)](mem://features/llama-cpp-prebuilt) — Script 43 downloads pinned prebuilt tarball, symlinks bins, writes sourceable env file; no compile
+- [Download progress bar](mem://features/download-progress-bar) — Winget-style colour-graduated in-place bar in scripts/shared/progress-bar.ps1; Invoke-FastDownload uses it for every download incl. model pulls
