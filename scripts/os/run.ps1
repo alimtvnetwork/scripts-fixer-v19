@@ -384,7 +384,7 @@ if ($normalizedAction -match '^clean-(.+)$') {
         Write-Host "          Run '.\run.ps1 os --help' for the full list." -ForegroundColor DarkGray
         exit 1
     }
-    & (Join-Path $scriptDir "helpers\clean-runner.ps1") -Category $cat @Rest
+    & (Join-Path $scriptDir "helpers\clean-runner.ps1") -Category $cat -Argv $Rest
     exit $LASTEXITCODE
 }
 
@@ -392,7 +392,7 @@ switch ($normalizedAction) {
     "clean" {
         # SIMPLE clean: WU cache + temp dirs + event logs + PSReadLine history.
         # For the full 59-category sweep use 'advance-clean' / 'advanced-clean'.
-        & (Join-Path $scriptDir "helpers\simple-clean.ps1") @Rest
+        & (Join-Path $scriptDir "helpers\simple-clean.ps1") -Argv $Rest
         exit $LASTEXITCODE
     }
     { $_ -in @("advance-clean", "advanced-clean", "clean-all", "clean-advanced", "clean-advance") } {
