@@ -3717,7 +3717,7 @@ if ($hasCommand) {
     #   - any of $Install contains --no-pull / -no-pull / --offline
     #   - command is read-only (status/path/scan/export/doctor)
     $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand -or $isBareReportCommand
-    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand
+    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand -or $isBareInstallCommand -or $isBareMenuCommand
     $isNoPullEnv = $env:SCRIPTS_FIXER_NO_PULL -eq "1"
     $isNoPullFlag = $false
     if ($null -ne $Install) {
