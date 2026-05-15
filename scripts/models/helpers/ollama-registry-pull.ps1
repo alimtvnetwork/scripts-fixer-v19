@@ -126,7 +126,7 @@ function Invoke-OllamaRegistryPull {
         $manifestDir  = Join-Path $TargetRoot ("manifests\registry.ollama.ai\" + ($parsed.Name -replace '/','\'))
         $manifestPath = Join-Path $manifestDir $parsed.Tag
 
-        Write-Log ("[ollama] Pulling {0} from {1}" -f $parsed.Display, $manifestUrl) -Level "info"
+        Write-Log ("[ollama] Downloading manifest {0} from {1}" -f $parsed.Display, $manifestUrl) -Level "info"
 
         try {
             $resp = Invoke-WebRequest -Uri $manifestUrl -Headers @{ Accept = $accept } `
