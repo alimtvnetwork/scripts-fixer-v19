@@ -49,6 +49,20 @@ SHARED_DIR="$(cd "$SCRIPT_DIR/../_shared" && pwd)"
 CATALOG="${MODEL_PULL_CATALOG_OVERRIDE:-$REPO_ROOT/scripts/43-install-llama-cpp/models-catalog.json}"
 DEFAULT_DIR="${MODEL_PULL_DEFAULT_DIR_OVERRIDE:-$HOME/models/gguf}"
 
+log_model_failure_details() {
+  local requested_model="$1"
+  local model_name="$2"
+  local model_url="$3"
+  local output_path="$4"
+  local failure_reason="$5"
+
+  log_err  "          Model: $requested_model"
+  log_err  "          ModelName: $model_name"
+  log_err  "          URL: $model_url"
+  log_err  "          Target: $output_path"
+  log_err  "          Reason: $failure_reason"
+}
+
 if [ ! -f "$CATALOG" ]; then
   log_file_error "$CATALOG" "models-catalog.json missing -- cannot resolve model ids"
   exit 1
@@ -361,29 +375,33 @@ for id in "${ARGS[@]}"; do
       SURVIVORS+=("$id|$url|$target")
       ;;
     401)
-      log_err  "[model-pull] [ FAIL ] $id -- 401 Unauthorized -- repo is gated or does not exist on HuggingFace"
-      log_err  "          URL: $url"
+      reason="401 Unauthorized -- repo is gated or does not exist on HuggingFace"
+      log_err  "[model-pull] [ FAIL ] $id -- $reason"
+      log_model_failure_details "$id" "$id" "$url" "$target" "$reason"
       log_err  "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json"
-      log_file_error "$url" "preflight HEAD: 401 (gated/missing repo)"
+      log_file_error "$target" "model='$id' url='$url' target='$target' reason='$reason'"
       fail=$((fail+1))
       ;;
     403)
-      log_err  "[model-pull] [ FAIL ] $id -- 403 Forbidden -- repo requires acceptance of license"
-      log_err  "          URL: $url"
-      log_file_error "$url" "preflight HEAD: 403 (license acceptance required)"
+      reason="403 Forbidden -- repo requires acceptance of license"
+      log_err  "[model-pull] [ FAIL ] $id -- $reason"
+      log_model_failure_details "$id" "$id" "$url" "$target" "$reason"
+      log_file_error "$target" "model='$id' url='$url' target='$target' reason='$reason'"
       fail=$((fail+1))
       ;;
     404)
-      log_err  "[model-pull] [ FAIL ] $id -- 404 Not Found -- this catalog entry points to a non-existent file"
-      log_err  "          URL: $url"
+      reason="404 Not Found -- this catalog entry points to a non-existent file"
+      log_err  "[model-pull] [ FAIL ] $id -- $reason"
+      log_model_failure_details "$id" "$id" "$url" "$target" "$reason"
       log_err  "          ACTION: remove or correct this entry in scripts/43-install-llama-cpp/models-catalog.json"
-      log_file_error "$url" "preflight HEAD: 404 (file does not exist)"
+      log_file_error "$target" "model='$id' url='$url' target='$target' reason='$reason'"
       fail=$((fail+1))
       ;;
     *)
-      log_err  "[model-pull] [ FAIL ] $id -- preflight HEAD failed (status=$status) -- URL likely invalid"
-      log_err  "          URL: $url"
-      log_file_error "$url" "preflight HEAD failed (status=$status)"
+      reason="preflight HEAD failed (status=$status) -- URL likely invalid"
+      log_err  "[model-pull] [ FAIL ] $id -- $reason"
+      log_model_failure_details "$id" "$id" "$url" "$target" "$reason"
+      log_file_error "$target" "model='$id' url='$url' target='$target' reason='$reason'"
       fail=$((fail+1))
       ;;
   esac
@@ -438,20 +456,22 @@ for entry in "${SURVIVORS[@]}"; do
     fi
 
     if [ "$rc" -eq 0 ] && [ "$file_bytes" -le 0 ]; then
+      reason="downloader exit=ok but file missing/zero-byte (attempt $attempt/$MAX_FILE_RETRIES, size=${file_bytes}B)"
       log_warn "[model-pull] [POST-CHECK FAIL] downloader reported success but '$target' is missing/zero (size=${file_bytes}B) -- attempt $attempt/$MAX_FILE_RETRIES"
-      log_warn "          URL: $url"
-      log_file_error "$target" "post-download verify: downloader exit=ok but file missing/zero-byte (attempt $attempt/$MAX_FILE_RETRIES, url=$url)"
+      log_model_failure_details "$id" "$id" "$url" "$target" "$reason"
+      log_file_error "$target" "model='$id' url='$url' target='$target' reason='$reason'"
     else
+      reason="fast_download failed (rc=$rc, attempt $attempt/$MAX_FILE_RETRIES)"
       log_warn "[model-pull] [DOWNLOAD FAIL] $id -- attempt $attempt/$MAX_FILE_RETRIES (rc=$rc)"
-      log_warn "          URL: $url"
-      log_file_error "$target" "fast_download failed for model id '$id' (rc=$rc, attempt $attempt/$MAX_FILE_RETRIES, url=$url)"
+      log_model_failure_details "$id" "$id" "$url" "$target" "$reason"
+      log_file_error "$target" "model='$id' url='$url' target='$target' reason='$reason'"
     fi
   done
 
   if [ "$is_done" -ne 1 ]; then
+    reason="download failed after $MAX_FILE_RETRIES attempt(s)"
     log_warn "[model-pull] all $MAX_FILE_RETRIES attempts exhausted for $id"
-    log_warn "          URL: $url"
-    log_warn "          Target: $target"
+    log_model_failure_details "$id" "$id" "$url" "$target" "$reason"
     fail=$((fail+1))
   fi
 done
