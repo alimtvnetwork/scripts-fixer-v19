@@ -31,8 +31,8 @@ function Get-InstalledLlamaCppModels {
         $catalog = (Get-Content $catalogPath -Raw | ConvertFrom-Json).models
     }
 
-    # Resolve where the GGUF files live. Prefer .resolved entry, fall back to
-    # default subfolder under DEV_DIR / current dir.
+    # Resolve where the GGUF files live. Prefer .resolved entry, then the shared
+    # default dev-dir resolver used by the rest of the scripts.
     $modelsDir = $null
     if (Test-Path $resolvedPath) {
         $resolved = Get-Content $resolvedPath -Raw | ConvertFrom-Json
@@ -40,8 +40,13 @@ function Get-InstalledLlamaCppModels {
             $modelsDir = Join-Path (Split-Path -Parent $resolved.baseDir) "models"
         }
     }
-    if (-not $modelsDir -and $env:DEV_DIR) {
-        $modelsDir = Join-Path $env:DEV_DIR "models"
+    if (-not $modelsDir -and (Get-Command Resolve-EffectiveDevDir -ErrorAction SilentlyContinue)) {
+        try {
+            $effectiveDevDir = Resolve-EffectiveDevDir
+            if (-not [string]::IsNullOrWhiteSpace($effectiveDevDir)) {
+                $modelsDir = Join-Path $effectiveDevDir "models"
+            }
+        } catch {}
     }
 
     $records = Get-ChildItem -Path $installedDir -Filter "model-*.json" -ErrorAction SilentlyContinue
