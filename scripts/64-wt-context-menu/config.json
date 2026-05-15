@@ -1,0 +1,46 @@
+{
+  "_comment": "Script 59 -- ConEmu right-click context menu. 'Open Here' (no elevation) is listed first; 'Open as Admin' second (UAC via Start-Process -Verb RunAs).",
+  "enabled": true,
+  "menu": {
+    "parentKeyName": "ConEmuMenu",
+    "parentLabel": "ConEmu",
+    "iconMode": "conemu"
+  },
+  "modes": {
+    "normal": {
+      "contextMenuLabel": "Open Here",
+      "registryPaths": {
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\01-OpenHere",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\01-OpenHere"
+      },
+      "commandArgs": {
+        "directory":  "\"{exe}\" -Dir \"%V\"",
+        "background": "\"{exe}\" -Dir \"%V\""
+      }
+    },
+    "admin": {
+      "contextMenuLabel": "Open as Admin",
+      "registryPaths": {
+        "directory":  "Registry::HKEY_CLASSES_ROOT\\Directory\\shell\\ConEmuMenu\\shell\\02-OpenAsAdmin",
+        "background": "Registry::HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\ConEmuMenu\\shell\\02-OpenAsAdmin"
+      },
+      "commandArgs": {
+        "directory":  "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-Dir','%V'\"",
+        "background": "powershell.exe -NoProfile -Command \"Start-Process -FilePath '{exe}' -Verb RunAs -ArgumentList '-Dir','%V'\""
+      },
+      "runas": true,
+      "extended": false
+    }
+  },
+  "enabledModes": ["normal", "admin"],
+  "conemuPaths": {
+    "programFiles":      "C:\\Program Files\\ConEmu\\ConEmu64.exe",
+    "programFilesX86":   "C:\\Program Files (x86)\\ConEmu\\ConEmu64.exe",
+    "chocoShim":         "%ProgramData%\\chocolatey\\bin\\ConEmu64.exe",
+    "chocoToolsRoot":    "%ProgramData%\\chocolatey\\lib\\conemu\\tools\\ConEmuPack",
+    "userLocalAppData":  "%LOCALAPPDATA%\\ConEmu\\ConEmu64.exe"
+  },
+  "verifyCommand": "ConEmu64",
+  "versionFlag": "-version",
+  "fallbackTo32Bit": true
+}
