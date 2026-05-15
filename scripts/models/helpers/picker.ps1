@@ -649,6 +649,24 @@ function Resolve-NumericPicks {
     return $picks
 }
 
+function _Get-IdCandidates {
+    param([Parameter(Mandatory)] [string]$Needle)
+    $seen = @{}
+    $out = New-Object System.Collections.Generic.List[string]
+    foreach ($candidate in @(
+        ($Needle -replace '^library/', '' -replace ':', '-'),
+        ($Needle -replace '^library/', ''),
+        $Needle
+    )) {
+        $value = "$candidate".Trim().ToLower()
+        if (-not [string]::IsNullOrWhiteSpace($value) -and -not $seen.ContainsKey($value)) {
+            $seen[$value] = $true
+            [void]$out.Add($value)
+        }
+    }
+    return @($out)
+}
+
 function Resolve-CsvIds {
     <#
     .SYNOPSIS
@@ -665,24 +683,6 @@ function Resolve-CsvIds {
 
     $ids = $Csv -split '[,\s]+' | Where-Object { $_.Length -gt 0 }
     Write-Log ($LogMessages.messages.csvResolveStart -replace '\{count\}', $ids.Count) -Level "info"
-
-    function _Get-IdCandidates {
-        param([Parameter(Mandatory)] [string]$Needle)
-        $seen = @{}
-        $out = New-Object System.Collections.Generic.List[string]
-        foreach ($candidate in @(
-            ($Needle -replace '^library/', '' -replace ':', '-'),
-            ($Needle -replace '^library/', ''),
-            $Needle
-        )) {
-            $value = "$candidate".Trim().ToLower()
-            if (-not [string]::IsNullOrWhiteSpace($value) -and -not $seen.ContainsKey($value)) {
-                $seen[$value] = $true
-                [void]$out.Add($value)
-            }
-        }
-        return @($out)
-    }
 
     $matched = @()
     foreach ($id in $ids) {
@@ -731,6 +731,153 @@ function Resolve-CsvIds {
         }
     }
     return $matched
+}
+
+function Resolve-StandaloneDownloadModels {
+    <#
+    .SYNOPSIS
+        Normalizes a mixed backend model selection into standalone GGUF-only
+        downloads. Any Ollama catalog pick must map to a llama.cpp GGUF alias
+        or it is skipped with a clear warning.
+    #>
+    param(
+        [Parameter(Mandatory)] [array]$Models,
+        [Parameter(Mandatory)] [PSObject]$Config,
+        [Parameter(Mandatory)] [string]$ScriptsRoot,
+        [string]$OutputRoot
+    )
+
+    $llamaCatalog = Get-BackendCatalog -Backend "llama-cpp" -Config $Config -ScriptsRoot $ScriptsRoot
+    $llamaIds = @{}
+    foreach ($lm in $llamaCatalog) {
+        $llamaIds[$lm.id.ToLower()] = $lm
+    }
+
+    $resolved = @()
+    foreach ($m in $Models) {
+        if ($m.backend -eq 'llama-cpp') {
+            $resolved += $m
+            continue
+        }
+
+        $alias = $null
+        foreach ($candidate in @(_Get-IdCandidates -Needle "$($m.id)".ToLower())) {
+            if ($llamaIds.ContainsKey($candidate)) {
+                $alias = $llamaIds[$candidate]
+                break
+            }
+        }
+
+        if ($alias) {
+            Write-Log ("[route] '{0}' -> standalone GGUF '{1}'" -f $m.id, $alias.id) -Level "info"
+            $resolved += $alias
+            continue
+        }
+
+        $ctx = [ordered]@{
+            requestedModel = $m.id
+            requestedModelName = $m.displayName
+            modelUrl = $null
+            outputPath = if ([string]::IsNullOrWhiteSpace($OutputRoot)) { $null } else { $OutputRoot }
+            failureReason = "models-download only supports standalone GGUF files; no GGUF alias exists for this selection"
+        }
+        Write-Log ("[MISS] '{0}' has no standalone GGUF alias; skipped for models-download." -f $m.id) -Level "warn" -Context $ctx
+    }
+
+    $seen = @{}
+    $unique = @()
+    foreach ($m in $resolved) {
+        $key = "$($m.id)".ToLower()
+        if (-not $seen.ContainsKey($key)) {
+            $seen[$key] = $true
+            $unique += $m
+        }
+    }
+    return @($unique)
+}
+
+function Invoke-StandaloneGgufDownload {
+    <#
+    .SYNOPSIS
+        Downloads the resolved standalone GGUF models straight into the shared
+        models folder. Never calls Ollama and never installs llama.cpp binaries.
+    #>
+    param(
+        [Parameter(Mandatory)] [array]$Models,
+        [Parameter(Mandatory)] [PSObject]$Config,
+        [Parameter(Mandatory)] [string]$ScriptsRoot
+    )
+
+    if (@($Models).Count -eq 0) {
+        Write-Log "No standalone GGUF models were resolved for download." -Level "error"
+        return $false
+    }
+
+    Write-Log "  Download route: standalone-gguf" -Level "info"
+
+    $ids = ($Models | ForEach-Object { $_.id }) -join ","
+    $folder = $Config.backends.'llama-cpp'.scriptFolder
+    $llamaScriptDir = Join-Path $ScriptsRoot $folder
+    $llamaCfgPath   = Join-Path $llamaScriptDir "config.json"
+    $llamaLogsPath  = Join-Path $llamaScriptDir "log-messages.json"
+    $catalogPath    = Join-Path $llamaScriptDir "models-catalog.json"
+    $llamaCfg       = Get-Content $llamaCfgPath  -Raw | ConvertFrom-Json
+    $llamaLogs      = Get-Content $llamaLogsPath -Raw | ConvertFrom-Json
+
+    $sharedDir = Join-Path $ScriptsRoot "shared"
+    . (Join-Path $sharedDir "download-retry.ps1")
+    . (Join-Path $sharedDir "aria2c-download.ps1")
+    . (Join-Path $sharedDir "aria2c-batch.ps1")
+    . (Join-Path $llamaScriptDir "helpers\model-picker.ps1")
+
+    $devDir  = Resolve-EffectiveDevDir
+    $baseDir = Join-Path $devDir $llamaCfg.devDirSubfolder
+
+    $binSnapshotBefore = @{}
+    if (Test-Path $baseDir) {
+        Get-ChildItem -LiteralPath $baseDir -Recurse -ErrorAction SilentlyContinue `
+            -Include "llama-*.exe","*.dll","*.zip" |
+            ForEach-Object { $binSnapshotBefore[$_.FullName] = $_.Length }
+    }
+
+    $env:LLAMA_CPP_INSTALL_IDS       = $ids
+    $env:MODELS_DOWNLOAD_NO_BINARIES = "1"
+    $guardTripped = $false
+    try {
+        Invoke-ModelInstaller -CatalogPath $catalogPath -DevDir $devDir `
+            -DefaultModelsSubfolder $llamaCfg.modelsConfig.devDirSubfolder `
+            -Aria2Config $llamaCfg.aria2c -DownloadConfig $llamaCfg.download `
+            -LogMessages $llamaLogs
+    } catch {
+        if ("$_" -match "HARD GUARD TRIPPED") { $guardTripped = $true }
+        Write-Log "models-download dispatch failed: $_" -Level "error"
+    } finally {
+        Remove-Item Env:\LLAMA_CPP_INSTALL_IDS       -ErrorAction SilentlyContinue
+        Remove-Item Env:\MODELS_DOWNLOAD_NO_BINARIES -ErrorAction SilentlyContinue
+    }
+
+    $newBinaries = @()
+    if (Test-Path $baseDir) {
+        $afterFiles = Get-ChildItem -LiteralPath $baseDir -Recurse -ErrorAction SilentlyContinue `
+            -Include "llama-*.exe","*.dll","*.zip"
+        foreach ($f in $afterFiles) {
+            $isNew  = -not $binSnapshotBefore.ContainsKey($f.FullName)
+            $isGrew = $binSnapshotBefore.ContainsKey($f.FullName) -and ($binSnapshotBefore[$f.FullName] -ne $f.Length)
+            if ($isNew -or $isGrew) { $newBinaries += $f.FullName }
+        }
+    }
+
+    if ($guardTripped -or $newBinaries.Count -gt 0) {
+        Write-Log "HARD GUARD: 'models-download' must not install llama.cpp binaries." -Level "error"
+        if ($newBinaries.Count -gt 0) {
+            Write-Log "Detected $($newBinaries.Count) new/changed binary file(s) under $baseDir :" -Level "error"
+            $newBinaries | ForEach-Object { Write-Log "  + $_" -Level "error" }
+        }
+        Write-Log "Aborting models-download. Use '.\run.ps1 -I 43' to install llama.cpp binaries explicitly." -Level "error"
+        throw "models-download hard guard tripped: llama.cpp binary install path was triggered."
+    }
+
+    return $true
 }
 
 function Invoke-BackendInstall {
