@@ -108,7 +108,7 @@ function Invoke-OllamaRegistryPull {
         try {
             New-Item -ItemType Directory -Path $TargetRoot -Force | Out-Null
         } catch {
-            Write-FileError -Operation "create-dir" -Path $TargetRoot -Reason "$_" `
+            Write-FileError -FilePath $TargetRoot -Operation "create-dir" -Reason "$_" -Module "Invoke-OllamaRegistryPull" `
                 -Context @{ outputPath = $TargetRoot }
             throw
         }
@@ -135,7 +135,7 @@ function Invoke-OllamaRegistryPull {
             $manifest = $manifestText | ConvertFrom-Json
         } catch {
             $reason = "$_"
-            Write-FileError -Operation "fetch-manifest" -Path $manifestPath -Reason $reason `
+            Write-FileError -FilePath $manifestPath -Operation "fetch-manifest" -Reason $reason -Module "Invoke-OllamaRegistryPull" `
                 -Context @{
                     requestedInput     = $rawSlug
                     requestedModelName = $parsed.Display
@@ -179,7 +179,7 @@ function Invoke-OllamaRegistryPull {
                 Write-Log ("[ollama] {0} -- complete (standalone, no daemon)" -f $parsed.Display) -Level "success"
             } catch {
                 $reason = "$_"
-                Write-FileError -Operation "write-manifest" -Path $manifestPath -Reason $reason `
+                Write-FileError -FilePath $manifestPath -Operation "write-manifest" -Reason $reason -Module "Invoke-OllamaRegistryPull" `
                     -Context @{ modelUrl = $manifestUrl; outputPath = $manifestPath }
                 $allOk = $false
             }
