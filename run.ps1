@@ -4166,31 +4166,6 @@ if ($hasCommand) {
         }
         & $modelsScript @mdArgs
         exit 0
-    } elseif ($isBareInstallCommand) {
-        # ── 'install <keyword|model> ...' command ────────────────────────
-        # Special-case: 'install model <ids>' delegates to the models
-        # orchestrator (download mode, standalone GGUF). Anything else
-        # falls through into the normal keyword install pipeline below.
-        $installArgs = @($Install | Where-Object { $_ })
-        $firstInstallArg = if ($installArgs.Count -gt 0) { "$($installArgs[0])".Trim().ToLower() } else { "" }
-        $isModelInstallShortcut = $firstInstallArg -in @("model","models")
-        if ($isModelInstallShortcut) {
-            Show-VersionHeader
-            $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
-            $mdArgs = @("download")
-            if ($installArgs.Count -gt 1) {
-                foreach ($mdArg in $installArgs[1..($installArgs.Count - 1)]) {
-                    if ($null -ne $mdArg -and "$mdArg".Length -gt 0) { $mdArgs += "$mdArg" }
-                }
-            }
-            & $modelsScript @mdArgs
-            exit $LASTEXITCODE
-        }
-        # Generic 'install <keyword(s)>' -- forward to the keyword pipeline
-        # by stripping the 'install' verb and re-routing into $Install.
-        $Install = $installArgs
-        # Fall through: leave $Command consumed; the install-keyword block
-        # at the bottom of this file will pick up $Install as-is.
     } elseif ($isBareMenuCommand) {
         # ── 'menu <verb> [target] [-y]' context-menu dispatcher ──────────
         #   menu install [target]    install context menu(s)
