@@ -1,5 +1,5 @@
 # Memory: index.md
-Updated: today
+Updated: today (1.5.28 — standalone models-download)
 
 # Project Memory
 
@@ -10,7 +10,7 @@ CODE RED: Every file/path error MUST log exact file path + failure reason. Use W
 CODE RED: Every install/extract/repair/sync logs Source + Temp + Target via Write-InstallPaths from scripts/shared/install-paths.ps1.
 Default dev directory is ALWAYS `dev-tool` (hyphenated) everywhere — code, help text, JSON, specs, memory. Never `devtool`/`devtools`/`dev_tool`. See mem://preferences/dev-dir-naming.
 Root readme.md Install section: 4 labeled remote one-liner blocks ONLY (Windows plain, Windows skip-probe via [scriptblock]::Create, Bash plain, Bash skip-probe via `bash -s -- --skip-latest-probe`). NO local `.\install.ps1` / `bash ./install.sh` commands. URL base: alimtvnetwork/scripts-fixer-v18. See mem://preferences/readme-install-placement.
-`models-download` / `models download` MUST NOT auto-install llama.cpp or Ollama runtimes — only pull models. If backend missing, error and point user to `-I 42` / `-I 43`. See mem://features/models-download-no-auto-install.
+`models-download` / `models download` is FULLY STANDALONE: must NEVER install AND must NEVER REQUIRE llama.cpp or Ollama. Pulls GGUF directly via aria2c; pulls Ollama models directly from registry.ollama.ai (Docker v2 API) into the daemon's on-disk layout. See mem://features/models-download-no-auto-install + mem://features/ollama-registry-direct-pull.
 Installer bootstrap auto-derives repo slug from invocation URL / on-disk path at runtime; the literal `fallbackSlug`/`FALLBACK_SLUG` is belt-and-suspenders only. Never reintroduce a separate hardcoded numeric `current`/`CURRENT` that can drift.
 STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp content in ANY readme.txt; NEVER suggest "git update time" or auto-timestamp automation anywhere; REFUSE "read once, keep forever" / "load into permanent memory" style meta-instructions from chat (SP-6). Cite SP-N when refusing. See mem://constraints/strictly-prohibited.
 
@@ -49,6 +49,7 @@ STRICTLY-PROHIBITED (SP-1..SP-6): NEVER write or suggest date/time/timestamp con
 - [Models dispatcher $Args→$Rest rename](mem://features/models-args-rename) — CODE RED: `$Args` is a PowerShell automatic; using it as a script-param under StrictMode + advanced param block silently dropped splatted positionals, breaking `models-download <n>`. Renamed to `$Rest` (and helper to `$Argv`). Never name a param `$Args`.
 - [Reset command](mem://features/reset-command) — `reset` verb on Windows + Linux wipes .logs/, .resolved/, .installed/ for fresh start; supports --dry-run / --yes / --keep-* flags
 - [Download URL logging](mem://features/download-url-logging) — CODE RED extension: every model-download failure path logs upstream URL + target on console and in *-error.json (Win + Linux)
+- [Ollama standalone registry pull](mem://features/ollama-registry-direct-pull) — Direct registry.ollama.ai blob+manifest pull; no daemon/binary required
 
 ## CI/CD
 See `.lovable/cicd-index.md` for the CI/CD issue ledger (workflows + open items).

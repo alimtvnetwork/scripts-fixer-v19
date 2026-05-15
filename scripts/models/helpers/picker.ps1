@@ -696,6 +696,14 @@ function Invoke-BackendInstall {
         [Parameter(Mandatory)] [PSObject]$LogMessages
     )
 
+    # CONTRACT: 'models-download' is FULLY STANDALONE. It must NEVER require
+    # Ollama or llama.cpp to be installed first, and must NEVER install them.
+    # GGUF weights -> direct aria2c download into <llama-dir>.
+    # Ollama models -> direct registry.ollama.ai pull into <ollama-dir>
+    #                  using the on-disk layout the daemon expects, so a
+    #                  later `-I 42` install picks them up automatically.
+    . (Join-Path (Split-Path -Parent $PSCommandPath) "ollama-registry-pull.ps1")
+
     $byBackend = $Models | Group-Object backend
     foreach ($group in $byBackend) {
         $backend = $group.Name
@@ -707,46 +715,17 @@ function Invoke-BackendInstall {
         Write-Log $line -Level "info"
 
         if ($backend -eq "ollama") {
-            # GUARD: do NOT auto-install Ollama. If the binary isn't on PATH,
-            # tell the user to install it explicitly via script 42 and skip.
-            $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
-            if (-not $ollamaCmd) {
-                Write-Log "Ollama is not installed. 'models download' will not auto-install backends." -Level "error"
-                Write-Log "  Install it explicitly first:  .\run.ps1 -I 42        (or:  .\run.ps1 install ollama)" -Level "info"
-                Write-Log "  Then re-run:                  .\run.ps1 models-download $ids" -Level "info"
-                continue
+            # STANDALONE: pull blobs+manifest directly from registry.ollama.ai.
+            # No `ollama` binary, no daemon, no `& $script pull` required.
+            $paths     = Get-ModelDownloadPaths -Config $Config -ScriptsRoot $ScriptsRoot
+            $targetDir = $paths.Ollama
+            Write-Log ("[ollama] standalone direct-registry pull -> {0}" -f $targetDir) -Level "info"
+            $slugs = @($group.Group | ForEach-Object { $_.id })
+            $ok = Invoke-OllamaRegistryPull -Slugs $slugs -TargetRoot $targetDir
+            if (-not $ok) {
+                Write-Log "[ollama] one or more models failed; see error log for URLs + reasons" -Level "error"
             }
-            # Pass model slugs via env var; script 42 reads OLLAMA_PULL_MODELS.
-            # Use 'pull' (model-only) — never 'all', which would (re)install Ollama.
-            $env:OLLAMA_PULL_MODELS = $ids
-            & $script pull
-            Remove-Item Env:\OLLAMA_PULL_MODELS -ErrorAction SilentlyContinue
         } else {
-            # GUARD: do NOT auto-install llama.cpp binaries. Detect llama-cli /
-            # llama-server / main on PATH or under the configured base dir.
-            $llamaPresent = $false
-            foreach ($exe in @("llama-cli","llama-server","main","llama")) {
-                if (Get-Command $exe -ErrorAction SilentlyContinue) { $llamaPresent = $true; break }
-            }
-            if (-not $llamaPresent) {
-                # Fallback: look under <DEV_DIR>\<devDirSubfolder> for any llama-*.exe
-                try {
-                    $llamaCfgPath = Join-Path (Join-Path $ScriptsRoot $folder) "config.json"
-                    $llamaCfg     = Get-Content $llamaCfgPath -Raw | ConvertFrom-Json
-                    $devDir       = if ($env:DEV_DIR) { $env:DEV_DIR } else { "$env:USERPROFILE\dev" }
-                    $baseDir      = Join-Path $devDir $llamaCfg.devDirSubfolder
-                    if (Test-Path $baseDir) {
-                        $found = Get-ChildItem -LiteralPath $baseDir -Recurse -Filter "llama-*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-                        if ($found) { $llamaPresent = $true }
-                    }
-                } catch {}
-            }
-            if (-not $llamaPresent) {
-                Write-Log "llama.cpp is not installed. 'models download' will not auto-install backends." -Level "error"
-                Write-Log "  Install it explicitly first:  .\run.ps1 -I 43        (or:  .\run.ps1 install llama-cpp)" -Level "info"
-                Write-Log "  Then re-run:                  .\run.ps1 models-download $ids" -Level "info"
-                continue
-            }
             # llama.cpp: invoke the model-installer helper DIRECTLY (do not
             # call script 43's run.ps1, which prints the "Install llama.cpp"
             # banner, asserts admin, and may pull binaries). models-download
