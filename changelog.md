@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [v1.2.1] -- 2026-05-16
+
+### Changed
+- Progress bar now uses ANSI 24-bit truecolor: full rainbow gradient
+  across the bar cells, with coloured background "pills" for the phase
+  tag, sizes, speed, ETA, and elapsed time. Glyphs stay ASCII-only.
+- File: `scripts/shared/progress-bar.ps1`.
+
 ## [v1.2.0] -- 2026-05-16
 
 ### Added
