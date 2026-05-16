@@ -244,6 +244,10 @@ try {
     # ── Download by index ─────────────────────────────────────────────────
     # Usage: .\run.ps1 models download 5,6,10   (numbers from `models list`)
     if ($isDownloadMode) {
+        if ($Force) {
+            $env:MODELS_FORCE_REDOWNLOAD = "1"
+            Write-Log "  -Force flag set: existing model files will be re-downloaded." -Level "warn"
+        }
         $csv = if ($secondArg) { $secondArg } elseif ($hasInstallParam) { $Install } else { "" }
 
         # Flag-driven download: --family / --max-ram / --coding / ... [+ --all]

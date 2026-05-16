@@ -120,7 +120,14 @@ function Invoke-FastDownload {
     # Short-circuit: file already present and non-empty -- skip the download.
     # This matches the "already-installed" status convention; partial
     # (*.aria2 control file present) downloads still resume normally.
+    $isForceRedownload = $env:MODELS_FORCE_REDOWNLOAD -eq "1"
     $hasFile = Test-Path -LiteralPath $OutFile -PathType Leaf
+    if ($hasFile -and $isForceRedownload) {
+        Write-Log "[fast-download] -Force: removing existing file before re-download. Path: $OutFile" -Level "warn"
+        try { Remove-Item -LiteralPath $OutFile -Force -ErrorAction Stop } catch {}
+        try { Remove-Item -LiteralPath ($OutFile + '.aria2') -Force -ErrorAction SilentlyContinue } catch {}
+        $hasFile = $false
+    }
     if ($hasFile) {
         $existingSize = (Get-Item -LiteralPath $OutFile).Length
         $hasAriaControl = Test-Path -LiteralPath ($OutFile + '.aria2') -PathType Leaf
