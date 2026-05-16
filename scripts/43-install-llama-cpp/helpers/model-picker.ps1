@@ -699,10 +699,16 @@ function Install-SelectedModels {
         $isTracked      = $null -ne $existingRecord
         $isFilePresent  = Test-Path $outputPath
 
-        if ($isTracked -and $isFilePresent) {
+        $isForceRedownload = $env:MODELS_FORCE_REDOWNLOAD -eq "1"
+        if ($isTracked -and $isFilePresent -and -not $isForceRedownload) {
             Write-Log "  [$($model.index)] Already downloaded: $($model.displayName) ($($model.fileSizeGB) GB)" -Level "info"
             $skippedCount++
             continue
+        }
+        if ($isForceRedownload -and ($isTracked -or $isFilePresent)) {
+            Write-Log "  [$($model.index)] -Force: removing existing $($model.displayName) before re-download." -Level "warn"
+            if ($isFilePresent) { try { Remove-Item -LiteralPath $outputPath -Force -ErrorAction Stop } catch { Write-Log "    Failed to remove $outputPath -- $_" -Level "warn" } }
+            if ($isTracked)     { Remove-InstalledRecord -Name $trackingName }
         }
 
         # Stale tracking cleanup: tracked but file is missing.

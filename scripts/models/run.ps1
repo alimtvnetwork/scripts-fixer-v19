@@ -244,6 +244,10 @@ try {
     # ── Download by index ─────────────────────────────────────────────────
     # Usage: .\run.ps1 models download 5,6,10   (numbers from `models list`)
     if ($isDownloadMode) {
+        if ($Force) {
+            $env:MODELS_FORCE_REDOWNLOAD = "1"
+            Write-Log "  -Force flag set: existing model files will be re-downloaded." -Level "warn"
+        }
         $csv = if ($secondArg) { $secondArg } elseif ($hasInstallParam) { $Install } else { "" }
 
         # Flag-driven download: --family / --max-ram / --coding / ... [+ --all]
@@ -404,12 +408,29 @@ try {
     if ($isUninstallMode) {
         $projectRoot = Split-Path -Parent $scriptsRoot
 
+        # Collect positional args after the 'uninstall' verb. The first one MAY be
+        # a backend filter ('llama'/'ollama'); anything else is treated as an id /
+        # number / substring selector for non-interactive removal.
+        $backendKeywords = @("llama","llama-cpp","ollama")
+        $uninstExtraArgs = @()
+        $uninstFilter    = if ($Backend) { $Backend.ToLower() } else { "" }
+        if ($Rest -and $Rest.Count -gt 1) {
+            for ($ai = 1; $ai -lt $Rest.Count; $ai++) {
+                $tok = "$($Rest[$ai])".Trim()
+                if (-not $tok) { continue }
+                $tokLow = $tok.ToLower()
+                if (-not $uninstFilter -and $tokLow -in $backendKeywords) {
+                    $uninstFilter = $tokLow
+                    continue
+                }
+                $uninstExtraArgs += $tok
+            }
+        }
+
         Write-Log $logMessages.messages.uninstallScanning -Level "info"
         $llamaModels  = Get-InstalledLlamaCppModels -ScriptsRoot $scriptsRoot -ProjectRoot $projectRoot
         $ollamaModels = Get-InstalledOllamaModels
 
-        # Optional backend filter from secondArg or -Backend param
-        $uninstFilter = if ($Backend) { $Backend.ToLower() } elseif ($secondArg) { $secondArg.ToLower() } else { "" }
         $combined = @()
         if (-not $uninstFilter -or $uninstFilter -eq "llama" -or $uninstFilter -eq "llama-cpp") {
             $combined += $llamaModels
@@ -423,15 +444,68 @@ try {
             return
         }
 
-        Show-UninstallList -All $combined
-        $picks = Read-UninstallSelection -MaxIndex $combined.Count
-        if ($null -eq $picks) {
-            Write-Log $logMessages.messages.uninstallAborted -Level "info"
-            return
-        }
-        if ($picks.Count -eq 0) {
-            Write-Log $logMessages.messages.uninstallSkipped -Level "info"
-            return
+        # ── Non-interactive selection via positional id/number tokens ────
+        $picks = $null
+        if ($uninstExtraArgs.Count -gt 0) {
+            # Build catalog (for catalog-number -> id resolution, mirrors download mode)
+            $catalogAll = @()
+            $catalogAll += Get-BackendCatalog -Backend "llama-cpp" -Config $config -ScriptsRoot $scriptsRoot
+            $catalogAll += Get-BackendCatalog -Backend "ollama"    -Config $config -ScriptsRoot $scriptsRoot
+
+            Show-UninstallList -All $combined
+            $selected = New-Object System.Collections.Generic.HashSet[int]
+            foreach ($raw in $uninstExtraArgs) {
+                $rawLow = $raw.ToLower()
+                if ($rawLow -eq "all") {
+                    for ($i = 1; $i -le $combined.Count; $i++) { [void]$selected.Add($i) }
+                    continue
+                }
+                # Numeric: try display-list index, then catalog number -> id match
+                if ($raw -match '^\d+$') {
+                    $n = [int]$raw
+                    if ($n -ge 1 -and $n -le $combined.Count) {
+                        [void]$selected.Add($n)
+                        continue
+                    }
+                    if ($n -ge 1 -and $n -le $catalogAll.Count) {
+                        $catId = "$($catalogAll[$n - 1].id)".ToLower()
+                        for ($j = 0; $j -lt $combined.Count; $j++) {
+                            if ("$($combined[$j].id)".ToLower() -eq $catId) { [void]$selected.Add($j + 1); break }
+                        }
+                        continue
+                    }
+                    Write-Log "  [MISS] '$raw' is out of range (installed=1..$($combined.Count), catalog=1..$($catalogAll.Count))" -Level "warn"
+                    continue
+                }
+                # String: substring match against installed id / display name
+                $hitCount = 0
+                for ($j = 0; $j -lt $combined.Count; $j++) {
+                    $idL   = "$($combined[$j].id)".ToLower()
+                    $dispL = "$($combined[$j].displayName)".ToLower()
+                    if ($idL -eq $rawLow -or $dispL -eq $rawLow -or $idL -like "*$rawLow*" -or $dispL -like "*$rawLow*") {
+                        [void]$selected.Add($j + 1); $hitCount++
+                    }
+                }
+                if ($hitCount -eq 0) {
+                    Write-Log "  [MISS] '$raw' did not match any installed model" -Level "warn"
+                }
+            }
+            $picks = @($selected | Sort-Object)
+            if ($picks.Count -eq 0) {
+                Write-Log "No installed models matched the supplied selectors." -Level "error"
+                return
+            }
+        } else {
+            Show-UninstallList -All $combined
+            $picks = Read-UninstallSelection -MaxIndex $combined.Count
+            if ($null -eq $picks) {
+                Write-Log $logMessages.messages.uninstallAborted -Level "info"
+                return
+            }
+            if ($picks.Count -eq 0) {
+                Write-Log $logMessages.messages.uninstallSkipped -Level "info"
+                return
+            }
         }
 
         $targets = @()
