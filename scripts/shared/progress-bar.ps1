@@ -58,7 +58,7 @@ function Write-DownloadProgressBar {
         [string] $Speed = "",
         [string] $Eta   = "",
         [string] $Label = "",
-        [int]    $Width = 36
+        [int]    $Width = 42
     )
 
     if ($Percent -lt 0)   { $Percent = 0 }
