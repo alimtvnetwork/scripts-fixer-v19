@@ -73,22 +73,20 @@ function Write-DownloadProgressBar {
     $empty  = $Width - $filled
 
     $color  = Get-DownloadBarColor -Percent $Percent
-    # ASCII-only bar: '=' filled, '>' moving head, ' ' empty, '|' bookends.
-    # Per mem://constraints/terminal-banners -- avoid wide Unicode / emoji
-    # that legacy conhost or non-UTF-8 sessions render as '?'.
-    if ($Percent -ge 100 -or $filled -le 0) {
-        $barFilled = ('=' * $filled)
-    } else {
-        $barFilled = ('=' * [math]::Max(0, $filled - 1)) + '>'
-    }
-    $barEmpty = (' ' * $empty)
-    $pctStr   = ('{0,3}%' -f $Percent)
+    # ASCII-only bar: '#' filled, '-' empty, '[' / ']' bookends.
+    # Winget-style solid block look that stays legible in legacy conhost
+    # without any wide Unicode (per mem://constraints/terminal-banners).
+    $barFilled = ('#' * $filled)
+    $barEmpty  = ('-' * $empty)
+    $pctStr    = ('{0,3}%' -f $Percent)
 
     # Phase tag (bracketed ASCII, console-safe per project rule).
+    # WAIT is reserved for the pre-download idle state; the moment bytes
+    # start flowing (>=1%) we switch to DL so the tag does not lie.
     $phaseTag =
         if     ($Percent -ge 100) { '[DONE]' }
-        elseif ($Percent -ge 75)  { '[ >>> ]' }
-        elseif ($Percent -ge 25)  { '[ DL  ]' }
+        elseif ($Percent -ge 70)  { '[FINAL]' }
+        elseif ($Percent -ge 1)   { '[ DL  ]' }
         else                      { '[WAIT ]' }
 
     # Elapsed seconds for this download
