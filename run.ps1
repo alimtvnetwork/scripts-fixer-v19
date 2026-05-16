@@ -4453,6 +4453,23 @@ if ($hasCommand) {
         $passthrough = @()
         if ($Install.Count -gt 1) { $passthrough = @($Install[1..($Install.Count-1)]) }
 
+        # ── 'uninstall model <ids>' shortcut ──────────────────────────────
+        # Forward to the models orchestrator's uninstall mode with -Force so
+        # the prompt is skipped (matches the spirit of a one-shot CLI verb).
+        if ($targetRaw -in @("model","models")) {
+            $modelsScript = Join-Path $RootDir "scripts\models\run.ps1"
+            if (-not (Test-Path $modelsScript)) {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "Models dispatcher missing at: $modelsScript"
+                exit 1
+            }
+            $muArgs = @("uninstall") + $passthrough + @("-Force")
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Routing 'uninstall $targetRaw' to models dispatcher (uninstall mode, -Force)" -ForegroundColor DarkGray
+            & $modelsScript @muArgs
+            exit $LASTEXITCODE
+        }
+
         # Map keyword -> { ScriptDir, Name } (Chocolatey-backed installer scripts).
         # Chrome is the first wired entry; add more rows here as needed.
         $uninstallTargets = @{
