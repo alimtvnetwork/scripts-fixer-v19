@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [v1.2.0] -- 2026-05-16
+
+### Added
+- **Winget-style download progress bar** (`scripts/shared/progress-bar.ps1`) -- all downloads via `Invoke-FastDownload` now render a live ASCII progress bar with color graduation (red < 25% < yellow < 50% < cyan < 75% < green). Phase tags (`[WAIT]`, `[DL]`, `[>>>]`, `[DONE]`), speed (`spd`), ETA, and elapsed time (`up`) display inline. Top and bottom padding keeps the bar visually separated from surrounding logs.
+- **`already-downloaded` short-circuit** (`scripts/shared/fast-download.ps1`) -- if the target file exists, is non-empty, and has no `.aria2` control file, the download is skipped instantly with a `success` log and returns `$true`. Applies to all consumers: `run download`, `install model <id>`, llama.cpp model picker, and Ollama registry pulls.
+- **`install model <ids>` shortcut** -- `run.ps1 install model qwen2.5-coder-7b,deepseek-r1-14b` forwards directly to the models orchestrator download mode, bypassing the interactive picker.
+
+### Changed
+- **Progress bar rendering** -- switched from Unicode block glyphs + emoji to pure ASCII (`|====>    |`) after legacy conhost sessions showed `?` placeholders. Dropped the forced UTF-8 console mutation.
+
+### Fixed
+- **Broken `?` glyphs in legacy consoles** -- the progress bar now uses ASCII-only characters per `mem://constraints/terminal-banners`.
+
+---
+
 ## [v0.227.0] -- 2026-05-16
 
 ### Fixed
