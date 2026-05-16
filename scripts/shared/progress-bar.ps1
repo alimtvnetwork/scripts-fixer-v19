@@ -24,7 +24,18 @@ if ((Test-Path $_loggingPath) -and -not (Get-Command Write-Log -ErrorAction Sile
 # fully overwrite the previous render.
 $script:_pbarLastLen = 0
 $script:_pbarFirstRender = $true
-$script:_pbarIndent = '      '   # left padding (indent) so the bar sits inset from the edge
+$script:_pbarIndent = '          '   # left padding (indent) so the bar sits inset from the edge
+$script:_pbarStartTime = $null       # tracks elapsed seconds for current download
+
+function Format-DownloadElapsed {
+    param([double]$Seconds)
+    if ($Seconds -lt 0) { $Seconds = 0 }
+    $ts = [TimeSpan]::FromSeconds([math]::Floor($Seconds))
+    if ($ts.TotalHours -ge 1) {
+        return ('{0:00}:{1:00}:{2:00}' -f [int]$ts.TotalHours, $ts.Minutes, $ts.Seconds)
+    }
+    return ('{0:00}:{1:00}' -f [int]$ts.TotalMinutes, $ts.Seconds)
+}
 
 function Get-DownloadBarColor {
     param([int]$Percent)
