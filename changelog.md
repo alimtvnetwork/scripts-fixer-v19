@@ -483,9 +483,9 @@ The §12 quick-commit checklist is preserved unchanged so it stays the at-a-glan
 
 ## [v0.70.2] -- 2026-04-22
 
-### Fixed: User-facing scripts-fixer-v18 install URLs migrated to gitmap-v6
+### Fixed: User-facing scripts-fixer-v19 install URLs migrated to gitmap-v6
 
-Three concrete user-facing references to the legacy `scripts-fixer-v18` repo slug were updated to `gitmap-v6`:
+Three concrete user-facing references to the legacy `scripts-fixer-v19` repo slug were updated to `gitmap-v6`:
 
 | File | Line | Change |
 |------|------|--------|
@@ -499,7 +499,7 @@ Three concrete user-facing references to the legacy `scripts-fixer-v18` repo slu
 - `spec/install-bootstrap/readme.md` line 256 — release/bump checklist references the legacy `-vN` convention; the spec describes how a *future* `-vN` rollout would work.
 - `changelog.md` — historical entries naming the old slug are preserved for audit accuracy.
 
-A repo-wide grep confirms zero remaining live install URLs point at `scripts-fixer-v18`.
+A repo-wide grep confirms zero remaining live install URLs point at `scripts-fixer-v19`.
 
 ## [v0.70.1] -- 2026-04-22
 
@@ -509,7 +509,7 @@ Audited the root `readme.md` against the live GitHub render and the spec writing
 
 **Fixed in this commit:**
 - Stale version badge `Version-v0.67.0` → `Version-v0.70.0` (line 15).
-- One-liner install + manual-clone URLs pointed at the wrong repo (`scripts-fixer-v18`); switched to `gitmap-v6` (lines 78, 84, 90, 91).
+- One-liner install + manual-clone URLs pointed at the wrong repo (`scripts-fixer-v19`); switched to `gitmap-v6` (lines 78, 84, 90, 91).
 - Footer tagline used `--` em-dash impostor (banned by spec writing guide §11) → replaced with real `—`.
 
 **Verified clean:**
