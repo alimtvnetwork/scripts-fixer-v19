@@ -117,6 +117,20 @@ function Invoke-FastDownload {
         }
     }
 
+    # Short-circuit: file already present and non-empty -- skip the download.
+    # This matches the "already-installed" status convention; partial
+    # (*.aria2 control file present) downloads still resume normally.
+    $hasFile = Test-Path -LiteralPath $OutFile -PathType Leaf
+    if ($hasFile) {
+        $existingSize = (Get-Item -LiteralPath $OutFile).Length
+        $hasAriaControl = Test-Path -LiteralPath ($OutFile + '.aria2') -PathType Leaf
+        if ($existingSize -gt 0 -and -not $hasAriaControl) {
+            $sizeMb = [math]::Round($existingSize / 1MB, 2)
+            Write-Log "[fast-download] already-downloaded: $displayLabel ($sizeMb MB) -- skipping. Path: $OutFile" -Level "success"
+            return $true
+        }
+    }
+
     # Pre-flight: make sure aria2c is on PATH (auto-install via Chocolatey).
     $isAria2Ready = Assert-Aria2c
     if (-not $isAria2Ready) {
