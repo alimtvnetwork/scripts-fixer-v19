@@ -112,7 +112,7 @@ function Write-DownloadProgressBar {
     $indent = $script:_pbarIndent
 
     # Pad / clear residue from any prior longer render.
-    $plain = "$indent$phaseTag  $pctStr  |$barFilled$barEmpty|  $Sizes  spd $Speed  eta $Eta  up $elapsedStr  $shortLabel"
+    $plain = "$indent$phaseTag  $pctStr  [$barFilled$barEmpty]  $Sizes  spd $Speed  eta $Eta  up $elapsedStr  $shortLabel"
     $padNeeded = [math]::Max(0, $script:_pbarLastLen - $plain.Length)
     $script:_pbarLastLen = $plain.Length
 
@@ -122,12 +122,16 @@ function Write-DownloadProgressBar {
     Write-Host -NoNewline $phaseTag -ForegroundColor $color
     Write-Host -NoNewline "  "
     Write-Host -NoNewline $pctStr -ForegroundColor $color
-    Write-Host -NoNewline "  |"
-    Write-Host -NoNewline $barFilled -ForegroundColor $color
+    Write-Host -NoNewline "  "
+    Write-Host -NoNewline "[" -ForegroundColor DarkGray
+    if ($filled -gt 0) {
+        Write-Host -NoNewline $barFilled -ForegroundColor $color
+    }
     if ($empty -gt 0) {
         Write-Host -NoNewline $barEmpty -ForegroundColor DarkGray
     }
-    Write-Host -NoNewline "|  "
+    Write-Host -NoNewline "]" -ForegroundColor DarkGray
+    Write-Host -NoNewline "  "
     if ($Sizes) { Write-Host -NoNewline $Sizes -ForegroundColor White }
     if ($Speed) {
         Write-Host -NoNewline "  spd " -ForegroundColor DarkGray
