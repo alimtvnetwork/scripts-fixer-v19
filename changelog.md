@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.227.0] -- 2026-05-16
+
+### Fixed
+- **Progress bar question marks (`?`) in conhost / non-UTF-8 sessions** -- the winget-style download bar at `scripts/shared/progress-bar.ps1` previously used emoji (hourglass / inbox / rocket / check / bolt / clock) and Unicode block glyphs, which legacy consoles rendered as boxes/`?`. Switched to ASCII-only glyphs per `mem://constraints/terminal-banners`:
+  - Bar body uses `=` / `>` / spaces inside `| ... |` bookends.
+  - Phase tags are bracketed labels: `[WAIT ]`, `[ DL  ]`, `[ >>> ]`, `[DONE]`.
+  - Metadata uses ASCII prefixes: `spd`, `eta`, `up` (elapsed).
+  - Colour graduation (Red < 25% < Yellow < 50% < Cyan < 75% < Green) preserved.
+  - Dropped the forced UTF-8 console mutation that was masking the underlying glitch.
+
+### Added
+- **`already-downloaded` short-circuit in `Invoke-FastDownload`** (`scripts/shared/fast-download.ps1`) -- before launching aria2c, the helper checks whether the target file already exists, is non-empty, and has no `.aria2` control file (i.e. not a partial). When true it logs `[fast-download] already-downloaded: <label> (<MB> MB) -- skipping. Path: <abs>` at `success` level and returns `$true` without touching the network. Matches the project-wide "already-installed" convention from `mem://features/already-installed-status`. Every consumer of `Invoke-FastDownload` (`run download`, `install model <id>`, llama.cpp model picker, ollama registry pull, batch fallback) inherits the skip automatically -- re-running an install on a file you already have is now instant.
+
+
 ## [v0.226.0] -- 2026-05-08
 
 ### Added
