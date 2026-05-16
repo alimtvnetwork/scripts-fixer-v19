@@ -64,9 +64,7 @@ function Write-DownloadProgressBar {
     if ($Percent -lt 0)   { $Percent = 0 }
     if ($Percent -gt 100) { $Percent = 100 }
 
-    # Try UTF-8 console so emoji render; harmless if it fails.
     if ($script:_pbarFirstRender) {
-        try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new() } catch {}
         $script:_pbarStartTime = Get-Date
     }
 
@@ -75,24 +73,23 @@ function Write-DownloadProgressBar {
     $empty  = $Width - $filled
 
     $color  = Get-DownloadBarColor -Percent $Percent
-    # Block-style bar: full block filled, shaded head, light shade empty.
-    $blockFull  = [char]0x2588   # full block
-    $blockHead  = [char]0x258A   # 3/4 block (animated head)
-    $blockEmpty = [char]0x2591   # light shade
+    # ASCII-only bar: '=' filled, '>' moving head, ' ' empty, '|' bookends.
+    # Per mem://constraints/terminal-banners -- avoid wide Unicode / emoji
+    # that legacy conhost or non-UTF-8 sessions render as '?'.
     if ($Percent -ge 100 -or $filled -le 0) {
-        $barFilled = ([string]$blockFull * $filled)
+        $barFilled = ('=' * $filled)
     } else {
-        $barFilled = ([string]$blockFull * ($filled - 1)) + $blockHead
+        $barFilled = ('=' * [math]::Max(0, $filled - 1)) + '>'
     }
-    $barEmpty = [string]$blockEmpty * $empty
+    $barEmpty = (' ' * $empty)
     $pctStr   = ('{0,3}%' -f $Percent)
 
-    # Phase emoji based on progress
-    $phaseEmoji =
-        if     ($Percent -ge 100) { '✅' }
-        elseif ($Percent -ge 75)  { '🚀' }
-        elseif ($Percent -ge 25)  { '📥' }
-        else                      { '⏳' }
+    # Phase tag (bracketed ASCII, console-safe per project rule).
+    $phaseTag =
+        if     ($Percent -ge 100) { '[DONE]' }
+        elseif ($Percent -ge 75)  { '[ >>> ]' }
+        elseif ($Percent -ge 25)  { '[ DL  ]' }
+        else                      { '[WAIT ]' }
 
     # Elapsed seconds for this download
     $elapsedStr = ''
@@ -108,9 +105,8 @@ function Write-DownloadProgressBar {
         $shortLabel = $shortLabel.Substring(0, $maxLabel - 1) + "~"
     }
 
-    # Top padding: two blank lines on first render for breathing room.
+    # Top padding: blank line on first render for breathing room.
     if ($script:_pbarFirstRender) {
-        Write-Host ""
         Write-Host ""
         $script:_pbarFirstRender = $false
     }
@@ -118,37 +114,38 @@ function Write-DownloadProgressBar {
     $indent = $script:_pbarIndent
 
     # Pad / clear residue from any prior longer render.
-    $plain = "$indent$phaseEmoji  $pctStr  [$barFilled$barEmpty]  $Sizes  ⚡ $Speed  ⏱ $Eta  ⌚ $elapsedStr  $shortLabel"
+    $plain = "$indent$phaseTag  $pctStr  |$barFilled$barEmpty|  $Sizes  spd $Speed  eta $Eta  up $elapsedStr  $shortLabel"
     $padNeeded = [math]::Max(0, $script:_pbarLastLen - $plain.Length)
     $script:_pbarLastLen = $plain.Length
 
     # Render -- carriage return then segmented colour writes.
     [Console]::Write("`r")
     Write-Host -NoNewline $indent
-    Write-Host -NoNewline "$phaseEmoji  "
+    Write-Host -NoNewline $phaseTag -ForegroundColor $color
+    Write-Host -NoNewline "  "
     Write-Host -NoNewline $pctStr -ForegroundColor $color
-    Write-Host -NoNewline "  ["
+    Write-Host -NoNewline "  |"
     Write-Host -NoNewline $barFilled -ForegroundColor $color
     if ($empty -gt 0) {
         Write-Host -NoNewline $barEmpty -ForegroundColor DarkGray
     }
-    Write-Host -NoNewline "]  "
+    Write-Host -NoNewline "|  "
     if ($Sizes) { Write-Host -NoNewline $Sizes -ForegroundColor White }
     if ($Speed) {
-        Write-Host -NoNewline "  ⚡ " -ForegroundColor DarkGray
+        Write-Host -NoNewline "  spd " -ForegroundColor DarkGray
         Write-Host -NoNewline $Speed   -ForegroundColor Green
     }
     if ($Eta)   {
-        Write-Host -NoNewline "  ⏱ " -ForegroundColor DarkGray
+        Write-Host -NoNewline "  eta " -ForegroundColor DarkGray
         Write-Host -NoNewline $Eta      -ForegroundColor Yellow
     }
     if ($elapsedStr) {
-        Write-Host -NoNewline "  ⌚ " -ForegroundColor DarkGray
+        Write-Host -NoNewline "  up "  -ForegroundColor DarkGray
         Write-Host -NoNewline $elapsedStr -ForegroundColor Magenta
     }
     if ($shortLabel) {
         Write-Host -NoNewline "  "
-        Write-Host -NoNewline $shortLabel -ForegroundColor DarkCyan
+        Write-Host -NoNewline $shortLabel -ForegroundColor Cyan
     }
     if ($padNeeded -gt 0) {
         Write-Host -NoNewline (' ' * $padNeeded)
