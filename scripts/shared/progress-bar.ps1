@@ -58,22 +58,48 @@ function Write-DownloadProgressBar {
         [string] $Speed = "",
         [string] $Eta   = "",
         [string] $Label = "",
-        [int]    $Width = 32
+        [int]    $Width = 36
     )
 
     if ($Percent -lt 0)   { $Percent = 0 }
     if ($Percent -gt 100) { $Percent = 100 }
+
+    # Try UTF-8 console so emoji render; harmless if it fails.
+    if ($script:_pbarFirstRender) {
+        try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new() } catch {}
+        $script:_pbarStartTime = Get-Date
+    }
 
     $filled = [int]([math]::Floor($Width * $Percent / 100.0))
     if ($filled -gt $Width) { $filled = $Width }
     $empty  = $Width - $filled
 
     $color  = Get-DownloadBarColor -Percent $Percent
-    # ASCII-only "real progress bar" look: '=' filled, '>' head, ' ' empty.
-    $headChar = if ($Percent -gt 0 -and $Percent -lt 100) { '>' } else { '=' }
-    $barFilled = if ($filled -gt 0) { ('=' * ($filled - 1)) + $headChar } else { '' }
-    $barEmpty  = ' ' * $empty
-    $pctStr    = ('{0,3}%' -f $Percent)
+    # Block-style bar: full block filled, shaded head, light shade empty.
+    $blockFull  = [char]0x2588   # full block
+    $blockHead  = [char]0x258A   # 3/4 block (animated head)
+    $blockEmpty = [char]0x2591   # light shade
+    if ($Percent -ge 100 -or $filled -le 0) {
+        $barFilled = ([string]$blockFull * $filled)
+    } else {
+        $barFilled = ([string]$blockFull * ($filled - 1)) + $blockHead
+    }
+    $barEmpty = [string]$blockEmpty * $empty
+    $pctStr   = ('{0,3}%' -f $Percent)
+
+    # Phase emoji based on progress
+    $phaseEmoji =
+        if     ($Percent -ge 100) { '✅' }
+        elseif ($Percent -ge 75)  { '🚀' }
+        elseif ($Percent -ge 25)  { '📥' }
+        else                      { '⏳' }
+
+    # Elapsed seconds for this download
+    $elapsedStr = ''
+    if ($script:_pbarStartTime) {
+        $elapsed = (Get-Date) - $script:_pbarStartTime
+        $elapsedStr = Format-DownloadElapsed -Seconds $elapsed.TotalSeconds
+    }
 
     # Compose label (truncate to keep one line)
     $shortLabel = $Label
@@ -82,41 +108,46 @@ function Write-DownloadProgressBar {
         $shortLabel = $shortLabel.Substring(0, $maxLabel - 1) + "~"
     }
 
-    # Emit a blank line above on first render so the bar has top padding,
-    # visually separated from the previous log lines.
+    # Top padding: two blank lines on first render for breathing room.
     if ($script:_pbarFirstRender) {
+        Write-Host ""
         Write-Host ""
         $script:_pbarFirstRender = $false
     }
 
     $indent = $script:_pbarIndent
 
-    # Plain-text length used to pad / clear residue from any prior longer render.
-    $plain = "$indent$pctStr  [$barFilled$barEmpty]   $Sizes   DL: $Speed   ETA: $Eta   $shortLabel"
+    # Pad / clear residue from any prior longer render.
+    $plain = "$indent$phaseEmoji  $pctStr  [$barFilled$barEmpty]  $Sizes  ⚡ $Speed  ⏱ $Eta  ⌚ $elapsedStr  $shortLabel"
     $padNeeded = [math]::Max(0, $script:_pbarLastLen - $plain.Length)
     $script:_pbarLastLen = $plain.Length
 
     # Render -- carriage return then segmented colour writes.
     [Console]::Write("`r")
     Write-Host -NoNewline $indent
+    Write-Host -NoNewline "$phaseEmoji  "
     Write-Host -NoNewline $pctStr -ForegroundColor $color
     Write-Host -NoNewline "  ["
     Write-Host -NoNewline $barFilled -ForegroundColor $color
     if ($empty -gt 0) {
         Write-Host -NoNewline $barEmpty -ForegroundColor DarkGray
     }
-    Write-Host -NoNewline "]   "
+    Write-Host -NoNewline "]  "
     if ($Sizes) { Write-Host -NoNewline $Sizes -ForegroundColor White }
     if ($Speed) {
-        Write-Host -NoNewline "   DL: " -ForegroundColor DarkGray
+        Write-Host -NoNewline "  ⚡ " -ForegroundColor DarkGray
         Write-Host -NoNewline $Speed   -ForegroundColor Green
     }
     if ($Eta)   {
-        Write-Host -NoNewline "   ETA: " -ForegroundColor DarkGray
+        Write-Host -NoNewline "  ⏱ " -ForegroundColor DarkGray
         Write-Host -NoNewline $Eta      -ForegroundColor Yellow
     }
+    if ($elapsedStr) {
+        Write-Host -NoNewline "  ⌚ " -ForegroundColor DarkGray
+        Write-Host -NoNewline $elapsedStr -ForegroundColor Magenta
+    }
     if ($shortLabel) {
-        Write-Host -NoNewline "   "
+        Write-Host -NoNewline "  "
         Write-Host -NoNewline $shortLabel -ForegroundColor DarkCyan
     }
     if ($padNeeded -gt 0) {
@@ -135,9 +166,11 @@ function Complete-DownloadProgressBar {
     if ($script:_pbarLastLen -gt 0) {
         Write-Host ""    # newline after the in-place bar
         Write-Host ""    # blank line below for bottom padding
+        Write-Host ""    # extra breathing room before next log section
         $script:_pbarLastLen = 0
     }
     $script:_pbarFirstRender = $true
+    $script:_pbarStartTime = $null
 }
 
 function Invoke-Aria2WithProgressBar {
