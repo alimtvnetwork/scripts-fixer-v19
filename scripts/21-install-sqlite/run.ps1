@@ -67,13 +67,17 @@ if ($isNotAdmin) {
     return
 }
 
+# -- Resolve per-tool minFreeGB ----------------------------------------------
+$minFreeGB = 0.5
+if ($null -ne $config.minFreeGB) { try { $minFreeGB = [double]$config.minFreeGB } catch {} }
+
 # -- Resolve dev directory -----------------------------------------------------
 $hasPathParam = -not [string]::IsNullOrWhiteSpace($Path)
 if ($hasPathParam) {
     $devDir = $Path
     Write-Log "Using user-specified dev directory: $devDir" -Level "info"
 } else {
-    $devDir = Resolve-DevDir -Config $config.devDir
+    $devDir = Resolve-DevDir -Config $config.devDir -MinFreeGB $minFreeGB
 }
 Initialize-DevDir -Path $devDir
 $env:DEV_DIR = $devDir

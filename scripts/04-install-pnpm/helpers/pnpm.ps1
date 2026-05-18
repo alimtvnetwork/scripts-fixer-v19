@@ -137,7 +137,8 @@ function Configure-PnpmStore {
     param(
         $Config,
         $LogMessages,
-        [string]$DevDir
+        [string]$DevDir,
+        [double]$MinFreeGB = 0
     )
 
     $storeConfig = $Config.store
@@ -177,7 +178,7 @@ function Configure-PnpmStore {
     if (-not $storePath) {
         try {
             if (Get-Command Resolve-SmartDevDir -ErrorAction SilentlyContinue) {
-                $smartDir = Resolve-SmartDevDir
+                $smartDir = Resolve-SmartDevDir -MinFreeGB $MinFreeGB
                 if ($smartDir) {
                     $storePath = Join-Path (Join-Path $smartDir $Config.devDirSubfolder) "store"
                 }
