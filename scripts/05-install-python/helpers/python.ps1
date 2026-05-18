@@ -123,8 +123,12 @@ function Get-PythonInstallerConfig {
     # Resolve installDir dynamically: DevDir\python\Python313
     $hasDevDir = -not [string]::IsNullOrWhiteSpace($DevDir)
     if (-not $hasDevDir) {
-        # Use smart drive detection to find best dev directory
-        $DevDir = Resolve-SmartDevDir
+        # Use smart drive detection -- honour Python's lightweight minFreeGB
+        $pyMin = 0.5
+        if ($null -ne $Config.minFreeGB) {
+            try { $pyMin = [double]$Config.minFreeGB } catch { $pyMin = 0.5 }
+        }
+        $DevDir = Resolve-SmartDevDir -MinFreeGB $pyMin
     }
 
     $devDirSubfolder = if ($Config.devDirSubfolder) { $Config.devDirSubfolder } else { "python" }
