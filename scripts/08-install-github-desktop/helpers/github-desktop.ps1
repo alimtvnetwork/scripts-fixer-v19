@@ -278,7 +278,7 @@ function Uninstall-GitHubDesktop {
         $LogMessages
     )
 
-    $packageName = $$Config.chocoPackageName
+    $packageName = $Config.chocoPackageName
 
     # 1. Uninstall via Chocolatey
     Write-Log ($LogMessages.messages.uninstalling -replace '\{name\}', "GitHub Desktop") -Level "info"
