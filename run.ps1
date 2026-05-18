@@ -336,6 +336,12 @@ function Show-RootHelpRaw {
     Write-Host "    $(".\run.ps1 download <url> [<dir>]".PadRight($col))" -NoNewline; Write-Host "Fast download (aria2c, defaults -s 16 -p 1M); 'url' is alias" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> -s 12 -p 2M".PadRight($col))" -NoNewline; Write-Host "Override splits (per-server connections) and piece size" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 os <action>".PadRight($col))" -NoNewline; Write-Host "OS housekeeping: clean, temp-clean, hib-off, flp, add-user ('os -h' for full list)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 os power [flags]".PadRight($col))" -NoNewline; Write-Host "Set display/sleep/disk/hibernate timeouts (--display N --sleep N --disk N --hibernate N | --never | --ac-only | --dc-only | --dry-run)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 os hib-off | hib-on".PadRight($col))" -NoNewline; Write-Host "Disable / enable Windows hibernation" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 os browser <name>".PadRight($col))" -NoNewline; Write-Host "Set default web browser (chrome | firefox | edge | brave | opera | vivaldi | librewolf)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 os email <name>".PadRight($col))" -NoNewline; Write-Host "Set default mail client (outlook | thunderbird | mailbird | em-client | windows-mail)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 os clean | temp-clean".PadRight($col))" -NoNewline; Write-Host "Disk cleanup (categories, buckets, consent system) or just temp dirs" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 os add-user | edit-user | remove-user".PadRight($col))" -NoNewline; Write-Host "Local Windows user management (add/edit/remove, JSON-bulk variants too)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 ssh <verb>".PadRight($col))" -NoNewline; Write-Host "SSH keys: gen | view | read | cat | search | install | revoke | ledger ('ssh help')" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 ssh view".PadRight($col))" -NoNewline; Write-Host "Pretty-print ~/.ssh (public keys + masked private + ledger summary)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 ssh search <p>".PadRight($col))" -NoNewline; Write-Host "Substring/regex search across ~/.ssh files AND the cross-OS ledger" -ForegroundColor DarkGray
