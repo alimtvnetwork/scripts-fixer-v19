@@ -468,6 +468,15 @@ switch ($normalizedAction) {
         & (Join-Path $scriptDir "helpers\revoke-key.ps1") @Rest
         exit $LASTEXITCODE
     }
+    { $_ -in @("view-key","viewkey","read-key","readkey","cat-key","catkey","ssh-view","sshview","ssh-cat","sshcat","ssh-read","sshread","show-key","showkey") } {
+        & (Join-Path $scriptDir "helpers\view-key.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("search-key","searchkey","find-key","findkey","ssh-search","sshsearch","ssh-find","sshfind","grep-key","grepkey") } {
+        $searchArgs = @("--search") + @($Rest) + @("--ledger")
+        & (Join-Path $scriptDir "helpers\view-key.ps1") @searchArgs
+        exit $LASTEXITCODE
+    }
     { $_ -in @("startup-add", "startupadd") } {
         & (Join-Path $scriptDir "helpers\startup-add.ps1") @Rest
         exit $LASTEXITCODE
