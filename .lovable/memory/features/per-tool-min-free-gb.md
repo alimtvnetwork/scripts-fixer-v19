@@ -45,15 +45,27 @@ on boxes where the only non-system drive has 5-9 GB free.
 
 ## Wired so far
 
+- Script 04 (install-pnpm): `config.minFreeGB = 0.5`, `run.ps1` passes it to
+  `Configure-PnpmStore`, and `helpers/pnpm.ps1` forwards `-MinFreeGB` to
+  `Resolve-SmartDevDir`.
 - Script 05 (install-python): `config.minFreeGB = 0.5`, both `run.ps1` and
   `helpers/python.ps1` pass it to `Resolve-SmartDevDir -MinFreeGB`.
+- Script 07 (install-git): `config.minFreeGB = 1`. Installs via Chocolatey to
+  system paths; no direct `Resolve-SmartDevDir` call. Config override exists for
+  future dev-dir usage.
+- Script 16 (install-php): `config.minFreeGB = 1`. Installs via Chocolatey to
+  system paths; no direct `Resolve-SmartDevDir` call. Config override exists for
+  future dev-dir usage.
+- Script 21 (install-sqlite): `config.minFreeGB = 0.5`, `run.ps1` passes
+  `-MinFreeGB` to `Resolve-DevDir`, and `scripts/shared/dev-dir.ps1`
+  `Resolve-DevDir` forwards it to `Resolve-SmartDevDir`.
+- Script 41 (install-python-libs): `config.minFreeGB = 1`. Installs via pip to
+  user site; no direct `Resolve-SmartDevDir` call. Config override exists for
+  future dev-dir usage.
 
 ## Still to wire (suggested per-tool values)
 
-- 04 install-pnpm:      0.5
-- 07 install-git:       1
-- 21 install-sqlite:    0.5
-- 41 install-python-libs: 1
-- 16 install-php:       1
+None -- all lightweight scripts in the batch are now wired.
+
 - (Heavy tools keep the 10 GB default: 40 java, 39 dotnet, 44 rust,
   45 docker, 38 flutter, 42 ollama, 43 llama-cpp, models-download)
