@@ -22,7 +22,27 @@ if (-not (Get-Variable -Name SharedLogMessages -Scope Script -ErrorAction Silent
 }
 
 # -- Constants -----------------------------------------------------------------
+# Default minimum free space (GB) required for the dev directory. Per-tool
+# scripts can override this by either:
+#   (a) setting $env:SCRIPTS_FIXER_MIN_FREE_GB (numeric, GB) before calling
+#       Resolve-SmartDevDir / Resolve-DevDir, or
+#   (b) passing -MinFreeGB <N> to those functions explicitly.
+# Rationale: large tools (model downloads, Docker, JDK + IDE) need lots of
+# free space; lightweight tools (pip, git, sqlite client) need a few hundred MB
+# at most -- so demanding 10 GB everywhere makes the script refuse to install
+# on perfectly capable boxes.
 $script:MinFreeSpaceGB = 10
+
+function Get-EffectiveMinFreeGB {
+    param([double]$Override = 0)
+    if ($Override -gt 0) { return $Override }
+    $envVal = $env:SCRIPTS_FIXER_MIN_FREE_GB
+    if (-not [string]::IsNullOrWhiteSpace($envVal)) {
+        $parsed = 0.0
+        if ([double]::TryParse($envVal, [ref]$parsed) -and $parsed -gt 0) { return $parsed }
+    }
+    return $script:MinFreeSpaceGB
+}
 
 function Get-DevPathFile {
     return Join-Path (Split-Path $PSScriptRoot -Parent) "dev-path.json"
