@@ -1191,11 +1191,42 @@ non-interactive setting; without it the helper opens System Settings as a fallba
 
 #### SSH keys (cross-OS ledger aware)
 
+Every long-form `os <verb>-key` command has a short top-level `ssh <verb>`
+alias. The two forms are interchangeable.
+
 ```powershell
-.\run.ps1 os gen-key                              # generate ed25519 keypair into %USERPROFILE%\.ssh
-.\run.ps1 os install-key alice ~/keys/alice.pub   # install a public key into authorized_keys
-.\run.ps1 os revoke-key alice ~/keys/alice.pub    # remove + mark revoked in the ledger
+# Generate / install / revoke
+.\run.ps1 ssh gen                                 # alias of: os gen-key
+.\run.ps1 ssh gen --type ed25519 --ask            # interactive passphrase
+.\run.ps1 ssh install --key-file C:\keys\alice.pub
+.\run.ps1 ssh revoke  --fingerprint SHA256:abc... # remove + mark revoked in ledger
+
+# View / read / cat (NEW)
+.\run.ps1 ssh view                                # pretty-print everything in ~/.ssh
+.\run.ps1 ssh cat  --name id_ed25519.pub          # one specific file
+.\run.ps1 ssh read --authorized-keys --known-hosts
+.\run.ps1 ssh view --show-private --name id_rsa   # reveal private body (interactive only)
+
+# Search (NEW) -- greps files AND the cross-OS ledger
+.\run.ps1 ssh search alice@laptop                 # bare positional == --search
+.\run.ps1 ssh find   SHA256:abc                   # match a ledger fingerprint
+.\run.ps1 ssh grep   ed25519 --public-only
+
+# Ledger
+.\run.ps1 ssh ledger                              # full generate/install/revoke history
+.\run.ps1 ssh help                                # built-in verb reference
+
+# Long forms still work
+.\run.ps1 os gen-key
+.\run.ps1 os view-key --search alice --ledger
+.\run.ps1 os install-key alice ~/keys/alice.pub
+.\run.ps1 os revoke-key alice ~/keys/alice.pub
 ```
+
+> 🔐 **Safety.** `ssh view` MASKS every private key body by default
+> (only the header line + SHA-256 fingerprint are shown). Pass
+> `--show-private` to reveal it — refused when stdin/stdout are
+> redirected so the body never leaks into a log file or CI artifact.
 
 #### Startup entries (apps + env vars at logon)
 
