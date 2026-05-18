@@ -271,9 +271,18 @@ function Resolve-SmartDevDir {
         Result is cached to .dev-drive-cache.json (gitignored) so subsequent
         runs skip drive probing entirely while the cached drive remains ready.
         Returns a path like "E:\dev-tool".
+
+    .PARAMETER MinFreeGB
+        Per-tool override for the minimum free space requirement (GB). When
+        omitted, falls back to $env:SCRIPTS_FIXER_MIN_FREE_GB and then to
+        the global default of 10 GB. Use a low value (e.g. 0.5 for pip,
+        2 for git, 4 for JDK) so lightweight tools install on boxes that
+        a 10 GB-class tool would correctly reject.
     #>
+    param([double]$MinFreeGB = 0)
 
     $slm = $script:SharedLogMessages
+    $effectiveMin = Get-EffectiveMinFreeGB -Override $MinFreeGB
 
     # Cache hit -- skip detection entirely
     $cached = Get-CachedDevDir
@@ -282,10 +291,34 @@ function Resolve-SmartDevDir {
         return $cached
     }
 
-    $bestDrive = Find-BestDevDrive
+    $bestDrive = Find-BestDevDrive -MinFreeGB $effectiveMin
     $hasBestDrive = $null -ne $bestDrive
     if ($hasBestDrive) {
         $resolved = "${bestDrive}:\dev-tool"
+        Save-CachedDevDir -Path $resolved
+        return $resolved
+    }
+
+    # ── Auto-pick largest-free drive when nothing meets the bar ──────────
+    # Previous behaviour was to prompt the user every time. That made small
+    # installers (pip, git, sqlite) un-installable on boxes where the only
+    # non-system drive had 5-9 GB free even though they need < 1 GB.
+    # New behaviour: pick the fixed drive with the MOST free space across
+    # ALL fixed drives (including system drive) as long as it has at least
+    # the per-tool minimum. Log a clear WARN so users know the fallback ran.
+    $fixedDisks = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction SilentlyContinue
+    $allCandidates = @()
+    foreach ($disk in $fixedDisks) {
+        $letter = $disk.DeviceID.Substring(0, 1)
+        $freeGB = [math]::Round($disk.FreeSpace / 1GB, 1)
+        if ($freeGB -ge $effectiveMin) {
+            $allCandidates += [PSCustomObject]@{ Letter = $letter; FreeGB = $freeGB }
+        }
+    }
+    if ($allCandidates.Count -gt 0) {
+        $best = $allCandidates | Sort-Object FreeGB -Descending | Select-Object -First 1
+        Write-Log "Auto-picked largest-free drive $($best.Letter): ($($best.FreeGB) GB free, minFreeGB=$effectiveMin) -- no preferred drive qualified" -Level "warn"
+        $resolved = "$($best.Letter):\dev-tool"
         Save-CachedDevDir -Path $resolved
         return $resolved
     }
@@ -298,12 +331,11 @@ function Resolve-SmartDevDir {
         return $fallbackPath
     }
 
-    # No qualified drive found -- prompt user
+    # No qualified drive found anywhere -- prompt user
     Write-Host ""
-    Write-Host "  No drive with $($script:MinFreeSpaceGB) GB free space found (checked E:, D:, others)." -ForegroundColor Yellow
+    Write-Host "  No drive with $effectiveMin GB free space found (checked E:, D:, others)." -ForegroundColor Yellow
     Write-Host "  Available fixed drives:" -ForegroundColor Cyan
 
-    $fixedDisks = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction SilentlyContinue
     foreach ($disk in $fixedDisks) {
         $freeGB = [math]::Round($disk.FreeSpace / 1GB, 1)
         Write-Host "    $($disk.DeviceID) -- $freeGB GB free" -ForegroundColor White
