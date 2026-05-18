@@ -246,6 +246,10 @@ The root help screen is huge. Pass a keyword after `help` (or `-h`) to print onl
 .\run.ps1 help ext-url          # ad-hoc Chrome extension URL examples only
 .\run.ps1 help conemu           # ConEmu install + context-menu commands
 .\run.ps1 help update           # update / self-update commands
+.\run.ps1 help power            # OS power plan: display / sleep / disk / hibernate timeouts
+.\run.ps1 help display          # display-off timeout (os power --display N)
+.\run.ps1 help browser          # set default web browser (os browser <name>)
+.\run.ps1 help --list           # discover every recommended filter keyword (incl. OS verbs)
 .\run.ps1 -h chrome             # same as `help chrome` (aliases: help, --help, -h, /?, ?)
 ```
 
