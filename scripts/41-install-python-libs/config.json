@@ -1,6 +1,8 @@
 {
   "enabled": true,
   "requiresPython": true,
+  "minFreeGB": 1,
+  "_minFreeGB_note": "Python libraries install via pip into user site packages. Most packages combined are < 500 MB. 1 GB is generous padding for pip cache and temp wheels.",
   "installToUserSite": true,
   "groups": {
     "ml": {

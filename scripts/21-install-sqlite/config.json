@@ -4,6 +4,8 @@
     "default": "auto",
     "override": ""
   },
+  "minFreeGB": 0.5,
+  "_minFreeGB_note": "SQLite + DB Browser via Chocolatey install to system paths. 0.5 GB lets the smart drive picker accept drives that heavy tools would reject.",
   "installMode": {
     "_comment": "Where to install. Options: devDir, custom, system.",
     "default": "devDir"
