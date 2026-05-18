@@ -240,6 +240,14 @@ function Show-OsHelp {
     Write-Host "    gen-key [--type ed25519|rsa] [--out PATH] [--ask] [--dry-run]" -ForegroundColor Green
     Write-Host "    install-key --key '...' | --key-file PATH [--user N] [--dry-run]" -ForegroundColor Green
     Write-Host "    revoke-key --fingerprint SHA256:... | --comment X [--user N] [--all --yes]" -ForegroundColor Green
+    Write-Host "    view-key   [--name P] [--search P] [--show-private]" -ForegroundColor Green
+    Write-Host "               [--public-only|--private-only] [--authorized-keys]" -ForegroundColor Green
+    Write-Host "               [--known-hosts] [--ledger] [--raw|--json]" -ForegroundColor Green
+    Write-Host "      Aliases: read-key | cat-key | ssh-view | ssh-cat | ssh-read" -ForegroundColor DarkGray
+    Write-Host "      Pretty-prints ~/.ssh contents; private bodies MASKED unless" -ForegroundColor DarkGray
+    Write-Host "      --show-private + interactive console. --search greps files" -ForegroundColor DarkGray
+    Write-Host "      AND the ledger; pass a bare positional as the search pattern." -ForegroundColor DarkGray
+    Write-Host "    search-key <pattern>  Alias for 'view-key --search <pattern> --ledger'" -ForegroundColor Green
     Write-Host "      State ledger: %USERPROFILE%\.lovable\ssh-keys-state.json" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  STARTUP MANAGEMENT (cross-OS feature, Windows side)" -ForegroundColor Cyan
@@ -458,6 +466,15 @@ switch ($normalizedAction) {
     }
     { $_ -in @("revoke-key", "revokekey", "remove-key", "ssh-revoke-key") } {
         & (Join-Path $scriptDir "helpers\revoke-key.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("view-key","viewkey","read-key","readkey","cat-key","catkey","ssh-view","sshview","ssh-cat","sshcat","ssh-read","sshread","show-key","showkey") } {
+        & (Join-Path $scriptDir "helpers\view-key.ps1") @Rest
+        exit $LASTEXITCODE
+    }
+    { $_ -in @("search-key","searchkey","find-key","findkey","ssh-search","sshsearch","ssh-find","sshfind","grep-key","grepkey") } {
+        $searchArgs = @("--search") + @($Rest) + @("--ledger")
+        & (Join-Path $scriptDir "helpers\view-key.ps1") @searchArgs
         exit $LASTEXITCODE
     }
     { $_ -in @("startup-add", "startupadd") } {

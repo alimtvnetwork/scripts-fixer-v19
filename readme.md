@@ -1014,6 +1014,8 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 | `os gen-key` | Generate an SSH keypair (ed25519 by default) into `%USERPROFILE%\.ssh` and update the cross-OS ledger | 👤 No | [Examples](#ssh-keys-cross-os-ledger-aware) |
 | `os install-key` | Install a public key into `authorized_keys` for a local user | 🛡️ Yes | [Examples](#ssh-keys-cross-os-ledger-aware) |
 | `os revoke-key` | Remove a public key from `authorized_keys` and mark it revoked in the ledger | 🛡️ Yes | [Examples](#ssh-keys-cross-os-ledger-aware) |
+| `os view-key` / `ssh view` / `ssh read` / `ssh cat` | Pretty-print every file in `~/.ssh` (public keys, masked private keys, `authorized_keys`, `known_hosts`, `config`) plus the cross-OS ledger summary | 👤 No | [Examples](#ssh-keys-cross-os-ledger-aware) |
+| `os search-key` / `ssh search` / `ssh find` | Substring/regex search across `~/.ssh` files AND the ledger (fingerprints, comments, paths) | 👤 No | [Examples](#ssh-keys-cross-os-ledger-aware) |
 | **Startup entries** | | | |
 | `os startup-add` | Register an app or env-var to run/exist at logon (Startup folder, HKCU/HKLM Run, or scheduled task) | varies | [Examples](#startup-entries-apps--env-vars-at-logon) |
 | `os startup-list` | List all `lovable-startup-*` tagged entries across methods | 👤 No | [Examples](#startup-entries-apps--env-vars-at-logon) |
@@ -1189,11 +1191,42 @@ non-interactive setting; without it the helper opens System Settings as a fallba
 
 #### SSH keys (cross-OS ledger aware)
 
+Every long-form `os <verb>-key` command has a short top-level `ssh <verb>`
+alias. The two forms are interchangeable.
+
 ```powershell
-.\run.ps1 os gen-key                              # generate ed25519 keypair into %USERPROFILE%\.ssh
-.\run.ps1 os install-key alice ~/keys/alice.pub   # install a public key into authorized_keys
-.\run.ps1 os revoke-key alice ~/keys/alice.pub    # remove + mark revoked in the ledger
+# Generate / install / revoke
+.\run.ps1 ssh gen                                 # alias of: os gen-key
+.\run.ps1 ssh gen --type ed25519 --ask            # interactive passphrase
+.\run.ps1 ssh install --key-file C:\keys\alice.pub
+.\run.ps1 ssh revoke  --fingerprint SHA256:abc... # remove + mark revoked in ledger
+
+# View / read / cat (NEW)
+.\run.ps1 ssh view                                # pretty-print everything in ~/.ssh
+.\run.ps1 ssh cat  --name id_ed25519.pub          # one specific file
+.\run.ps1 ssh read --authorized-keys --known-hosts
+.\run.ps1 ssh view --show-private --name id_rsa   # reveal private body (interactive only)
+
+# Search (NEW) -- greps files AND the cross-OS ledger
+.\run.ps1 ssh search alice@laptop                 # bare positional == --search
+.\run.ps1 ssh find   SHA256:abc                   # match a ledger fingerprint
+.\run.ps1 ssh grep   ed25519 --public-only
+
+# Ledger
+.\run.ps1 ssh ledger                              # full generate/install/revoke history
+.\run.ps1 ssh help                                # built-in verb reference
+
+# Long forms still work
+.\run.ps1 os gen-key
+.\run.ps1 os view-key --search alice --ledger
+.\run.ps1 os install-key alice ~/keys/alice.pub
+.\run.ps1 os revoke-key alice ~/keys/alice.pub
 ```
+
+> 🔐 **Safety.** `ssh view` MASKS every private key body by default
+> (only the header line + SHA-256 fingerprint are shown). Pass
+> `--show-private` to reveal it — refused when stdin/stdout are
+> redirected so the body never leaks into a log file or CI artifact.
 
 #### Startup entries (apps + env vars at logon)
 

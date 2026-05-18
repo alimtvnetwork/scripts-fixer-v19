@@ -336,6 +336,9 @@ function Show-RootHelpRaw {
     Write-Host "    $(".\run.ps1 download <url> [<dir>]".PadRight($col))" -NoNewline; Write-Host "Fast download (aria2c, defaults -s 16 -p 1M); 'url' is alias" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> -s 12 -p 2M".PadRight($col))" -NoNewline; Write-Host "Override splits (per-server connections) and piece size" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 os <action>".PadRight($col))" -NoNewline; Write-Host "OS housekeeping: clean, temp-clean, hib-off, flp, add-user ('os -h' for full list)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 ssh <verb>".PadRight($col))" -NoNewline; Write-Host "SSH keys: gen | view | read | cat | search | install | revoke | ledger ('ssh help')" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 ssh view".PadRight($col))" -NoNewline; Write-Host "Pretty-print ~/.ssh (public keys + masked private + ledger summary)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 ssh search <p>".PadRight($col))" -NoNewline; Write-Host "Substring/regex search across ~/.ssh files AND the cross-OS ledger" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 menu <verb> [target]".PadRight($col))" -NoNewline; Write-Host "Context-menu manager: install|uninstall|list|help; targets all|pwsh|wt|conemu|vscode|sf" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 menu install all -y".PadRight($col))" -NoNewline; Write-Host "Install every right-click menu (PowerShell, Windows Terminal, ConEmu, VS Code, SF)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 menu install pwsh|wt|conemu".PadRight($col))" -NoNewline; Write-Host "Install one menu only (PowerShell / Windows Terminal / ConEmu submenu)" -ForegroundColor DarkGray
@@ -3692,6 +3695,7 @@ if ($hasCommand) {
     # (isBareInstallCommand already set above at line 3679)
     $isBareMenuCommand    = $normalizedCommand -in @("menu","menus","context-menu","contextmenu","ctx-menu","ctxmenu")
     $isBareOsCommand      = $normalizedCommand -eq "os"
+    $isBareSshCommand     = $normalizedCommand -in @("ssh","sshkey","ssh-key","ssh-keys","sshkeys")
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
     $isBareVscodeContextMenuCommand = $normalizedCommand -in @("vscode-context-menu", "vscode-contextmenu", "vscodecontextmenu", "vscode-menu", "vscodemenu")
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
@@ -3722,7 +3726,7 @@ if ($hasCommand) {
     #   - any of $Install contains --no-pull / -no-pull / --offline
     #   - command is read-only (status/path/scan/export/doctor)
     $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand -or $isBareReportCommand
-    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand -or $isBareInstallCommand -or $isBareMenuCommand
+    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareSshCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand -or $isBareInstallCommand -or $isBareMenuCommand
     $isNoPullEnv = $env:SCRIPTS_FIXER_NO_PULL -eq "1"
     $isNoPullFlag = $false
     if ($null -ne $Install) {
@@ -3868,6 +3872,98 @@ if ($hasCommand) {
         exit $LASTEXITCODE
     }
 
+    if ($isBareSshCommand) {
+        # Top-level 'ssh' shortcut -> delegates to scripts\os\run.ps1
+        # Verbs:
+        #   gen | generate | keygen     -> os gen-key
+        #   view | read | cat | show    -> os view-key
+        #   search | find | grep        -> os search-key
+        #   install | add               -> os install-key
+        #   revoke | remove | rm        -> os revoke-key
+        #   ledger | list | ls          -> os view-key --ledger
+        #   help | --help | -h | (none) -> built-in help below
+        Show-VersionHeader
+        $osScript = Join-Path $RootDir "scripts\os\run.ps1"
+        if (-not (Test-Path $osScript)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "OS dispatcher missing at: $osScript (failure: required for 'ssh' subcommand)"
+            exit 1
+        }
+        $sshArgs = @()
+        if ($null -ne $Install) { $sshArgs = @($Install | Where-Object { $_ }) }
+        $verb = if ($sshArgs.Count -gt 0) { "$($sshArgs[0])".Trim().ToLower() } else { "" }
+        $rest = if ($sshArgs.Count -gt 1) { @($sshArgs[1..($sshArgs.Count - 1)]) } else { @() }
+
+        $needHelp = ($h -or $Help -or $verb -in @("","help","--help","-help","-h","/?","?"))
+        if ($needHelp) {
+            Write-Host ""
+            Write-Host "  ssh -- SSH key management shortcut" -ForegroundColor Cyan
+            Write-Host "  ==================================" -ForegroundColor DarkGray
+            Write-Host "  USAGE: " -ForegroundColor Yellow -NoNewline
+            Write-Host ".\run.ps1 ssh <verb> [flags]" -ForegroundColor White
+            Write-Host ""
+            Write-Host "  VERBS:" -ForegroundColor Yellow
+            Write-Host "    gen      [--type ed25519|rsa] [--out PATH] [--ask] [--dry-run]" -ForegroundColor Green
+            Write-Host "             Aliases: generate, keygen, ssh-keygen" -ForegroundColor DarkGray
+            Write-Host "             -> os gen-key" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "    view     [--name P] [--search P] [--show-private] [--ledger]" -ForegroundColor Green
+            Write-Host "             Aliases: read, cat, show" -ForegroundColor DarkGray
+            Write-Host "             Pretty-print every file in ~/.ssh. Private bodies MASKED" -ForegroundColor DarkGray
+            Write-Host "             unless --show-private (interactive only)." -ForegroundColor DarkGray
+            Write-Host "             -> os view-key" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "    search <pattern>" -ForegroundColor Green
+            Write-Host "             Aliases: find, grep" -ForegroundColor DarkGray
+            Write-Host "             Substring/regex search across ~/.ssh files AND the" -ForegroundColor DarkGray
+            Write-Host "             cross-OS ledger (~/.lovable/ssh-keys-state.json)." -ForegroundColor DarkGray
+            Write-Host "             -> os view-key --search <pattern> --ledger" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "    install  --key '...' | --key-file PATH [--user N] [--dry-run]" -ForegroundColor Green
+            Write-Host "             Aliases: add" -ForegroundColor DarkGray
+            Write-Host "             -> os install-key" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "    revoke   --fingerprint SHA256:... | --comment X [--user N]" -ForegroundColor Green
+            Write-Host "             Aliases: remove, rm" -ForegroundColor DarkGray
+            Write-Host "             -> os revoke-key" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "    ledger   List every ledger entry (generate/install/revoke)" -ForegroundColor Green
+            Write-Host "             Aliases: list, ls" -ForegroundColor DarkGray
+            Write-Host "             -> os view-key --ledger" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "  EXAMPLES:" -ForegroundColor Yellow
+            Write-Host "    .\run.ps1 ssh gen --type ed25519 --ask" -ForegroundColor Green
+            Write-Host "    .\run.ps1 ssh view" -ForegroundColor Green
+            Write-Host "    .\run.ps1 ssh cat --name id_ed25519.pub" -ForegroundColor Green
+            Write-Host "    .\run.ps1 ssh read --authorized-keys --known-hosts" -ForegroundColor Green
+            Write-Host "    .\run.ps1 ssh search alice@laptop" -ForegroundColor Green
+            Write-Host "    .\run.ps1 ssh install --key-file C:\keys\alice.pub" -ForegroundColor Green
+            Write-Host "    .\run.ps1 ssh revoke --fingerprint SHA256:abc..." -ForegroundColor Green
+            Write-Host "    .\run.ps1 ssh ledger" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "  State ledger: " -ForegroundColor DarkGray -NoNewline
+            Write-Host "%USERPROFILE%\.lovable\ssh-keys-state.json" -ForegroundColor White
+            Write-Host ""
+            exit 0
+        }
+
+        $mapped = switch ($verb) {
+            { $_ -in @("gen","generate","keygen","ssh-keygen","new","create") }       { @("gen-key")     + $rest; break }
+            { $_ -in @("view","show") }                                                { @("view-key")    + $rest; break }
+            { $_ -in @("read","cat") }                                                 { @("view-key")    + $rest; break }
+            { $_ -in @("search","find","grep") }                                       { @("search-key")  + $rest; break }
+            { $_ -in @("install","add","install-key","add-key") }                      { @("install-key") + $rest; break }
+            { $_ -in @("revoke","remove","rm","revoke-key","remove-key") }             { @("revoke-key")  + $rest; break }
+            { $_ -in @("ledger","list","ls","state") }                                 { @("view-key","--ledger") + $rest; break }
+            default {
+                Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+                Write-Host "Unknown ssh verb: '$verb'. Run '.\run.ps1 ssh help' for the list."
+                exit 2
+            }
+        }
+        & $osScript @mapped
+        exit $LASTEXITCODE
+    }
     if ($isBareVscodeFolderCommand) {
         Show-VersionHeader
         $vscodeFolderScript = Join-Path $RootDir "scripts\52-vscode-folder-repair\run.ps1"
