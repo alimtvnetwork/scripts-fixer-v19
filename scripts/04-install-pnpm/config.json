@@ -2,6 +2,8 @@
   "enabled": true,
   "installMethod": "npm",
   "devDirSubfolder": "pnpm",
+  "minFreeGB": 0.5,
+  "_minFreeGB_note": "pnpm global install via npm is < 100 MB. 0.5 GB lets the smart drive picker accept drives that heavy tools (Docker, JDK, model downloads) would correctly reject.",
   "store": {
     "setStorePath": true,
     "storePath": null,

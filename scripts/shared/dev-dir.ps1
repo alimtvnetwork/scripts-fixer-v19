@@ -430,7 +430,9 @@ function Resolve-DevDir {
         [Parameter(Position = 0)]
         [PSCustomObject]$DevDirConfig,
 
-        [PSCustomObject]$Config
+        [PSCustomObject]$Config,
+
+        [double]$MinFreeGB = 0
     )
 
     $slm = $script:SharedLogMessages
@@ -456,7 +458,7 @@ function Resolve-DevDir {
     $hasNoConfig = -not $DevDirConfig
     if ($hasNoConfig) {
         # No config -- use smart drive detection
-        return Resolve-SmartDevDir
+        return Resolve-SmartDevDir -MinFreeGB $MinFreeGB
     }
 
     $overridePath = if ($DevDirConfig.override) { $DevDirConfig.override } else { "" }
@@ -471,7 +473,7 @@ function Resolve-DevDir {
     # Smart drive detection (replaces hardcoded default)
     $isSmartMode = $DevDirConfig.mode -eq "json-or-prompt" -or $DevDirConfig.mode -eq "smart"
     if ($isSmartMode) {
-        return Resolve-SmartDevDir
+        return Resolve-SmartDevDir -MinFreeGB $MinFreeGB
     }
 
     # Legacy fallback: use config default

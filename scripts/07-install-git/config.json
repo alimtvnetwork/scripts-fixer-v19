@@ -2,6 +2,8 @@
   "enabled": true,
   "chocoPackageName": "git",
   "alwaysUpgradeToLatest": true,
+  "minFreeGB": 1,
+  "_minFreeGB_note": "Git + LFS + GitHub CLI via Chocolatey install to system paths (C:\Program Files\Git). 1 GB is generous padding for Chocolatey cache and any temp downloads.",
   "gitLfs": {
     "enabled": true,
     "chocoPackageName": "git-lfs",

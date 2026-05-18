@@ -67,6 +67,10 @@ if ($isDisabled) {
 
 # -- Note: No admin required for pnpm -----------------------------------------
 
+# -- Resolve per-tool minFreeGB ----------------------------------------------
+$minFreeGB = 0.5
+if ($null -ne $config.minFreeGB) { try { $minFreeGB = [double]$config.minFreeGB } catch {} }
+
 # -- Resolve dev directory -----------------------------------------------------
 $hasPathParam = -not [string]::IsNullOrWhiteSpace($Path)
 if ($hasPathParam) {
@@ -84,8 +88,8 @@ switch ($Command.ToLower()) {
         $installResult = Install-Pnpm -Config $config -LogMessages $logMessages
         $shouldConfigure = ($installResult -isnot [hashtable]) -or $installResult.Installed
         if ($shouldConfigure) {
-            $storePath = Configure-PnpmStore -Config $config -LogMessages $logMessages -DevDir $devDir
-            Update-PnpmPath -Config $config -LogMessages $logMessages
+        $storePath = Configure-PnpmStore -Config $config -LogMessages $logMessages -DevDir $devDir -MinFreeGB $minFreeGB
+        Update-PnpmPath -Config $config -LogMessages $logMessages
         } else {
             Write-Log "Skipping pnpm configure/path steps because pnpm is not installed in this session." -Level "warn"
         }
@@ -94,7 +98,7 @@ switch ($Command.ToLower()) {
         Install-Pnpm -Config $config -LogMessages $logMessages
     }
     "configure" {
-        $storePath = Configure-PnpmStore -Config $config -LogMessages $logMessages -DevDir $devDir
+        $storePath = Configure-PnpmStore -Config $config -LogMessages $logMessages -DevDir $devDir -MinFreeGB $minFreeGB
         Update-PnpmPath -Config $config -LogMessages $logMessages
     }
     "uninstall" {
