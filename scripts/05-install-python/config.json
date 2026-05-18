@@ -3,6 +3,8 @@
   "installMethod": "official-installer",
   "chocoPackageName": "python3",
   "alwaysUpgradeToLatest": true,
+  "minFreeGB": 0.5,
+  "_minFreeGB_note": "Python + pip footprint is < 300 MB. 0.5 GB lets pip install on drives that a 10 GB-class tool (Docker, JDK, model downloads) would reject. Smart drive picker respects this per-tool override and falls back to the largest-free drive when no preferred drive qualifies.",
   "devDirSubfolder": "python",
   "installer": {
     "version": "3.13.5",
