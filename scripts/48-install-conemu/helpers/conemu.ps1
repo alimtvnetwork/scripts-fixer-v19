@@ -80,8 +80,11 @@ function Install-ConEmu {
         $isAlreadyInstalled = Test-AlreadyInstalled -Name "conemu" -CurrentVersion $version
         if ($isAlreadyInstalled) {
             Write-Log ($msgs.alreadyInstalled -replace '\{version\}', $version) -Level "success"
-            if ($Mode -eq "install+settings") {
+            # Always sync settings on rerun unless caller explicitly asked for install-only
+            if ($Mode -ne "install-only") {
                 Sync-ConEmuSettings -ConEmuConfig $ConEmuConfig -LogMessages $LogMessages | Out-Null
+            } else {
+                Write-Log "Settings sync skipped (install-only mode)" -Level "info"
             }
             return $true
         }
