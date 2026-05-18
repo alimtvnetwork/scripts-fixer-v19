@@ -336,6 +336,9 @@ function Show-RootHelpRaw {
     Write-Host "    $(".\run.ps1 download <url> [<dir>]".PadRight($col))" -NoNewline; Write-Host "Fast download (aria2c, defaults -s 16 -p 1M); 'url' is alias" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 download <url> -s 12 -p 2M".PadRight($col))" -NoNewline; Write-Host "Override splits (per-server connections) and piece size" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 os <action>".PadRight($col))" -NoNewline; Write-Host "OS housekeeping: clean, temp-clean, hib-off, flp, add-user ('os -h' for full list)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 ssh <verb>".PadRight($col))" -NoNewline; Write-Host "SSH keys: gen | view | read | cat | search | install | revoke | ledger ('ssh help')" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 ssh view".PadRight($col))" -NoNewline; Write-Host "Pretty-print ~/.ssh (public keys + masked private + ledger summary)" -ForegroundColor DarkGray
+    Write-Host "    $(".\run.ps1 ssh search <p>".PadRight($col))" -NoNewline; Write-Host "Substring/regex search across ~/.ssh files AND the cross-OS ledger" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 menu <verb> [target]".PadRight($col))" -NoNewline; Write-Host "Context-menu manager: install|uninstall|list|help; targets all|pwsh|wt|conemu|vscode|sf" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 menu install all -y".PadRight($col))" -NoNewline; Write-Host "Install every right-click menu (PowerShell, Windows Terminal, ConEmu, VS Code, SF)" -ForegroundColor DarkGray
     Write-Host "    $(".\run.ps1 menu install pwsh|wt|conemu".PadRight($col))" -NoNewline; Write-Host "Install one menu only (PowerShell / Windows Terminal / ConEmu submenu)" -ForegroundColor DarkGray
