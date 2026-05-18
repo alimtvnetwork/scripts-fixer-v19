@@ -2935,7 +2935,15 @@ if ($_isEarlyHelp) {
             @{ K = "dbeaver";       D = "DBeaver install + settings sync" },
             @{ K = "ollama";        D = "Ollama install + model management" },
             @{ K = "user";          D = "User-management commands (script 68)" },
-            @{ K = "ssh";           D = "SSH key + orchestration commands" }
+            @{ K = "ssh";           D = "SSH key + orchestration commands" },
+            @{ K = "power";         D = "OS power plan: display/sleep/disk/hibernate timeouts" },
+            @{ K = "display";       D = "Display-off timeout (os power --display N)" },
+            @{ K = "sleep";         D = "Sleep timeout (os power --sleep N, hib-off/hib-on)" },
+            @{ K = "hibernate";     D = "Hibernate timeout + os hib-off/hib-on" },
+            @{ K = "browser";       D = "Set default web browser (os browser <name>)" },
+            @{ K = "email";         D = "Set default mail client (os email <name>)" },
+            @{ K = "clean";         D = "Disk cleanup (os clean / temp-clean)" },
+            @{ K = "add-user";      D = "Create a local Windows user (os add-user ...)" }
         )
 
         Write-Host ""
