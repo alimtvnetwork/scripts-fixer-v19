@@ -1847,12 +1847,12 @@ pipeline.
 
 ```powershell
 # Windows · PowerShell
-irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1 | iex
 ```
 
 ```bash
 # macOS · Linux · Bash
-curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.sh | sh
 ```
 
 ### Toolkit-managed install (recommended)
@@ -1897,7 +1897,7 @@ GITMAP_TAG=dev ./run.sh 35         # env-var alternative
 ==================== install-gitmap ====================
 [35] gitmap install directory: C:\dev-tool\GitMap
 [35] Using gitmap release tag: main
-[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1
+[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1
 [35] Preflight OK -- required commands present, installUrl validated (raw.githubusercontent.com).
 [35] Downloading gitmap installer from GitHub...
 [35] Running gitmap installer...
@@ -1918,9 +1918,9 @@ UNIX equivalent:
 
 ```text
 [35] gitmap release tag: main
-[35] resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh
+[35] resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.sh
 [35] Starting gitmap installer
-[35] Invoking: curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh | sh
+[35] Invoking: curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.sh | sh
 [35] Verifying 'gitmap --version' works in current session...
 [OK] [35] Verified: gitmap --version -> 3.181
 [35] gitmap binary path: /home/alim/.local/bin/gitmap
@@ -1937,8 +1937,8 @@ UNIX equivalent:
 ### Expected output — failure (404 / missing ref)
 
 ```text
-[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/nope/gitmap/scripts/install.ps1
-[XX] [Write-FileError] path=https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/nope/gitmap/scripts/install.ps1
+[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/nope/install.ps1
+[XX] [Write-FileError] path=https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/nope/install.ps1
      reason=Remote installer failed: The remote server returned an error: (404) Not Found.
             | hint: HTTP 404 -- installUrl points to a missing release/script.
                     Check 'installUrl' and 'releaseTag' in config.json.

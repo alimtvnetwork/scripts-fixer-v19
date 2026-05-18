@@ -39,7 +39,7 @@ Script 35 installs the **GitMap CLI** -- a Git repository navigator tool for Win
 .\run.ps1 install gitmap -Version v1.0.0
 
 # Direct remote install (standalone)
-irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1 | iex
 ```
 
 ## `--Version` Flag
