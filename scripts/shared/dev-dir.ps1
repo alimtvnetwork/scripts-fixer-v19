@@ -91,10 +91,12 @@ function Test-DriveQualified {
     param(
         [Parameter(Mandatory)]
         [string]$DriveLetter,
-        [switch]$Speculative
+        [switch]$Speculative,
+        [double]$MinFreeGB = 0
     )
 
     $slm = $script:SharedLogMessages
+    $effectiveMin = Get-EffectiveMinFreeGB -Override $MinFreeGB
     $notReadyLevel = if ($Speculative) { "info" } else { "warn" }
     $drive = Get-PSDrive -Name $DriveLetter -ErrorAction SilentlyContinue
     $hasDrive = $null -ne $drive
@@ -138,9 +140,9 @@ function Test-DriveQualified {
         return $false
     }
 
-    $hasEnoughSpace = $freeGB -ge $script:MinFreeSpaceGB
+    $hasEnoughSpace = $freeGB -ge $effectiveMin
     if (-not $hasEnoughSpace) {
-        Write-Log ($slm.messages.driveLowSpace -replace '\{drive\}', "${DriveLetter}:" -replace '\{free\}', $freeGB -replace '\{min\}', $script:MinFreeSpaceGB) -Level "warn"
+        Write-Log ($slm.messages.driveLowSpace -replace '\{drive\}', "${DriveLetter}:" -replace '\{free\}', $freeGB -replace '\{min\}', $effectiveMin) -Level "warn"
         return $false
     }
 
@@ -157,19 +159,21 @@ function Find-BestDevDrive {
         3. Any other non-system fixed drive with the most free space
         Returns the drive letter (e.g. "E") or $null if none qualifies.
     #>
+    param([double]$MinFreeGB = 0)
 
     $slm = $script:SharedLogMessages
-    Write-Log $slm.messages.driveAutoDetecting -Level "info"
+    $effectiveMin = Get-EffectiveMinFreeGB -Override $MinFreeGB
+    Write-Log "$($slm.messages.driveAutoDetecting) (minFreeGB=$effectiveMin)" -Level "info"
 
     # Priority 1: E: drive (preferred default -- speculative probe, silent fallback)
-    $isEQualified = Test-DriveQualified -DriveLetter "E" -Speculative
+    $isEQualified = Test-DriveQualified -DriveLetter "E" -Speculative -MinFreeGB $effectiveMin
     if ($isEQualified) {
         Write-Log ($slm.messages.drivePreferred -replace '\{drive\}', "E:") -Level "success"
         return "E"
     }
 
     # Priority 2: D: drive (preferred default -- speculative probe, silent fallback)
-    $isDQualified = Test-DriveQualified -DriveLetter "D" -Speculative
+    $isDQualified = Test-DriveQualified -DriveLetter "D" -Speculative -MinFreeGB $effectiveMin
     if ($isDQualified) {
         Write-Log ($slm.messages.drivePreferred -replace '\{drive\}', "D:") -Level "success"
         return "D"
@@ -188,7 +192,7 @@ function Find-BestDevDrive {
         if ($isSystemDrive -or $isAlreadyChecked) { continue }
 
         $freeGB = [math]::Round($disk.FreeSpace / 1GB, 1)
-        $hasEnoughSpace = $freeGB -ge $script:MinFreeSpaceGB
+        $hasEnoughSpace = $freeGB -ge $effectiveMin
         if ($hasEnoughSpace) {
             $candidates += [PSCustomObject]@{ Letter = $letter; FreeGB = $freeGB }
         }
