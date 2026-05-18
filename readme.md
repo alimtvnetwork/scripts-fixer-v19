@@ -1014,6 +1014,8 @@ dispatcher: [`scripts/os/run.ps1`](scripts/os/run.ps1).
 | `os gen-key` | Generate an SSH keypair (ed25519 by default) into `%USERPROFILE%\.ssh` and update the cross-OS ledger | 👤 No | [Examples](#ssh-keys-cross-os-ledger-aware) |
 | `os install-key` | Install a public key into `authorized_keys` for a local user | 🛡️ Yes | [Examples](#ssh-keys-cross-os-ledger-aware) |
 | `os revoke-key` | Remove a public key from `authorized_keys` and mark it revoked in the ledger | 🛡️ Yes | [Examples](#ssh-keys-cross-os-ledger-aware) |
+| `os view-key` / `ssh view` / `ssh read` / `ssh cat` | Pretty-print every file in `~/.ssh` (public keys, masked private keys, `authorized_keys`, `known_hosts`, `config`) plus the cross-OS ledger summary | 👤 No | [Examples](#ssh-keys-cross-os-ledger-aware) |
+| `os search-key` / `ssh search` / `ssh find` | Substring/regex search across `~/.ssh` files AND the ledger (fingerprints, comments, paths) | 👤 No | [Examples](#ssh-keys-cross-os-ledger-aware) |
 | **Startup entries** | | | |
 | `os startup-add` | Register an app or env-var to run/exist at logon (Startup folder, HKCU/HKLM Run, or scheduled task) | varies | [Examples](#startup-entries-apps--env-vars-at-logon) |
 | `os startup-list` | List all `lovable-startup-*` tagged entries across methods | 👤 No | [Examples](#startup-entries-apps--env-vars-at-logon) |
