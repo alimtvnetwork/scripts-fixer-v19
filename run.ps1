@@ -3961,20 +3961,22 @@ if ($hasCommand) {
             exit 0
         }
 
-        $mapped = switch ($verb) {
-            { $_ -in @("gen","generate","keygen","ssh-keygen","new","create") }       { @("gen-key")     + $rest; break }
-            { $_ -in @("view","show") }                                                { @("view-key")    + $rest; break }
-            { $_ -in @("read","cat") }                                                 { @("view-key")    + $rest; break }
-            { $_ -in @("search","find","grep") }                                       { @("search-key")  + $rest; break }
-            { $_ -in @("install","add","install-key","add-key") }                      { @("install-key") + $rest; break }
-            { $_ -in @("revoke","remove","rm","revoke-key","remove-key") }             { @("revoke-key")  + $rest; break }
-            { $_ -in @("ledger","list","ls","state") }                                 { @("view-key","--ledger") + $rest; break }
+        $mapped = @(switch ($verb) {
+            { $_ -in @("gen","generate","keygen","ssh-keygen","new","create") }       { ,(@("gen-key")     + $rest); break }
+            { $_ -in @("view","show") }                                                { ,(@("view-key")    + $rest); break }
+            { $_ -in @("read","cat") }                                                 { ,(@("view-key")    + $rest); break }
+            { $_ -in @("search","find","grep") }                                       { ,(@("search-key")  + $rest); break }
+            { $_ -in @("install","add","install-key","add-key") }                      { ,(@("install-key") + $rest); break }
+            { $_ -in @("revoke","remove","rm","revoke-key","remove-key") }             { ,(@("revoke-key")  + $rest); break }
+            { $_ -in @("ledger","list","ls","state") }                                 { ,(@("view-key","--ledger") + $rest); break }
             default {
                 Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
                 Write-Host "Unknown ssh verb: '$verb'. Run '.\run.ps1 ssh help' for the list."
                 exit 2
             }
-        }
+        })
+        # Flatten one level: switch + ,(...) produces a single-element array containing our arg array.
+        if ($mapped.Count -eq 1 -and $mapped[0] -is [array]) { $mapped = @($mapped[0]) }
         & $osScript @mapped
         exit $LASTEXITCODE
     }
