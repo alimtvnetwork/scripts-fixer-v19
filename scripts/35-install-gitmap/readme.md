@@ -39,12 +39,12 @@ The script delegates to the upstream installers hosted in
 
 ```powershell
 # Windows
-irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1 | iex
 ```
 
 ```bash
 # UNIX (macOS / Linux)
-curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.sh | sh
 ```
 
 Pin a different ref (branch / tag / commit) with `-Tag` / `--tag`:

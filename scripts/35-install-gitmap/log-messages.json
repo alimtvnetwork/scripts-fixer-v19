@@ -1,6 +1,6 @@
 {
   "scriptName": "install-gitmap",
-  "description": "Installs gitmap CLI -- a Git repository navigator tool for Windows. Sourced from https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1 (UNIX equivalent: .../install.sh).",
+  "description": "Installs gitmap CLI -- a Git repository navigator tool for Windows. Sourced from https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1 (UNIX equivalent: .../install.sh).",
   "messages": {
     "notAdmin": "This script requires admin privileges. Please run as Administrator.",
     "checking": "Checking for gitmap...",
