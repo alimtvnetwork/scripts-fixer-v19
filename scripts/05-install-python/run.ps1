@@ -82,8 +82,16 @@ if ($hasPathParam) {
 } elseif ($env:DEV_DIR) {
     $devDir = $env:DEV_DIR
 } else {
-    # Smart drive detection: pick drive with most free space
-    $devDir = Resolve-SmartDevDir
+    # Smart drive detection: pick drive with most free space.
+    # Python + pip needs < 300 MB; honour config.minFreeGB so we don't
+    # demand the 10 GB default that's meant for models / Docker / JDK.
+    $pyMinFreeGB = 0.0
+    if ($null -ne $config.minFreeGB) {
+        try { $pyMinFreeGB = [double]$config.minFreeGB } catch { $pyMinFreeGB = 0.5 }
+    }
+    if ($pyMinFreeGB -le 0) { $pyMinFreeGB = 0.5 }
+    Write-Log "Smart dev-dir detection (minFreeGB=$pyMinFreeGB -- Python is lightweight, < 300 MB)" -Level "info"
+    $devDir = Resolve-SmartDevDir -MinFreeGB $pyMinFreeGB
     Write-Log "Resolved dev directory via smart detection: $devDir" -Level "info"
 }
 
