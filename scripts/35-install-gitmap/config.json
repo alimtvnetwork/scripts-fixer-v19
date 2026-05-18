@@ -9,10 +9,10 @@
     "verifyCommand": "gitmap",
     "name": "gitmap",
     "desc": "Git repository navigator CLI tool",
-    "installUrl": "https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/{tag}/gitmap/scripts/install.ps1",
-    "repo": "alimtvnetwork/gitmap-v19",
+    "installUrl": "https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/{tag}/gitmap/scripts/install.ps1",
+    "repo": "alimtvnetwork/gitmap-v20",
     "releaseTag": "main",
-    "releaseZipUrl": "https://github.com/alimtvnetwork/gitmap-v19/releases/download/{tag}/gitmap-windows-amd64.zip",
+    "releaseZipUrl": "https://github.com/alimtvnetwork/gitmap-v20/releases/download/{tag}/gitmap-windows-amd64.zip",
     "fallbackTag": "main",
     "installDir": ""
   }

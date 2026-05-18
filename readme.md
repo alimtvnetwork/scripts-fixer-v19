@@ -1818,7 +1818,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 | 32 | **[DBeaver Community](scripts/32-install-dbeaver/)** | Universal database visualization and management tool | Yes |
 | 33 | **[Notepad++ (NPP)](scripts/33-install-notepadpp/)** | Install NPP, NPP Settings, or NPP + Settings | Yes |
 | 34 | **[Simple Sticky Notes](scripts/34-install-sticky-notes/)** | Install Simple Sticky Notes via Chocolatey | Yes |
-| 35 | **[GitMap](scripts/35-install-gitmap/)** | Git repository navigator CLI tool — wraps the upstream `gitmap-v19` one-liner (see [GitMap subsection](#-gitmap-script-35) below) | Yes |
+| 35 | **[GitMap](scripts/35-install-gitmap/)** | Git repository navigator CLI tool — wraps the upstream `gitmap-v20` one-liner (see [GitMap subsection](#-gitmap-script-35) below) | Yes |
 | 36 | **[OBS Studio](scripts/36-install-obs/)** | Install OBS, OBS Settings, or OBS + Settings | Yes |
 | 37 | **[Windows Terminal](scripts/37-install-windows-terminal/)** | Install WT, WT Settings, or WT + Settings | Yes |
 | 47 | **[Ubuntu Font](scripts/47-install-ubuntu-font/)** | Install Ubuntu font family system-wide | Yes |
@@ -1835,7 +1835,7 @@ A modular collection of **46 PowerShell scripts** that automate everything from 
 
 GitMap is a tiny CLI that prints a tree-view + branch/commit summary for any
 git repo. Script 35 wraps the upstream
-[`alimtvnetwork/gitmap-v19`](https://github.com/alimtvnetwork/gitmap-v19)
+[`alimtvnetwork/gitmap-v20`](https://github.com/alimtvnetwork/gitmap-v20)
 installer so it plugs into the toolkit's logging, devDir, and verification
 pipeline.
 
@@ -1843,12 +1843,12 @@ pipeline.
 
 ```powershell
 # Windows · PowerShell
-irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1 | iex
 ```
 
 ```bash
 # macOS · Linux · Bash
-curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh | sh
 ```
 
 ### Toolkit-managed install (recommended)
@@ -1867,7 +1867,7 @@ curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitma
 
 ### Pin a specific git ref with `-Tag` / `--tag`
 
-`-Tag` accepts a **branch, tag, or commit SHA** on `gitmap-v19`. Numeric
+`-Tag` accepts a **branch, tag, or commit SHA** on `gitmap-v20`. Numeric
 versions like `3.181` are auto-prefixed to `v3.181`; branch names pass
 through untouched. Default ref: `main`.
 
@@ -1893,7 +1893,7 @@ GITMAP_TAG=dev ./run.sh 35         # env-var alternative
 ==================== install-gitmap ====================
 [35] gitmap install directory: C:\dev-tool\GitMap
 [35] Using gitmap release tag: main
-[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.ps1
+[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1
 [35] Preflight OK -- required commands present, installUrl validated (raw.githubusercontent.com).
 [35] Downloading gitmap installer from GitHub...
 [35] Running gitmap installer...
@@ -1914,9 +1914,9 @@ UNIX equivalent:
 
 ```text
 [35] gitmap release tag: main
-[35] resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh
+[35] resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh
 [35] Starting gitmap installer
-[35] Invoking: curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh | sh
+[35] Invoking: curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh | sh
 [35] Verifying 'gitmap --version' works in current session...
 [OK] [35] Verified: gitmap --version -> 3.181
 [35] gitmap binary path: /home/alim/.local/bin/gitmap
@@ -1933,8 +1933,8 @@ UNIX equivalent:
 ### Expected output — failure (404 / missing ref)
 
 ```text
-[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/nope/gitmap/scripts/install.ps1
-[XX] [Write-FileError] path=https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/nope/gitmap/scripts/install.ps1
+[35] Resolved install URL: https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/nope/gitmap/scripts/install.ps1
+[XX] [Write-FileError] path=https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/nope/gitmap/scripts/install.ps1
      reason=Remote installer failed: The remote server returned an error: (404) Not Found.
             | hint: HTTP 404 -- installUrl points to a missing release/script.
                     Check 'installUrl' and 'releaseTag' in config.json.
@@ -1947,7 +1947,7 @@ UNIX equivalent:
 
 - Script readme: [`scripts/35-install-gitmap/readme.md`](scripts/35-install-gitmap/)
 - Linux runner: [`scripts-linux/35-install-gitmap/run.sh`](scripts-linux/35-install-gitmap/run.sh)
-- Upstream repo: <https://github.com/alimtvnetwork/gitmap-v19>
+- Upstream repo: <https://github.com/alimtvnetwork/gitmap-v20>
 
 ---
 
