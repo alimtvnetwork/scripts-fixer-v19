@@ -7,13 +7,13 @@
 
 **Part of the Dev Tools Setup Scripts toolkit**
 
-[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v19#requirements)
-[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v19#requirements)
-[![Script](https://img.shields.io/badge/Script-35-8b5cf6)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/scripts/registry.json)
-[![License](https://img.shields.io/badge/License-MIT-eab308)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/LICENSE)
-[![Version](https://img.shields.io/badge/Version-v0.70.0-f97316)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/scripts/version.json)
-[![Changelog](https://img.shields.io/badge/Changelog-Latest-ec4899)](https://github.com/alimtvnetwork/gitmap-v19/blob/main/changelog.md)
-[![Repo](https://img.shields.io/badge/Repo-gitmap--v19-22c55e?logo=github&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v19)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v20#requirements)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v20#requirements)
+[![Script](https://img.shields.io/badge/Script-35-8b5cf6)](https://github.com/alimtvnetwork/gitmap-v20/blob/main/scripts/registry.json)
+[![License](https://img.shields.io/badge/License-MIT-eab308)](https://github.com/alimtvnetwork/gitmap-v20/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/Version-v0.70.0-f97316)](https://github.com/alimtvnetwork/gitmap-v20/blob/main/scripts/version.json)
+[![Changelog](https://img.shields.io/badge/Changelog-Latest-ec4899)](https://github.com/alimtvnetwork/gitmap-v20/blob/main/changelog.md)
+[![Repo](https://img.shields.io/badge/Repo-gitmap--v19-22c55e?logo=github&logoColor=white)](https://github.com/alimtvnetwork/gitmap-v20)
 
 *Mandatory spec header — see [spec/00-spec-writing-guide](../00-spec-writing-guide/readme.md).*
 
@@ -32,19 +32,19 @@ Implementation folder for **Script 35 — Install Gitmap**. The full design cont
 .\run.ps1 -I 35 install
 ```
 
-### Upstream one-liners (gitmap-v19)
+### Upstream one-liners (gitmap-v20)
 
 The script delegates to the upstream installers hosted in
-[`alimtvnetwork/gitmap-v19`](https://github.com/alimtvnetwork/gitmap-v19):
+[`alimtvnetwork/gitmap-v20`](https://github.com/alimtvnetwork/gitmap-v20):
 
 ```powershell
 # Windows
-irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.ps1 | iex
 ```
 
 ```bash
 # UNIX (macOS / Linux)
-curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/main/gitmap/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/gitmap/scripts/install.sh | sh
 ```
 
 Pin a different ref (branch / tag / commit) with `-Tag` / `--tag`:

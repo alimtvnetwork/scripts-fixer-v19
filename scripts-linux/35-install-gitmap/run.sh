@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 35-install-gitmap -- gitmap CLI (curl one-liner from gitmap-v19 main branch)
+# 35-install-gitmap -- gitmap CLI (curl one-liner from gitmap-v20 main branch)
 set -u
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -17,7 +17,7 @@ CONFIG="$SCRIPT_DIR/config.json"
 # Precedence:  --tag flag  >  $GITMAP_TAG env  >  config install.releaseTag
 #              >  hard default "main".
 # Anywhere {tag} appears in install.installUrl is substituted. The ref now
-# points at a path inside the gitmap-v19 repo (default: main branch).
+# points at a path inside the gitmap-v20 repo (default: main branch).
 # ---------------------------------------------------------------------------
 TAG_FLAG=""
 ARGS=()
@@ -39,7 +39,7 @@ case "$EFFECTIVE_TAG" in
   [0-9]*) EFFECTIVE_TAG="v${EFFECTIVE_TAG}" ;;
 esac
 
-URL_TEMPLATE="${CONFIG_URL_TEMPLATE:-https://raw.githubusercontent.com/alimtvnetwork/gitmap-v19/{tag}/gitmap/scripts/install.sh}"
+URL_TEMPLATE="${CONFIG_URL_TEMPLATE:-https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/{tag}/gitmap/scripts/install.sh}"
 INSTALL_URL="${URL_TEMPLATE//\{tag\}/$EFFECTIVE_TAG}"
 
 log_info "[35] gitmap release tag: $EFFECTIVE_TAG"

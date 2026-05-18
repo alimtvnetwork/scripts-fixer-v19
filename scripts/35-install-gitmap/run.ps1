@@ -52,7 +52,7 @@ Write-Banner -Title $logMessages.scriptName
 # Precedence:  -Tag/-Version flag  >  config.gitmap.releaseTag  >
 #              config.gitmap.fallbackTag  >  hard default "main".
 # The ref is substituted into both the raw install.ps1 URL and the
-# release ZIP URL. Default points at the gitmap-v19 main branch.
+# release ZIP URL. Default points at the gitmap-v20 main branch.
 $effectiveTag = $null
 if (-not [string]::IsNullOrWhiteSpace($Tag)) {
     $effectiveTag = $Tag.Trim()
