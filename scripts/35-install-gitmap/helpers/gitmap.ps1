@@ -420,20 +420,42 @@ function Install-Gitmap {
     $installerLog = Join-Path $logsDir "gitmap-install-$stamp.log"
     Write-Log ($LogMessages.messages.installerLogFile -replace '\{path\}', $installerLog) -Level "info"
 
+    # ---- Disk-space preflight: gitmap binary is tiny (~few MB) but require
+    #      200 MB headroom on the target drive before downloading anything.
+    $hasSpace = Test-DiskSpace -TargetPath $installDir -RequiredGB 0.2 -Label "gitmap installer"
+    if (-not $hasSpace) {
+        Write-FileError -FilePath $installDir -Operation "preflight-disk-space" `
+            -Reason "Less than 200 MB free on target drive. Free space or set GITMAP_INSTALL_DIR / DEV_DIR to a roomier drive." -Module "Install-Gitmap"
+        return $false
+    }
+
+    # Ensure install directory exists so upstream installer can drop binaries
+    try {
+        if (-not (Test-Path -LiteralPath $installDir)) {
+            New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+        }
+    } catch {
+        Write-FileError -FilePath $installDir -Operation "create-install-dir" `
+            -Reason "Could not create install directory: $($_.Exception.Message)" -Module "Install-Gitmap"
+        return $false
+    }
+
     $isRemoteSuccess = $true
     try {
         Write-Log $LogMessages.messages.runningInstaller -Level "info"
 
-        # Canonical one-liner: irm <gitmap/scripts/install.ps1> | iex
-        # We invoke the same way the README documents it so behaviour matches
-        # what users see when they run the bare one-liner. install.ps1
-        # honours $env:GITMAP_INSTALL_DIR for non-default targets.
-        Write-Log "Invoking: irm $($GitmapConfig.installUrl) | iex" -Level "info"
-        $env:GITMAP_INSTALL_DIR = $installDir
+        # Canonical pattern from upstream README:
+        #   & ([scriptblock]::Create((irm <url>))) -InstallDir '<path>'
+        # This forwards our resolved install dir as a real parameter to
+        # install.ps1 instead of relying on environment variables, which
+        # avoids cases where the upstream script ignores GITMAP_INSTALL_DIR.
+        Write-Log "Invoking: & ([scriptblock]::Create((irm $($GitmapConfig.installUrl)))) -InstallDir '$installDir'" -Level "info"
+        $env:GITMAP_INSTALL_DIR = $installDir  # belt + suspenders for older install.ps1 revisions
         $installerScript = Invoke-RestMethod -Uri $GitmapConfig.installUrl -UseBasicParsing
+        $installerBlock  = [scriptblock]::Create($installerScript)
 
-        # Write a header to the transcript, then run iex with merged streams (2>&1)
-        # tee'd into the log file. This captures stdout AND stderr from the
+        # Write a header to the transcript, then run the block with merged streams
+        # (2>&1) tee'd into the log file. This captures stdout AND stderr from the
         # one-liner for offline troubleshooting.
         try {
             $header = @(
@@ -441,6 +463,7 @@ function Install-Gitmap {
                 "timestamp:    $(Get-Date -Format 'o')"
                 "installUrl:   $($GitmapConfig.installUrl)"
                 "installDir:   $installDir"
+                "invocation:   & ([scriptblock]::Create((irm <url>))) -InstallDir '$installDir'"
                 "user:         $env:USERNAME"
                 "host:         $env:COMPUTERNAME"
                 "pwsh:         $($PSVersionTable.PSVersion)"
@@ -453,6 +476,7 @@ function Install-Gitmap {
                 -replace '\{path\}',  $installerLog `
                 -replace '\{error\}', $_.Exception.Message) -Level "warn"
         }
+
 
         # Merge stderr into stdout, stream every line to console AND append to file
         & {
