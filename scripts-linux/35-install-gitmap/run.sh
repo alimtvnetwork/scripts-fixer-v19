@@ -110,9 +110,21 @@ verb_install() {
 
   mkdir -p "$BIN_DIR" || { log_file_error "$BIN_DIR" "bin dir mkdir failed"; return 1; }
 
-  log_info "[35] Invoking: curl -fsSL $INSTALL_URL | sh"
-  if ! curl -fsSL "$INSTALL_URL" | sh; then
-    log_file_error "$INSTALL_URL" "curl | sh one-liner exited non-zero"
+  # Disk-space preflight: require >=200 MB free on the target filesystem.
+  if command -v df >/dev/null 2>&1; then
+    free_kb=$(df -Pk "$BIN_DIR" 2>/dev/null | awk 'NR==2 {print $4}')
+    need_kb=$((200 * 1024))
+    if [ -n "${free_kb:-}" ] && [ "$free_kb" -lt "$need_kb" ]; then
+      free_mb=$((free_kb / 1024))
+      log_file_error "$BIN_DIR" "Insufficient disk space: ${free_mb} MB free, 200 MB required"
+      return 1
+    fi
+    log_info "[35] Disk space OK on $BIN_DIR ($((free_kb / 1024)) MB free, 200 MB required)"
+  fi
+
+  log_info "[35] Invoking: curl -fsSL $INSTALL_URL | sh -s -- --dir \"$BIN_DIR\""
+  if ! curl -fsSL "$INSTALL_URL" | sh -s -- --dir "$BIN_DIR"; then
+    log_file_error "$INSTALL_URL" "curl | sh one-liner exited non-zero (dir=$BIN_DIR)"
     return 1
   fi
 
