@@ -16,6 +16,11 @@ if ((Test-Path $_devDirPath) -and -not (Get-Command Resolve-DevDir -ErrorAction 
     . $_devDirPath
 }
 
+$_diskPath = Join-Path $_sharedDir "disk-space.ps1"
+if ((Test-Path $_diskPath) -and -not (Get-Command Test-DiskSpace -ErrorAction SilentlyContinue)) {
+    . $_diskPath
+}
+
 function Test-GitmapInstalled {
     $cmd = Get-Command "gitmap" -ErrorAction SilentlyContinue
     $isInPath = $null -ne $cmd
