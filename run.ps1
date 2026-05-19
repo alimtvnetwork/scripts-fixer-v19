@@ -592,11 +592,11 @@ function Show-RootHelpRaw {
     Write-Host ""
     Write-Host "      VS Code:" -ForegroundColor DarkYellow
     Write-Host "    $("install vscode+settings".PadRight($kc))" -NoNewline; Write-Host "VS Code + sync settings/keybindings/extensions [01,11]" -ForegroundColor DarkGray
-    Write-Host "    $("install vscode-settings".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+settings (alias) [01,11]" -ForegroundColor DarkGray
-    Write-Host "    $("install settings-sync".PadRight($kc))" -NoNewline; Write-Host "Same as above -- ensures VS Code installed first [01,11]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+s".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+settings (short alias) [01,11]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode-settings".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+settings (legacy alias of settings-sync) [01,11]" -ForegroundColor DarkGray
     Write-Host "    $("install vscode+menu+settings (= vms)".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + right-click menu [01,11,10]" -ForegroundColor DarkGray
-    Write-Host "    $("install context-menu".PadRight($kc))" -NoNewline; Write-Host "VS Code right-click menu (auto-installs VS Code+settings) [01,11,10]" -ForegroundColor DarkGray
-    Write-Host "    $("install vscode-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as context-menu (explicit alias) [01,11,10]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+menu".PadRight($kc))" -NoNewline; Write-Host "VS Code right-click menu (auto-installs VS Code + settings) [01,11,10]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+context, vscode-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+menu (aliases) [01,11,10]" -ForegroundColor DarkGray
     Write-Host "    $("install vscode-fix-menu".PadRight($kc))" -NoNewline; Write-Host "Repair-only: fix VS Code folder right-click registry (no reinstall) [52]" -ForegroundColor DarkGray
     Write-Host "    $("install fix-vscode-menu".PadRight($kc))" -NoNewline; Write-Host "Same as vscode-fix-menu (alias) [52]" -ForegroundColor DarkGray
     Write-Host "    $("install vscode+fix".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + folder right-click repair [01,11,52]" -ForegroundColor DarkGray
@@ -656,7 +656,7 @@ function Show-RootHelpRaw {
     Write-Host "      $("Token".PadRight(20))" -NoNewline -ForegroundColor White
     Write-Host "$("Removes IDs".PadRight(18))" -NoNewline -ForegroundColor White
     Write-Host "Aliases" -ForegroundColor White
-    Write-Host "      $("vscode".PadRight(20))" -NoNewline; Write-Host "$("[01, 11]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "vs-code, code, vscode-settings, settings-sync" -ForegroundColor DarkGray
+    Write-Host "      $("vscode".PadRight(20))" -NoNewline; Write-Host "$("[01, 11]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "vs-code, code, vscode+settings, vscode+s, vscode-settings (legacy: settings-sync)" -ForegroundColor DarkGray
     Write-Host "      $("vscode-fix-menu".PadRight(20))" -NoNewline; Write-Host "$("[52]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "fix-vscode-menu, vscode-menu-fix, vscode-menu-repair, fix-vscode-context-menu (folder right-click repair only)" -ForegroundColor DarkGray
     Write-Host "      $("npp".PadRight(20))" -NoNewline; Write-Host "$("[33]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "notepad++, notepadpp, notepad-plus, npp+settings, npp-settings" -ForegroundColor DarkGray
     Write-Host "      $("obs".PadRight(20))" -NoNewline; Write-Host "$("[36]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "obs-studio, obs+settings, obs-settings, install-obs" -ForegroundColor DarkGray
@@ -1210,9 +1210,11 @@ function Show-KeywordTable {
     Write-Host "    $("java, openjdk, jdk".PadRight($kwCol))$("OpenJDK".PadRight($descCol))40"
     Write-Host ""
     Write-Host "    Config & Settings" -ForegroundColor Magenta
-    Write-Host "    $("context-menu".PadRight($kwCol))$("VSCode context menu fix".PadRight($descCol))10"
-    Write-Host "    $("settings-sync".PadRight($kwCol))$("VSCode settings sync".PadRight($descCol))11"
-    Write-Host "    $("pwsh-menu".PadRight($kwCol))$("PowerShell context menu".PadRight($descCol))31"
+    Write-Host "    $("vscode+menu, vscode+context".PadRight($kwCol))$("VS Code + Settings + Right-click Menu".PadRight($descCol))01, 10, 11"
+    Write-Host "    $("vscode+settings, vscode+s".PadRight($kwCol))$("VS Code + Settings Sync".PadRight($descCol))01, 11"
+    Write-Host "    $("pwsh+menu, pwsh-menu".PadRight($kwCol))$("PowerShell + Right-click Menu".PadRight($descCol))17, 31"
+    Write-Host "    $("conemu+menu, conemu-menu".PadRight($kwCol))$("ConEmu + Right-click Menu".PadRight($descCol))48, 59"
+    Write-Host "    $("wt+menu, wt-menu".PadRight($kwCol))$("Windows Terminal + Right-click Menu".PadRight($descCol))37, 64"
     Write-Host "    $("all-dev, all".PadRight($kwCol))$("Interactive dev tools menu".PadRight($descCol))12"
     Write-Host "    $("audit".PadRight($kwCol))$("Audit mode".PadRight($descCol))13"
     Write-Host "    $("health, healthcheck".PadRight($kwCol))$("Health check (audit + report)".PadRight($descCol))13"
