@@ -479,8 +479,11 @@ function Install-Gitmap {
 
 
         # Merge stderr into stdout, stream every line to console AND append to file
+        # Merge stderr into stdout, stream every line to console AND append to file.
+        # Pass -InstallDir as a real parameter; older installers that don't declare
+        # it will ignore unknown args, and $env:GITMAP_INSTALL_DIR remains as fallback.
         & {
-            Invoke-Expression $installerScript
+            & $installerBlock -InstallDir $installDir
         } 2>&1 | ForEach-Object {
             $line = "$_"
             try { Add-Content -LiteralPath $installerLog -Value $line -Encoding UTF8 } catch { }
