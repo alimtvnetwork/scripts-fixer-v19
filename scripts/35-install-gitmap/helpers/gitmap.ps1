@@ -478,17 +478,25 @@ function Install-Gitmap {
         }
 
 
-        # Merge stderr into stdout, stream every line to console AND append to file
         # Merge stderr into stdout, stream every line to console AND append to file.
-        # Pass -InstallDir as a real parameter; older installers that don't declare
-        # it will ignore unknown args, and $env:GITMAP_INSTALL_DIR remains as fallback.
+        # Pass -InstallDir as a real parameter; if the upstream installer doesn't
+        # declare it we retry positional-arg-free (env var still carries the path).
         & {
-            & $installerBlock -InstallDir $installDir
+            try {
+                & $installerBlock -InstallDir $installDir
+            } catch {
+                $msg = $_.Exception.Message
+                if ($msg -match '(?i)cannot find a parameter|parameter name .InstallDir|positional parameter') {
+                    Write-Log "Upstream install.ps1 does not accept -InstallDir; retrying with GITMAP_INSTALL_DIR env var only." -Level "warn"
+                    & $installerBlock
+                } else { throw }
+            }
         } 2>&1 | ForEach-Object {
             $line = "$_"
             try { Add-Content -LiteralPath $installerLog -Value $line -Encoding UTF8 } catch { }
             $line
         }
+
 
         # Report final transcript size for the audit trail
         try {
