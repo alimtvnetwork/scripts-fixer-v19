@@ -123,24 +123,35 @@ function Install-PipPackage {
 
     Write-Log ($LogMessages.messages.installingSinglePackage -replace '\{package\}', $Package) -Level "info"
 
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     try {
         $pyExe = Resolve-PythonExe
-        $pipArgs = @("-m", "pip", "install", "--no-cache-dir")
+        $pipArgs = @("-m", "pip", "install", "--no-cache-dir", "--disable-pip-version-check")
         if ($UserSite) { $pipArgs += "--user" }
         $pipArgs += $Package
 
-        $output = & $pyExe @pipArgs 2>&1
-        $isSuccess = $LASTEXITCODE -eq 0
+        # Capture stdout+stderr as plain strings (avoid ErrorRecord -> RemoteException)
+        $outputLines = & $pyExe @pipArgs 2>&1 | ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" }
+        }
+        $exit = $LASTEXITCODE
+        $output = ($outputLines -join "`n")
+        $isSuccess = $exit -eq 0
         if ($isSuccess) {
             Write-Log ($LogMessages.messages.packageInstallSuccess -replace '\{package\}', $Package) -Level "success"
             return $true
         } else {
-            Write-Log ($LogMessages.messages.packageInstallFailed -replace '\{package\}', $Package -replace '\{error\}', "$output") -Level "error"
+            $tail = ($outputLines | Select-Object -Last 5) -join " | "
+            if ([string]::IsNullOrWhiteSpace($tail)) { $tail = "pip exit code $exit" }
+            Write-Log ($LogMessages.messages.packageInstallFailed -replace '\{package\}', $Package -replace '\{error\}', $tail) -Level "error"
             return $false
         }
     } catch {
         Write-Log ($LogMessages.messages.packageInstallFailed -replace '\{package\}', $Package -replace '\{error\}', "$_") -Level "error"
         return $false
+    } finally {
+        $ErrorActionPreference = $prevEAP
     }
 }
 
