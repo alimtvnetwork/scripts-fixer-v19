@@ -592,11 +592,11 @@ function Show-RootHelpRaw {
     Write-Host ""
     Write-Host "      VS Code:" -ForegroundColor DarkYellow
     Write-Host "    $("install vscode+settings".PadRight($kc))" -NoNewline; Write-Host "VS Code + sync settings/keybindings/extensions [01,11]" -ForegroundColor DarkGray
-    Write-Host "    $("install vscode-settings".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+settings (alias) [01,11]" -ForegroundColor DarkGray
-    Write-Host "    $("install settings-sync".PadRight($kc))" -NoNewline; Write-Host "Same as above -- ensures VS Code installed first [01,11]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+s".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+settings (short alias) [01,11]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode-settings".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+settings (legacy alias of settings-sync) [01,11]" -ForegroundColor DarkGray
     Write-Host "    $("install vscode+menu+settings (= vms)".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + right-click menu [01,11,10]" -ForegroundColor DarkGray
-    Write-Host "    $("install context-menu".PadRight($kc))" -NoNewline; Write-Host "VS Code right-click menu (auto-installs VS Code+settings) [01,11,10]" -ForegroundColor DarkGray
-    Write-Host "    $("install vscode-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as context-menu (explicit alias) [01,11,10]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+menu".PadRight($kc))" -NoNewline; Write-Host "VS Code right-click menu (auto-installs VS Code + settings) [01,11,10]" -ForegroundColor DarkGray
+    Write-Host "    $("install vscode+context, vscode-context-menu".PadRight($kc))" -NoNewline; Write-Host "Same as vscode+menu (aliases) [01,11,10]" -ForegroundColor DarkGray
     Write-Host "    $("install vscode-fix-menu".PadRight($kc))" -NoNewline; Write-Host "Repair-only: fix VS Code folder right-click registry (no reinstall) [52]" -ForegroundColor DarkGray
     Write-Host "    $("install fix-vscode-menu".PadRight($kc))" -NoNewline; Write-Host "Same as vscode-fix-menu (alias) [52]" -ForegroundColor DarkGray
     Write-Host "    $("install vscode+fix".PadRight($kc))" -NoNewline; Write-Host "VS Code + settings + folder right-click repair [01,11,52]" -ForegroundColor DarkGray
