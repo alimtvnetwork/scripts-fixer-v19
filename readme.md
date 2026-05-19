@@ -1846,14 +1846,25 @@ pipeline.
 ### Upstream one-liners
 
 ```powershell
-# Windows · PowerShell
+# Windows · PowerShell  (default install dir)
 irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1 | iex
+
+# Windows · PowerShell  (pass -InstallDir through irm | iex)
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1))) -InstallDir 'D:\tools\gitmap'
 ```
 
 ```bash
-# macOS · Linux · Bash
+# macOS · Linux · Bash  (default install dir = ~/.local/bin)
 curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.sh | sh
+
+# macOS · Linux · Bash  (pass --dir through curl | sh)
+curl -fsSL https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.sh | sh -s -- --dir /opt/gitmap
 ```
+
+> The toolkit runner (`run.ps1` / `run.sh`) auto-resolves the install dir from
+> your dev-dir config and forwards it as `-InstallDir` / `--dir` for you, plus
+> requires **≥ 200 MB free** on the target drive before downloading.
+
 
 ### Toolkit-managed install (recommended)
 
