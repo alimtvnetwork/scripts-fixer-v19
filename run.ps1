@@ -656,7 +656,7 @@ function Show-RootHelpRaw {
     Write-Host "      $("Token".PadRight(20))" -NoNewline -ForegroundColor White
     Write-Host "$("Removes IDs".PadRight(18))" -NoNewline -ForegroundColor White
     Write-Host "Aliases" -ForegroundColor White
-    Write-Host "      $("vscode".PadRight(20))" -NoNewline; Write-Host "$("[01, 11]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "vs-code, code, vscode-settings, settings-sync" -ForegroundColor DarkGray
+    Write-Host "      $("vscode".PadRight(20))" -NoNewline; Write-Host "$("[01, 11]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "vs-code, code, vscode+settings, vscode+s, vscode-settings (legacy: settings-sync)" -ForegroundColor DarkGray
     Write-Host "      $("vscode-fix-menu".PadRight(20))" -NoNewline; Write-Host "$("[52]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "fix-vscode-menu, vscode-menu-fix, vscode-menu-repair, fix-vscode-context-menu (folder right-click repair only)" -ForegroundColor DarkGray
     Write-Host "      $("npp".PadRight(20))" -NoNewline; Write-Host "$("[33]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "notepad++, notepadpp, notepad-plus, npp+settings, npp-settings" -ForegroundColor DarkGray
     Write-Host "      $("obs".PadRight(20))" -NoNewline; Write-Host "$("[36]".PadRight(18))" -NoNewline -ForegroundColor Cyan; Write-Host "obs-studio, obs+settings, obs-settings, install-obs" -ForegroundColor DarkGray
