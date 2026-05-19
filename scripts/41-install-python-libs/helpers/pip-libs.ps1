@@ -123,35 +123,50 @@ function Install-PipPackage {
 
     Write-Log ($LogMessages.messages.installingSinglePackage -replace '\{package\}', $Package) -Level "info"
 
+    $stdoutPath = [System.IO.Path]::GetTempFileName()
+    $stderrPath = [System.IO.Path]::GetTempFileName()
     $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
     try {
+        $ErrorActionPreference = 'Continue'
         $pyExe = Resolve-PythonExe
         $pipArgs = @("-m", "pip", "install", "--no-cache-dir", "--disable-pip-version-check")
         if ($UserSite) { $pipArgs += "--user" }
         $pipArgs += $Package
 
-        # Capture stdout+stderr as plain strings (avoid ErrorRecord -> RemoteException)
-        $outputLines = & $pyExe @pipArgs 2>&1 | ForEach-Object {
-            if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" }
-        }
-        $exit = $LASTEXITCODE
-        $output = ($outputLines -join "`n")
-        $isSuccess = $exit -eq 0
-        if ($isSuccess) {
+        $proc = Start-Process -FilePath $pyExe -ArgumentList $pipArgs -Wait -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $exit = $proc.ExitCode
+
+        $stdoutLines = if (Test-Path $stdoutPath) { @(Get-Content -Path $stdoutPath -ErrorAction Stop) } else { @() }
+        $stderrLines = if (Test-Path $stderrPath) { @(Get-Content -Path $stderrPath -ErrorAction Stop) } else { @() }
+        $detailLines = @($stderrLines + $stdoutLines) | Where-Object { -not [string]::IsNullOrWhiteSpace("$_") }
+
+        if ($exit -eq 0) {
             Write-Log ($LogMessages.messages.packageInstallSuccess -replace '\{package\}', $Package) -Level "success"
             return $true
-        } else {
-            $tail = ($outputLines | Select-Object -Last 5) -join " | "
-            if ([string]::IsNullOrWhiteSpace($tail)) { $tail = "pip exit code $exit" }
-            Write-Log ($LogMessages.messages.packageInstallFailed -replace '\{package\}', $Package -replace '\{error\}', $tail) -Level "error"
-            return $false
         }
+
+        $tail = ($detailLines | Select-Object -Last 5) -join " | "
+        if ([string]::IsNullOrWhiteSpace($tail)) { $tail = "pip exit code $exit" }
+        Write-Log ($LogMessages.messages.packageInstallFailed -replace '\{package\}', $Package -replace '\{error\}', $tail) -Level "error"
+        return $false
     } catch {
-        Write-Log ($LogMessages.messages.packageInstallFailed -replace '\{package\}', $Package -replace '\{error\}', "$_") -Level "error"
+        $errText = $_.Exception.Message
+        if ([string]::IsNullOrWhiteSpace($errText)) { $errText = "$_" }
+        Write-Log ($LogMessages.messages.packageInstallFailed -replace '\{package\}', $Package -replace '\{error\}', $errText) -Level "error"
         return $false
     } finally {
         $ErrorActionPreference = $prevEAP
+        foreach ($tempPath in @($stdoutPath, $stderrPath)) {
+            $hasTempPath = -not [string]::IsNullOrWhiteSpace($tempPath)
+            if (-not $hasTempPath) { continue }
+            $hasTempFile = Test-Path $tempPath
+            if (-not $hasTempFile) { continue }
+            try {
+                Remove-Item -Path $tempPath -Force -ErrorAction Stop
+            } catch {
+                Write-FileError -FilePath $tempPath -Operation "delete" -Reason ("Failed to remove temporary pip capture file: {0}" -f $_.Exception.Message) -Module "Install-PipPackage"
+            }
+        }
     }
 }
 
