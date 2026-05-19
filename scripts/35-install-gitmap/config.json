@@ -1,4 +1,5 @@
 {
+  "minFreeGB": 0.2,
   "devDir": {
     "mode": "smart",
     "default": "C:\\dev-tool\\GitMap",
