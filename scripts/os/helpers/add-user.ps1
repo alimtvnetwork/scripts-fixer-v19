@@ -137,6 +137,19 @@ if ($isAdmin -and $isStandard) {
 }
 $targetGroup = if ($isAdmin) { "Administrators" } else { $config.addUser.defaultGroup }
 
+# ---- Auto-prompt for missing required fields (interactive sessions) ----
+$canPrompt = [Environment]::UserInteractive -and [Console]::IsInputRedirected -eq $false
+if ($canPrompt -and (Get-Command Read-PromptString -ErrorAction SilentlyContinue)) {
+    if ([string]::IsNullOrWhiteSpace($Name)) {
+        Write-Log "No <name> provided -- prompting interactively." -Level "info"
+        $Name = Read-PromptString -Prompt "Username" -Required
+    }
+    if ([string]::IsNullOrWhiteSpace($Pass)) {
+        Write-Log "No <pass> provided -- prompting interactively (input hidden)." -Level "info"
+        $Pass = Read-PromptSecret -Prompt "Password for '$Name'" -Required
+    }
+}
+
 # ---- Validate ----
 if ([string]::IsNullOrWhiteSpace($Name)) {
     Write-Log $logMessages.addUser.missingName -Level "fail"
