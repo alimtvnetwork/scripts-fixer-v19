@@ -54,11 +54,12 @@ function Test-DiskSpace {
         return $true
     }
 
-    # Resolve drive from target path
+    # Resolve drive from target path (PS 5.1 compatible -- no ?? operator)
     try {
-        $resolvedRoot = [System.IO.Path]::GetPathRoot((Convert-Path -Path $TargetPath -ErrorAction SilentlyContinue) ?? $TargetPath)
-        $isRootEmpty = [string]::IsNullOrWhiteSpace($resolvedRoot)
-        if ($isRootEmpty) {
+        $convertedPath = Convert-Path -Path $TargetPath -ErrorAction SilentlyContinue
+        $pathForRoot = if ([string]::IsNullOrWhiteSpace($convertedPath)) { $TargetPath } else { $convertedPath }
+        $resolvedRoot = [System.IO.Path]::GetPathRoot($pathForRoot)
+        if ([string]::IsNullOrWhiteSpace($resolvedRoot)) {
             $resolvedRoot = [System.IO.Path]::GetPathRoot($TargetPath)
         }
     } catch {
