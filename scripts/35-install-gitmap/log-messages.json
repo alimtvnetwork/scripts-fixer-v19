@@ -1,6 +1,6 @@
 {
   "scriptName": "install-gitmap",
-  "description": "Installs gitmap CLI -- a Git repository navigator tool for Windows. Sourced from https://raw.githubusercontent.com/alimtvnetwork/gitmap-v20/main/install.ps1 (UNIX equivalent: .../install.sh).",
+  "description": "Installs gitmap CLI -- a Git repository navigator tool for Windows. Sourced from https://raw.githubusercontent.com/alimtvnetwork/gitmap-v23/main/install.ps1 (UNIX equivalent: .../install.sh).",
   "messages": {
     "notAdmin": "This script requires admin privileges. Please run as Administrator.",
     "checking": "Checking for gitmap...",
@@ -44,7 +44,7 @@
       "uninstall": "Uninstall completely, remove tracking, clean up"
     },
     "flags": {
-      "-Tag <ref>":     "Pin a git ref (branch / tag / commit) on alimtvnetwork/gitmap-v20 (e.g. main, dev, v3.181). Substituted into installUrl/releaseZipUrl. Default: main.",
+      "-Tag <ref>":     "Pin a git ref (branch / tag / commit) on alimtvnetwork/gitmap-v23 (e.g. main, dev, v3.181). Substituted into installUrl/releaseZipUrl. Default: main.",
       "-Version <ref>": "Back-compat alias for -Tag."
     },
     "examples": [
