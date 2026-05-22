@@ -1,5 +1,5 @@
 {
-  "Version": "1.5.29",
+  "Version": "1.5.30",
   "Title": "Scripts Fixer",
   "RepoSlug": "scripts-fixer-v19",
   "RepoUrl": "https://github.com/alimtvnetwork/scripts-fixer-v19",
@@ -19,8 +19,8 @@
       "Background": "Founder, Riseup Asia LLC. Focus on developer tooling, spec-first AI workflows, and cross-language coding standards."
     }
   ],
-  "version": "1.5.29",
-  "updated": "2026-05-19",
+  "version": "1.5.30",
+  "updated": "2026-05-22",
   "name": "scripts-fixer-v19",
   "description": "Cross-platform installer & repair scripts (Windows PowerShell + Linux Bash) with structured logging, triple-path install tracking, and orchestrated fan-out playbooks."
 }
