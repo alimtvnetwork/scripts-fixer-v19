@@ -49,7 +49,8 @@ function Test-DispatcherArgs {
     #>
     [CmdletBinding()]
     param(
-        [string[]]$Args,
+        [Alias('Args')]
+        [string[]]$Argv,
         [string]$Command,
         [string]$Context = "run.ps1"
     )
@@ -61,7 +62,8 @@ function Test-DispatcherArgs {
     #    "user forgot to quote a path" pattern.
     $allTokens = @()
     if (-not [string]::IsNullOrWhiteSpace($Command)) { $allTokens += $Command }
-    if ($Args) { $allTokens += $Args }
+    if ($Argv) { $allTokens += $Argv }
+
 
     $isDriveStart   = { param($s) $s -match '^[A-Za-z]:[\\/]' }
     $isPathFragment = { param($s) $s -match '[\\/]' -and $s -notmatch '^-' }
