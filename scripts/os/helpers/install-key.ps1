@@ -122,9 +122,9 @@ while ($i -lt $Argv.Count) {
                     Write-Log "No matching key file under '$sshHome' for '$a' and gen-key helper missing at exact path: '$genScript' (failure: cannot auto-generate)" -Level "fail"
                     Save-LogFile -Status "fail"; exit 64
                 }
-                Write-Log "No matching key for '$a' under '$sshHome' -- auto-generating via gen-key.ps1 --name $safe" -Level "info"
+                Write-Log "No matching key for '$a' under '$sshHome' -- auto-generating via gen-key.ps1 '$safe'" -Level "info"
                 try {
-                    & $genScript --name $safe
+                    & $genScript $safe
                     $genExit = $LASTEXITCODE
                 } catch {
                     Write-Log "gen-key.ps1 threw while auto-generating key '$safe' (failure: $($_.Exception.Message))" -Level "fail"
