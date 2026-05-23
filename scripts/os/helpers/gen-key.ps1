@@ -66,6 +66,8 @@ $promptHelper = Join-Path $helpersDir "_prompt.ps1"
 if (Test-Path $promptHelper) { . $promptHelper }
 $ledgerHelper = Join-Path $helpersDir "_ssh-ledger.ps1"
 if (Test-Path $ledgerHelper) { . $ledgerHelper }
+$pubKeyDisplayHelper = Join-Path $helpersDir "_pubkey-display.ps1"
+if (Test-Path $pubKeyDisplayHelper) { . $pubKeyDisplayHelper }
 
 Initialize-Logging -ScriptName "Gen Key"
 
@@ -275,30 +277,16 @@ try {
 }
 
 if ($pubKeyText) {
-    Write-Host "  Public Key" -ForegroundColor Cyan
-    Write-Host "  ==========" -ForegroundColor DarkGray
-    Write-Host "  $pubKeyText" -ForegroundColor Green
-    Write-Host ""
-
-    $clipOk = $false
-    try {
-        if (Get-Command Set-Clipboard -ErrorAction SilentlyContinue) {
-            Set-Clipboard -Value $pubKeyText -ErrorAction Stop
-            $clipOk = $true
-        } elseif (Get-Command clip.exe -ErrorAction SilentlyContinue) {
-            $pubKeyText | clip.exe
-            if ($LASTEXITCODE -eq 0) { $clipOk = $true }
-        }
-    } catch {
-        Write-Log "Clipboard copy failed for public key at '$out.pub' (failure: $($_.Exception.Message))" -Level "warn"
-    }
-
-    if ($clipOk) {
-        Write-Host "  [ COPY ] Public key copied to clipboard." -ForegroundColor Green
+    if (Get-Command Show-PublicKeyBox -ErrorAction SilentlyContinue) {
+        Show-PublicKeyBox -KeyText $pubKeyText `
+                          -Label   "PUBLIC SSH KEY (newly generated)" `
+                          -Path    "$out.pub" `
+                          -Fingerprint $fingerprint | Out-Null
     } else {
-        Write-Host "  [ WARN ] Could not copy public key to clipboard (Set-Clipboard/clip.exe unavailable)." -ForegroundColor Yellow
+        Write-Host "  Public Key" -ForegroundColor Cyan
+        Write-Host "  $pubKeyText" -ForegroundColor Green
+        Write-Host ""
     }
-    Write-Host ""
 }
 
 
