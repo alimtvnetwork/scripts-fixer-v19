@@ -114,8 +114,37 @@ while ($i -lt $Argv.Count) {
                 Write-Log "Resolved positional '$a' -> key file: $resolved" -Level "info"
                 $keyFiles += $resolved
             } else {
-                Write-Log "Unexpected positional: '$a' (failure: no matching key file under $sshHome; tried: $($candidates -join ', '))" -Level "fail"
-                Save-LogFile -Status "fail"; exit 64
+                # No matching .pub on disk -- auto-generate one with gen-key.ps1
+                # so `ssh install <name>` is a single-shot "ensure key exists
+                # and is in authorized_keys" command.
+                $genScript = Join-Path $helpersDir "gen-key.ps1"
+                if (-not (Test-Path -LiteralPath $genScript)) {
+                    Write-Log "No matching key file under '$sshHome' for '$a' and gen-key helper missing at exact path: '$genScript' (failure: cannot auto-generate)" -Level "fail"
+                    Save-LogFile -Status "fail"; exit 64
+                }
+                Write-Log "No matching key for '$a' under '$sshHome' -- auto-generating via gen-key.ps1 --name $safe" -Level "info"
+                try {
+                    & $genScript --name $safe
+                    $genExit = $LASTEXITCODE
+                } catch {
+                    Write-Log "gen-key.ps1 threw while auto-generating key '$safe' (failure: $($_.Exception.Message))" -Level "fail"
+                    Save-LogFile -Status "fail"; exit 1
+                }
+                if ($genExit -ne 0) {
+                    Write-Log "gen-key.ps1 exited with code $genExit while auto-generating key '$safe' (failure: see gen-key log)" -Level "fail"
+                    Save-LogFile -Status "fail"; exit $genExit
+                }
+                $resolved = $null
+                foreach ($c in $candidates) {
+                    if (Test-Path -LiteralPath $c -PathType Leaf) { $resolved = $c; break }
+                }
+                if ($resolved) {
+                    Write-Log "Auto-generated key resolved -> $resolved" -Level "success"
+                    $keyFiles += $resolved
+                } else {
+                    Write-Log "Auto-generation reported success but no .pub appeared under '$sshHome' for '$safe' (failure: tried: $($candidates -join ', '))" -Level "fail"
+                    Save-LogFile -Status "fail"; exit 1
+                }
             }
         }
     }
