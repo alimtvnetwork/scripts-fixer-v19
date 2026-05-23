@@ -3919,8 +3919,9 @@ if ($hasCommand) {
             Write-Host ".\run.ps1 ssh <verb> [flags]" -ForegroundColor White
             Write-Host ""
             Write-Host "  VERBS:" -ForegroundColor Yellow
-            Write-Host "    gen      [--type ed25519|rsa] [--out PATH] [--ask] [--dry-run]" -ForegroundColor Green
-            Write-Host "             Aliases: generate, keygen, ssh-keygen" -ForegroundColor DarkGray
+            Write-Host "    gen      [<name>] [--type ed25519|rsa] [--out PATH] [--ask] [--dry-run]" -ForegroundColor Green
+            Write-Host "             Aliases: generate, keygen, ssh-keygen, new, create" -ForegroundColor DarkGray
+            Write-Host "             <name> -> file id_<type>_<name> + comment suffix" -ForegroundColor DarkGray
             Write-Host "             -> os gen-key" -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "    view     [--name P] [--search P] [--show-private] [--ledger]" -ForegroundColor Green
@@ -3948,6 +3949,7 @@ if ($hasCommand) {
             Write-Host "             -> os view-key --ledger" -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "  EXAMPLES:" -ForegroundColor Yellow
+            Write-Host "    .\run.ps1 ssh create erfan.v2          # -> ~\.ssh\id_ed25519_erfan.v2" -ForegroundColor Green
             Write-Host "    .\run.ps1 ssh gen --type ed25519 --ask" -ForegroundColor Green
             Write-Host "    .\run.ps1 ssh view" -ForegroundColor Green
             Write-Host "    .\run.ps1 ssh cat --name id_ed25519.pub" -ForegroundColor Green
