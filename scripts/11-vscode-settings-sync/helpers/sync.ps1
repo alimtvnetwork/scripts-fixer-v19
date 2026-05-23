@@ -443,7 +443,7 @@ function Test-VsCodeSettingsApplied {
         } else {
             try {
                 $kbRaw = Get-Content -LiteralPath $KeybindingsPath -Raw -ErrorAction Stop
-                $kbArr = $kbRaw | ConvertFrom-Json -ErrorAction Stop
+                $kbArr = ConvertFrom-Jsonc -Text $kbRaw
                 $kbCount = @($kbArr).Count
                 $okMsg = $msgs.validateOkKeybindings -replace '\{bytes\}', $kbBytes
                 $okMsg = $okMsg -replace '\{entries\}', $kbCount
