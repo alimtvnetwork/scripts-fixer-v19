@@ -3695,6 +3695,18 @@ if ($hasCommand) {
         exit 0
     }
 
+    # Aliases: `install ssh <name>` / `create ssh <name>` / `generate ssh <name>`
+    # all mean the same thing as `ssh create <name>` (generate a new SSH key).
+    if ($normalizedCommand -in @('install','create','generate','gen','new','keygen','add') -and $Install -and $Install.Count -ge 1) {
+        $firstSshArg = "$($Install[0])".Trim().ToLower()
+        if ($firstSshArg -in @('ssh','sshkey','ssh-key','sshkeys','ssh-keys','key')) {
+            $sshRest = if ($Install.Count -gt 1) { @($Install[1..($Install.Count - 1)]) } else { @() }
+            $Command = 'ssh'
+            $Install = @('create') + $sshRest
+            $normalizedCommand = 'ssh'
+        }
+    }
+
     $isBareInstallCommand = $normalizedCommand -eq "install"
     $isBareUpdateCommand  = $normalizedCommand -eq "update" -or $normalizedCommand -eq "choco-update" -or $normalizedCommand -eq "upgrade"
     $isBareUninstallCommand  = $normalizedCommand -in @("uninstall","remove","rm")
