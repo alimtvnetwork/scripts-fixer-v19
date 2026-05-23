@@ -141,6 +141,73 @@ function Test-IsInteractive {
     } catch { return $false }
 }
 
+function Copy-TextToClipboard {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+
+    try {
+        if (Get-Command Set-Clipboard -ErrorAction SilentlyContinue) {
+            Set-Clipboard -Value $Text -ErrorAction Stop
+            return $true
+        }
+    } catch { }
+
+    try {
+        if (Get-Command clip.exe -ErrorAction SilentlyContinue) {
+            $Text | & clip.exe
+            if ($LASTEXITCODE -eq 0) {
+                return $true
+            }
+        }
+    } catch { }
+
+    return $false
+}
+
+function Show-AndCopyPublicKeys {
+    param([string[]]$Paths)
+
+    $uniquePaths = @($Paths | Where-Object { $_ } | Select-Object -Unique)
+    if ($uniquePaths.Count -eq 0) { return }
+
+    $pubKeys = New-Object System.Collections.Generic.List[string]
+    foreach ($path in $uniquePaths) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            Write-FileError -Path $path -Reason "public key file not found during clipboard copy"
+            continue
+        }
+
+        try {
+            $text = (Get-Content -LiteralPath $path -Raw -ErrorAction Stop).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($text)) {
+                $pubKeys.Add($text)
+            }
+        } catch {
+            Write-FileError -Path $path -Reason "public key read failed during clipboard copy: $($_.Exception.Message)"
+        }
+    }
+
+    $uniqueKeys = @($pubKeys | Select-Object -Unique)
+    if ($uniqueKeys.Count -eq 0) { return }
+
+    Write-Host ""
+    Write-Host "  [ COPY ] " -ForegroundColor Green -NoNewline
+    Write-Host "Public key text" -ForegroundColor White
+    Write-Host "  " ("-" * 70) -ForegroundColor DarkGray
+    foreach ($key in $uniqueKeys) {
+        Write-Host "  $key" -ForegroundColor Green
+    }
+    Write-Host "  " ("-" * 70) -ForegroundColor DarkGray
+
+    $joined = ($uniqueKeys -join "`r`n")
+    if (Copy-TextToClipboard -Text $joined) {
+        Write-Host "  [OK] 📋 Public key copied to clipboard." -ForegroundColor Green
+    } else {
+        Write-Host "  [WARN] Clipboard copy failed -- copy the public key text shown above." -ForegroundColor Yellow
+    }
+}
+
 function Get-KeyFingerprint {
     param([string]$Path)
     $sshKeygen = Get-Command ssh-keygen.exe -ErrorAction SilentlyContinue
@@ -356,9 +423,13 @@ $ordered += $candidates | Where-Object { $_.Name -notlike '*.pub' -and $_.Name -
 $ordered += $candidates | Where-Object { $_.Name -in @('authorized_keys','known_hosts','config') } | Sort-Object Name
 
 $shown = 0
+$matchedPublicKeyPaths = New-Object System.Collections.Generic.List[string]
 foreach ($f in $ordered) {
     if (Show-FileBlock -Path $f.FullName -Search $searchPattern -Mask:(-not $showPrivate) -Raw:$raw) {
         $shown++
+        if ($f.Name -like '*.pub') {
+            $matchedPublicKeyPaths.Add($f.FullName)
+        }
     }
 }
 
@@ -377,6 +448,10 @@ if ($showKnown) {
 }
 if ($showLedger -or $searchPattern) {
     Show-LedgerBlock -Search $searchPattern
+}
+
+if (-not $raw -and -not $privateOnly) {
+    Show-AndCopyPublicKeys -Paths $matchedPublicKeyPaths
 }
 
 Write-Host ""
