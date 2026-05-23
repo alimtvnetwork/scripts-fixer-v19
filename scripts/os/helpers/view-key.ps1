@@ -202,7 +202,7 @@ function Show-AndCopyPublicKeys {
 
     $joined = ($uniqueKeys -join "`r`n")
     if (Copy-TextToClipboard -Text $joined) {
-        Write-Host "  [OK] 📋 Public key copied to clipboard." -ForegroundColor Green
+        Write-Host "  [ OK  ] [CLIP] Public key copied to clipboard." -ForegroundColor Green
     } else {
         Write-Host "  [WARN] Clipboard copy failed -- copy the public key text shown above." -ForegroundColor Yellow
     }
