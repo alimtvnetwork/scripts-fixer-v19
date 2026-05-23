@@ -66,6 +66,8 @@ $promptHelper = Join-Path $helpersDir "_prompt.ps1"
 if (Test-Path $promptHelper) { . $promptHelper }
 $ledgerHelper = Join-Path $helpersDir "_ssh-ledger.ps1"
 if (Test-Path $ledgerHelper) { . $ledgerHelper }
+$pubKeyDisplayHelper = Join-Path $helpersDir "_pubkey-display.ps1"
+if (Test-Path $pubKeyDisplayHelper) { . $pubKeyDisplayHelper }
 
 Initialize-Logging -ScriptName "Gen Key"
 
