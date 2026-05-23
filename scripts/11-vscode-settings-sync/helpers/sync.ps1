@@ -410,7 +410,7 @@ function Test-VsCodeSettingsApplied {
         } else {
             try {
                 $raw = Get-Content -LiteralPath $SettingsPath -Raw -ErrorAction Stop
-                $obj = $raw | ConvertFrom-Jsonc
+                $obj = ConvertFrom-Jsonc -Text $raw
                 $keyCount = @($obj.PSObject.Properties).Count
                 $okMsg = $msgs.validateOkSettings -replace '\{bytes\}', $bytes
                 $okMsg = $okMsg -replace '\{keys\}', $keyCount
