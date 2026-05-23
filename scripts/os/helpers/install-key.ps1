@@ -273,6 +273,54 @@ foreach ($k in $incoming) {
     }
 }
 
+# ---- Show resolved public keys + copy to clipboard ----
+function Show-AndCopyPubKeys {
+    param([string[]]$Files)
+    $clipBuf = @()
+    foreach ($f in $Files) {
+        if (-not (Test-Path -LiteralPath $f)) { continue }
+        try {
+            $content = (Get-Content -LiteralPath $f -Raw -ErrorAction Stop).TrimEnd()
+        } catch {
+            Write-Log "Failed to read pub key for display at exact path: '$f' (failure: $($_.Exception.Message))" -Level "warn"
+            continue
+        }
+        Write-Host ""
+        Write-Host "  Public key: $f" -ForegroundColor Cyan
+        Write-Host "  ----------------------------------------------------------------" -ForegroundColor DarkGray
+        Write-Host "  $content" -ForegroundColor Green
+        Write-Host "  ----------------------------------------------------------------" -ForegroundColor DarkGray
+        $clipBuf += $content
+    }
+    if ($clipBuf.Count -gt 0) {
+        $joined = ($clipBuf -join "`r`n")
+        $copied = $false
+        try {
+            if (Get-Command Set-Clipboard -ErrorAction SilentlyContinue) {
+                Set-Clipboard -Value $joined -ErrorAction Stop
+                $copied = $true
+            }
+        } catch {
+            Write-Log "Set-Clipboard failed (failure: $($_.Exception.Message)) -- falling back to clip.exe" -Level "warn"
+        }
+        if (-not $copied) {
+            try {
+                $joined | & clip.exe
+                if ($LASTEXITCODE -eq 0) { $copied = $true }
+            } catch {
+                Write-Log "clip.exe fallback failed (failure: $($_.Exception.Message))" -Level "warn"
+            }
+        }
+        if ($copied) {
+            Write-Host "  [OK] Public key copied to clipboard." -ForegroundColor Green
+        } else {
+            Write-Host "  [WARN] Could not copy to clipboard -- copy manually from above." -ForegroundColor Yellow
+        }
+        Write-Host ""
+    }
+}
+Show-AndCopyPubKeys -Files $keyFiles
+
 Write-Host ""
 Write-Host "  Install Plan" -ForegroundColor Cyan
 Write-Host "  ============" -ForegroundColor DarkGray
