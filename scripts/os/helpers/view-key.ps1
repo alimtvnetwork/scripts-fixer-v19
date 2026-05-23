@@ -227,6 +227,8 @@ function Show-AndCopyPublicKeys {
     }
     Write-Host ""
 }
+
+function Get-KeyFingerprint {
     param([string]$Path)
     $sshKeygen = Get-Command ssh-keygen.exe -ErrorAction SilentlyContinue
     if (-not $sshKeygen) { return $null }
