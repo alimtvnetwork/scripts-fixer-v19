@@ -423,9 +423,13 @@ $ordered += $candidates | Where-Object { $_.Name -notlike '*.pub' -and $_.Name -
 $ordered += $candidates | Where-Object { $_.Name -in @('authorized_keys','known_hosts','config') } | Sort-Object Name
 
 $shown = 0
+$matchedPublicKeyPaths = New-Object System.Collections.Generic.List[string]
 foreach ($f in $ordered) {
     if (Show-FileBlock -Path $f.FullName -Search $searchPattern -Mask:(-not $showPrivate) -Raw:$raw) {
         $shown++
+        if ($f.Name -like '*.pub') {
+            $matchedPublicKeyPaths.Add($f.FullName)
+        }
     }
 }
 
@@ -444,6 +448,10 @@ if ($showKnown) {
 }
 if ($showLedger -or $searchPattern) {
     Show-LedgerBlock -Search $searchPattern
+}
+
+if (-not $raw -and -not $privateOnly) {
+    Show-AndCopyPublicKeys -Paths $matchedPublicKeyPaths
 }
 
 Write-Host ""
