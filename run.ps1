@@ -3949,6 +3949,7 @@ if ($hasCommand) {
             Write-Host "             -> os view-key --ledger" -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "  EXAMPLES:" -ForegroundColor Yellow
+            Write-Host "    .\run.ps1 ssh create erfan.v2          # -> ~\.ssh\id_ed25519_erfan.v2" -ForegroundColor Green
             Write-Host "    .\run.ps1 ssh gen --type ed25519 --ask" -ForegroundColor Green
             Write-Host "    .\run.ps1 ssh view" -ForegroundColor Green
             Write-Host "    .\run.ps1 ssh cat --name id_ed25519.pub" -ForegroundColor Green
