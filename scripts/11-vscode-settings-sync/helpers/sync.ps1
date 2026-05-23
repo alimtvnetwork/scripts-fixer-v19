@@ -352,6 +352,48 @@ function Test-VsCodeSettingsApplied {
     $startMsg = $startMsg -replace '\{dir\}', $SettingsDir
     Write-Log $startMsg -Level "info"
 
+    # VS Code settings.json and keybindings.json are JSONC: they may contain
+    # // line comments, /* block comments */, and trailing commas. PowerShell's
+    # ConvertFrom-Json is strict JSON, so strip JSONC syntax before parsing.
+    function ConvertFrom-Jsonc {
+        param([string]$Text)
+        if ($null -eq $Text) { return $null }
+        # Strip BOM
+        $Text = $Text -replace '^\uFEFF', ''
+        $sb = New-Object System.Text.StringBuilder
+        $i = 0; $len = $Text.Length
+        $inStr = $false; $esc = $false
+        while ($i -lt $len) {
+            $c = $Text[$i]
+            if ($inStr) {
+                [void]$sb.Append($c)
+                if ($esc) { $esc = $false }
+                elseif ($c -eq '\') { $esc = $true }
+                elseif ($c -eq '"') { $inStr = $false }
+                $i++; continue
+            }
+            if ($c -eq '"') { $inStr = $true; [void]$sb.Append($c); $i++; continue }
+            if ($c -eq '/' -and ($i + 1) -lt $len) {
+                $n = $Text[$i + 1]
+                if ($n -eq '/') {
+                    $i += 2
+                    while ($i -lt $len -and $Text[$i] -ne "`n" -and $Text[$i] -ne "`r") { $i++ }
+                    continue
+                }
+                if ($n -eq '*') {
+                    $i += 2
+                    while ($i -lt ($len - 1) -and -not ($Text[$i] -eq '*' -and $Text[$i + 1] -eq '/')) { $i++ }
+                    $i += 2
+                    continue
+                }
+            }
+            [void]$sb.Append($c); $i++
+        }
+        # Remove trailing commas before } or ]
+        $cleaned = [regex]::Replace($sb.ToString(), ',(\s*[}\]])', '$1')
+        return ($cleaned | ConvertFrom-Json -ErrorAction Stop)
+    }
+
     $settingsOk = $false; $keybindingsOk = $true; $extOk = $true
     $extInstalled = 0; $extExpected = 0
     if ($ExpectedExtensions) { $extExpected = $ExpectedExtensions.Count }
