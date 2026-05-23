@@ -73,6 +73,7 @@ Initialize-Logging -ScriptName "Gen Key"
 $type = "ed25519"; $bits = $null; $out = $null; $comment = $null
 $passphrase = $null; $hasNoPass = $false; $hasAsk = $false
 $hasForce = $false; $hasDryRun = $false
+$name = $null
 
 $i = 0
 while ($i -lt $Argv.Count) {
@@ -82,6 +83,8 @@ while ($i -lt $Argv.Count) {
         '^--type=(.+)$'    { $type = $Matches[1] }
         '^--bits$'         { $i++; $bits = [int]$Argv[$i] }
         '^--out$'          { $i++; $out = $Argv[$i] }
+        '^--name$'         { $i++; $name = $Argv[$i] }
+        '^--name=(.+)$'    { $name = $Matches[1] }
         '^--comment$'      { $i++; $comment = $Argv[$i] }
         '^--passphrase$'   { $i++; $passphrase = $Argv[$i] }
         '^--no-passphrase$' { $hasNoPass = $true }
@@ -93,8 +96,15 @@ while ($i -lt $Argv.Count) {
             Save-LogFile -Status "fail"; exit 64
         }
         default {
-            Write-Log "Unexpected positional: '$a' (failure: gen-key takes only flags)" -Level "fail"
-            Save-LogFile -Status "fail"; exit 64
+            # First bare positional is treated as the key name (used for
+            # filename suffix + comment). Reject any further positionals.
+            if ([string]::IsNullOrEmpty($name)) {
+                $name = $a
+                Write-Log "Using positional name: '$name' (key file + comment suffix)" -Level "info"
+            } else {
+                Write-Log "Unexpected positional: '$a' (failure: only one <name> positional allowed; got '$name' already)" -Level "fail"
+                Save-LogFile -Status "fail"; exit 64
+            }
         }
     }
     $i++
@@ -108,8 +118,26 @@ if ($type -notin @("ed25519", "rsa", "ecdsa")) {
 if ($type -eq "rsa" -and -not $bits) { $bits = 4096 }
 
 $sshDir = Join-Path $env:USERPROFILE ".ssh"
-if (-not $out) { $out = Join-Path $sshDir "id_$type" }
-if (-not $comment) { $comment = "$env:USERNAME@$env:COMPUTERNAME" }
+# Sanitize name for filesystem use (allow letters, digits, dot, dash, underscore)
+$safeName = $null
+if (-not [string]::IsNullOrEmpty($name)) {
+    $safeName = ($name -replace '[^A-Za-z0-9._-]', '_')
+}
+if (-not $out) {
+    if ($safeName) {
+        $out = Join-Path $sshDir "id_${type}_${safeName}"
+    } else {
+        $out = Join-Path $sshDir "id_$type"
+    }
+}
+if (-not $comment) {
+    if ($name) {
+        $comment = "$name ($env:USERNAME@$env:COMPUTERNAME)"
+    } else {
+        $comment = "$env:USERNAME@$env:COMPUTERNAME"
+    }
+}
+
 
 # Re-derive $sshDir from --out so cross-user / non-default --out paths get
 # the same hardening as the default %USERPROFILE%\.ssh path.
