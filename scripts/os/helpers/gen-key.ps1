@@ -266,5 +266,42 @@ Write-Host "    Comment     : $comment"
 if ($fingerprint) { Write-Host "    Fingerprint : $fingerprint" }
 Write-Host ""
 
+# ---- Display public key contents + copy to clipboard ----
+$pubKeyText = $null
+try {
+    $pubKeyText = (Get-Content -LiteralPath "$out.pub" -Raw -ErrorAction Stop).Trim()
+} catch {
+    Write-Log "Could not read public key for display at exact path: '$out.pub' (failure: $($_.Exception.Message))" -Level "warn"
+}
+
+if ($pubKeyText) {
+    Write-Host "  Public Key" -ForegroundColor Cyan
+    Write-Host "  ==========" -ForegroundColor DarkGray
+    Write-Host "  $pubKeyText" -ForegroundColor Green
+    Write-Host ""
+
+    $clipOk = $false
+    try {
+        if (Get-Command Set-Clipboard -ErrorAction SilentlyContinue) {
+            Set-Clipboard -Value $pubKeyText -ErrorAction Stop
+            $clipOk = $true
+        } elseif (Get-Command clip.exe -ErrorAction SilentlyContinue) {
+            $pubKeyText | clip.exe
+            if ($LASTEXITCODE -eq 0) { $clipOk = $true }
+        }
+    } catch {
+        Write-Log "Clipboard copy failed for public key at '$out.pub' (failure: $($_.Exception.Message))" -Level "warn"
+    }
+
+    if ($clipOk) {
+        Write-Host "  [ COPY ] Public key copied to clipboard." -ForegroundColor Green
+    } else {
+        Write-Host "  [ WARN ] Could not copy public key to clipboard (Set-Clipboard/clip.exe unavailable)." -ForegroundColor Yellow
+    }
+    Write-Host ""
+}
+
+
+
 Save-LogFile -Status "ok"
 exit 0
