@@ -175,7 +175,8 @@ function Invoke-VsCodeSetup {
         }
     }
 }
-}
+
+
 
 function Uninstall-VsCode {
     <#
