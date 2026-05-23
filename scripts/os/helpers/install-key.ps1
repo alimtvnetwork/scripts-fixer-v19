@@ -93,8 +93,30 @@ while ($i -lt $Argv.Count) {
             Save-LogFile -Status "fail"; exit 64
         }
         default {
-            Write-Log "Unexpected positional: '$a'" -Level "fail"
-            Save-LogFile -Status "fail"; exit 64
+            # Treat bare positional as a key name: try to resolve a matching
+            # .pub file inside ~/.ssh ( id_<type>_<name>.pub, <name>.pub, <name> )
+            $sshHome = Join-Path $env:USERPROFILE ".ssh"
+            $safe = ($a -replace '[^A-Za-z0-9._-]', '_')
+            $candidates = @(
+                (Join-Path $sshHome "id_ed25519_$safe.pub"),
+                (Join-Path $sshHome "id_rsa_$safe.pub"),
+                (Join-Path $sshHome "id_ecdsa_$safe.pub"),
+                (Join-Path $sshHome "$safe.pub"),
+                (Join-Path $sshHome $safe),
+                $a,
+                "$a.pub"
+            )
+            $resolved = $null
+            foreach ($c in $candidates) {
+                if (Test-Path -LiteralPath $c -PathType Leaf) { $resolved = $c; break }
+            }
+            if ($resolved) {
+                Write-Log "Resolved positional '$a' -> key file: $resolved" -Level "info"
+                $keyFiles += $resolved
+            } else {
+                Write-Log "Unexpected positional: '$a' (failure: no matching key file under $sshHome; tried: $($candidates -join ', '))" -Level "fail"
+                Save-LogFile -Status "fail"; exit 64
+            }
         }
     }
     $i++
