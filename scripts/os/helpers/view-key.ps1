@@ -127,6 +127,9 @@ if ($showHelp) {
 }
 
 # ── helpers ───────────────────────────────────────────────────────────
+$pubKeyDisplayHelper = Join-Path $PSScriptRoot "_pubkey-display.ps1"
+if (Test-Path $pubKeyDisplayHelper) { . $pubKeyDisplayHelper }
+
 function Write-FileError {
     param([string]$Path, [string]$Reason)
     Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
