@@ -174,44 +174,59 @@ function Show-AndCopyPublicKeys {
     $uniquePaths = @($Paths | Where-Object { $_ } | Select-Object -Unique)
     if ($uniquePaths.Count -eq 0) { return }
 
-    $pubKeys = New-Object System.Collections.Generic.List[string]
+    # Collect (path -> text) pairs so we can render one prominent box per key
+    # and copy the combined key text to the clipboard at the end.
+    $entries = New-Object System.Collections.Generic.List[object]
     foreach ($path in $uniquePaths) {
         if (-not (Test-Path -LiteralPath $path)) {
             Write-FileError -Path $path -Reason "public key file not found during clipboard copy"
             continue
         }
-
         try {
             $text = (Get-Content -LiteralPath $path -Raw -ErrorAction Stop).Trim()
             if (-not [string]::IsNullOrWhiteSpace($text)) {
-                $pubKeys.Add($text)
+                $entries.Add([pscustomobject]@{ Path = $path; Text = $text })
             }
         } catch {
             Write-FileError -Path $path -Reason "public key read failed during clipboard copy: $($_.Exception.Message)"
         }
     }
 
-    $uniqueKeys = @($pubKeys | Select-Object -Unique)
-    if ($uniqueKeys.Count -eq 0) { return }
+    if ($entries.Count -eq 0) { return }
 
-    Write-Host ""
-    Write-Host "  [ COPY ] " -ForegroundColor Green -NoNewline
-    Write-Host "Public key text" -ForegroundColor White
-    Write-Host "  " ("-" * 70) -ForegroundColor DarkGray
-    foreach ($key in $uniqueKeys) {
-        Write-Host "  $key" -ForegroundColor Green
+    $hasBox = [bool](Get-Command Show-PublicKeyBox -ErrorAction SilentlyContinue)
+
+    foreach ($e in $entries) {
+        $fp = $null
+        try { $fp = Get-KeyFingerprint -Path $e.Path } catch { }
+
+        if ($hasBox) {
+            # Each per-key box already prints + copies that key. We pass
+            # -NoCopy and do one combined copy at the end so the clipboard
+            # reflects every matched public key.
+            Show-PublicKeyBox -KeyText $e.Text `
+                              -Label   "PUBLIC SSH KEY" `
+                              -Path    $e.Path `
+                              -Fingerprint $fp `
+                              -NoCopy | Out-Null
+        } else {
+            Write-Host ""
+            Write-Host "  [ PUB  ] " -ForegroundColor Green -NoNewline
+            Write-Host $e.Path -ForegroundColor White
+            Write-Host "  $($e.Text)" -ForegroundColor Green
+        }
     }
-    Write-Host "  " ("-" * 70) -ForegroundColor DarkGray
 
-    $joined = ($uniqueKeys -join "`r`n")
+    $joined = (($entries | ForEach-Object { $_.Text }) -join "`r`n")
     if (Copy-TextToClipboard -Text $joined) {
-        Write-Host "  [ OK  ] [CLIP] Public key copied to clipboard." -ForegroundColor Green
+        Write-Host "  [ COPY ] " -ForegroundColor Green -NoNewline
+        Write-Host "Public key(s) copied to clipboard -- paste with Ctrl+V." -ForegroundColor White
     } else {
-        Write-Host "  [WARN] Clipboard copy failed -- copy the public key text shown above." -ForegroundColor Yellow
+        Write-Host "  [ WARN ] " -ForegroundColor Yellow -NoNewline
+        Write-Host "Clipboard copy failed -- select the key text above and copy manually." -ForegroundColor White
     }
+    Write-Host ""
 }
-
-function Get-KeyFingerprint {
     param([string]$Path)
     $sshKeygen = Get-Command ssh-keygen.exe -ErrorAction SilentlyContinue
     if (-not $sshKeygen) { return $null }
