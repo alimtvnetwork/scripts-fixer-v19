@@ -194,21 +194,36 @@ function Assert-GitmapInstalled {
             $binDir = Split-Path -Parent $candidate
             Write-Log ($msgs.verifyFoundAt -replace '\{path\}', $candidate) -Level "warn"
             $env:Path = "$binDir;$env:Path"
+            # Clear PowerShell's command cache so Get-Command re-resolves
+            try { Get-Command -Name gitmap -ErrorAction SilentlyContinue | Out-Null } catch { }
             $r = Test-GitmapVersion
             if ($r) {
                 Write-Log ($msgs.verifyOk       -replace '\{version\}', $r.Version) -Level "success"
                 Write-Log ($msgs.verifyBinaryAt -replace '\{path\}',    $r.BinaryPath) -Level "info"
                 return @{ Success = $true; Version = $r.Version; BinaryPath = $r.BinaryPath; ExitCode = $r.ExitCode; Output = $r.Output }
             }
+            # PATH lookup failed -- invoke the candidate directly by absolute path
+            try {
+                $out  = & $candidate --version 2>&1
+                $code = $LASTEXITCODE
+                $text = ("$out").Trim()
+                if ($code -eq 0 -and -not [string]::IsNullOrWhiteSpace($text)) {
+                    $ver = ($text -replace '^\s*gitmap\s*', '').Trim()
+                    Write-Log ($msgs.verifyOk       -replace '\{version\}', $ver) -Level "success"
+                    Write-Log ($msgs.verifyBinaryAt -replace '\{path\}',    $candidate) -Level "info"
+                    return @{ Success = $true; Version = $ver; BinaryPath = $candidate; ExitCode = $code; Output = $text }
+                }
+            } catch { }
         } else {
-            Write-FileError -FilePath $candidate -Operation "probe-gitmap-binary" `
-                -Reason "Candidate gitmap.exe path does not exist on disk." -Module "Assert-GitmapInstalled"
+            # Not an error -- this is just a well-known location probe. Log as info only.
+            Write-Log ("Probe: gitmap.exe not at {0} (skipping)" -f $candidate) -Level "info"
         }
     }
 
     Write-FileError -FilePath "gitmap" -Operation "verify" -Reason $msgs.verifyFinalFail -Module "Assert-GitmapInstalled"
     return @{ Success = $false; Version = $null; BinaryPath = $null; ExitCode = $null; Output = $null }
 }
+
 
 function Install-GitmapViaZip {
     <#
