@@ -3726,6 +3726,7 @@ if ($hasCommand) {
     $isBareSshCommand     = $normalizedCommand -in @("ssh","sshkey","ssh-key","ssh-keys","sshkeys")
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
     $isBareVscodeContextMenuCommand = $normalizedCommand -in @("vscode-context-menu", "vscode-contextmenu", "vscodecontextmenu", "vscode-menu", "vscodemenu")
+    $isBareChromeCommand = $normalizedCommand -in @("chrome","google-chrome","googlechrome")
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
@@ -3754,7 +3755,7 @@ if ($hasCommand) {
     #   - any of $Install contains --no-pull / -no-pull / --offline
     #   - command is read-only (status/path/scan/export/doctor)
     $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand -or $isBareReportCommand
-    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareSshCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand -or $isBareInstallCommand -or $isBareMenuCommand
+    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareSshCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand -or $isBareInstallCommand -or $isBareMenuCommand -or $isBareChromeCommand
     $isNoPullEnv = $env:SCRIPTS_FIXER_NO_PULL -eq "1"
     $isNoPullFlag = $false
     if ($null -ne $Install) {
@@ -4009,6 +4010,33 @@ if ($hasCommand) {
         exit $LASTEXITCODE
     }
 
+    if ($isBareChromeCommand) {
+        Show-VersionHeader
+        $chromeScript = Join-Path $RootDir "scripts\58-install-chrome\run.ps1"
+        if (-not (Test-Path $chromeScript)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "Chrome dispatcher missing at: $chromeScript"
+            Write-Host "          Reason: expected scripts\58-install-chrome\run.ps1 to exist relative to repo root: $RootDir" -ForegroundColor DarkGray
+            exit 1
+        }
+        $chromeArgs = @()
+        if ($null -ne $Install) { $chromeArgs = @($Install) }
+        if ($Y -and -not ($chromeArgs | Where-Object { "$_".Trim().ToLower() -in @('-y','--yes','-yes') })) {
+            $chromeArgs += '-Yes'
+        }
+        if ($chromeArgs.Count -eq 0) {
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Usage: .\run.ps1 chrome <fix-ai|install|uninstall|with-ext|ext|ext-all|ext-url>" -ForegroundColor DarkGray
+            exit 0
+        }
+        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+        Write-Host "Routing 'chrome $($chromeArgs -join ' ')' to: " -NoNewline
+        Write-Host $chromeScript -ForegroundColor White
+        & $chromeScript @chromeArgs
+        exit $LASTEXITCODE
+    }
+
+
     if ($isBareVscodeContextMenuCommand) {
         Show-VersionHeader
         $vscodeCtxScript = Join-Path $RootDir "scripts\52-vscode-folder-repair\run.ps1"
@@ -4200,7 +4228,8 @@ if ($hasCommand) {
             'ext','extension','extensions',
             'ext-all','extall','ext_all','all-ext','extensions-all',
             'ext-url','exturl','ext-urls','exturls','ext-from-url',
-            'ext-url-all','exturlall','ext-urls-all','ext-from-urls-all','all-ext-url'
+            'ext-url-all','exturlall','ext-urls-all','ext-from-urls-all','all-ext-url',
+            'fix-ai','fixai','fix_ai','no-ai','disable-ai','ai-off'
         )
         $hasChromeSub = ($Install.Count -ge 2) -and `
                         ($firstToken -in $chromeAliases) -and `

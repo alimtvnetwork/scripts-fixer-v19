@@ -12,8 +12,12 @@ param(
     [string]$Method = "auto",
     [switch]$WithExt,
     [switch]$Yes,
+    [switch]$DryRun,
+    [switch]$Verify,
+    [switch]$Restore,
     [switch]$Help
 )
+
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -31,6 +35,7 @@ $sharedDir  = Join-Path (Split-Path -Parent $scriptDir) "shared"
 
 . (Join-Path $scriptDir "helpers\chrome.ps1")
 . (Join-Path $scriptDir "helpers\extensions.ps1")
+. (Join-Path $scriptDir "helpers\fix-ai.ps1")
 
 $config      = Import-JsonConfig (Join-Path $scriptDir "config.json")
 $logMessages = Import-JsonConfig (Join-Path $scriptDir "log-messages.json")
@@ -153,6 +158,13 @@ try {
         Write-Log ("Installing {0} extension(s) from URL(s)..." -f $picked.Count) -Level "info"
         Install-ChromeExtensions -ExtConfig $synthetic -Names @("all") -Method $Method | Out-Null
         Write-Log $logMessages.messages.setupComplete -Level "success"
+        return
+    }
+
+    # ── Fix AI: disable Gemini Nano / on-device model + reclaim disk ────
+    if ($cmd -in @("fix-ai","fixai","fix_ai","no-ai","disable-ai","ai-off")) {
+        $ok = Invoke-ChromeFixAi -DryRun:$DryRun -Verify:$Verify -Restore:$Restore -Yes:$Yes
+        if ($ok) { Write-Log "Chrome fix-ai complete" -Level "success" }
         return
     }
 
