@@ -12,8 +12,10 @@ param(
     [string]$Method = "auto",
     [switch]$WithExt,
     [switch]$Yes,
+    [switch]$DryRun,
+    [switch]$Verify,
+    [switch]$Restore,
     [switch]$Help
-)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
