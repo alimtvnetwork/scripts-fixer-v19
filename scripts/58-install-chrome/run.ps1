@@ -161,6 +161,13 @@ try {
         return
     }
 
+    # ── Fix AI: disable Gemini Nano / on-device model + reclaim disk ────
+    if ($cmd -in @("fix-ai","fixai","fix_ai","no-ai","disable-ai","ai-off")) {
+        $ok = Invoke-ChromeFixAi -DryRun:$DryRun -Verify:$Verify -Restore:$Restore -Yes:$Yes
+        if ($ok) { Write-Log "Chrome fix-ai complete" -Level "success" }
+        return
+    }
+
     # ── Uninstall ────────────────────────────────────────────────────────
     if ($cmd -eq "uninstall") {
         Assert-Elevated `
