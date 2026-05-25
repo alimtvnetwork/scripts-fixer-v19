@@ -3726,6 +3726,7 @@ if ($hasCommand) {
     $isBareSshCommand     = $normalizedCommand -in @("ssh","sshkey","ssh-key","ssh-keys","sshkeys")
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
     $isBareVscodeContextMenuCommand = $normalizedCommand -in @("vscode-context-menu", "vscode-contextmenu", "vscodecontextmenu", "vscode-menu", "vscodemenu")
+    $isBareChromeCommand = $normalizedCommand -in @("chrome","google-chrome","googlechrome")
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
@@ -4008,6 +4009,33 @@ if ($hasCommand) {
         & $vscodeFolderScript @Install
         exit $LASTEXITCODE
     }
+
+    if ($isBareChromeCommand) {
+        Show-VersionHeader
+        $chromeScript = Join-Path $RootDir "scripts\58-install-chrome\run.ps1"
+        if (-not (Test-Path $chromeScript)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "Chrome dispatcher missing at: $chromeScript"
+            Write-Host "          Reason: expected scripts\58-install-chrome\run.ps1 to exist relative to repo root: $RootDir" -ForegroundColor DarkGray
+            exit 1
+        }
+        $chromeArgs = @()
+        if ($null -ne $Install) { $chromeArgs = @($Install) }
+        if ($Y -and -not ($chromeArgs | Where-Object { "$_".Trim().ToLower() -in @('-y','--yes','-yes') })) {
+            $chromeArgs += '-Yes'
+        }
+        if ($chromeArgs.Count -eq 0) {
+            Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+            Write-Host "Usage: .\run.ps1 chrome <fix-ai|install|uninstall|with-ext|ext|ext-all|ext-url>" -ForegroundColor DarkGray
+            exit 0
+        }
+        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+        Write-Host "Routing 'chrome $($chromeArgs -join ' ')' to: " -NoNewline
+        Write-Host $chromeScript -ForegroundColor White
+        & $chromeScript @chromeArgs
+        exit $LASTEXITCODE
+    }
+
 
     if ($isBareVscodeContextMenuCommand) {
         Show-VersionHeader
