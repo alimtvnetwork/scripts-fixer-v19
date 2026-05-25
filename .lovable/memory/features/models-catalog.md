@@ -7,8 +7,8 @@ type: feature
 # Models Catalog
 
 ## Counts
-- **90 unique models** across **33 families** in `scripts/43-install-llama-cpp/models-catalog.json`
-- Catalog version `4.1.0` (bumped from 4.0.0 in v0.95.0)
+- **96 unique models** across **35 families** in `scripts/43-install-llama-cpp/models-catalog.json`
+- Catalog version `4.1.2` (added Qwen3-Coder-30B-A3B, Yi-Coder-9B, Yi-Coder-1.5B in v1.5.31)
 - 9 datacenter-class (>=64 GB RAM): DeepSeek V3.2, Kimi K2.6, GLM 5.1, MiniMax M2/M2.7, Nemotron 3 Super 120B, gpt-oss-120b, Qwen 3.5 122B-A10B, DeepSeek R1 70B
 - All 90 have valid `downloadUrl` (HF resolve URL); 10 have `leaderboardRank` field
 
