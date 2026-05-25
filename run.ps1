@@ -4200,7 +4200,8 @@ if ($hasCommand) {
             'ext','extension','extensions',
             'ext-all','extall','ext_all','all-ext','extensions-all',
             'ext-url','exturl','ext-urls','exturls','ext-from-url',
-            'ext-url-all','exturlall','ext-urls-all','ext-from-urls-all','all-ext-url'
+            'ext-url-all','exturlall','ext-urls-all','ext-from-urls-all','all-ext-url',
+            'fix-ai','fixai','fix_ai','no-ai','disable-ai','ai-off'
         )
         $hasChromeSub = ($Install.Count -ge 2) -and `
                         ($firstToken -in $chromeAliases) -and `
