@@ -16,6 +16,8 @@ param(
     [switch]$Verify,
     [switch]$Restore,
     [switch]$Help
+)
+
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -33,6 +35,7 @@ $sharedDir  = Join-Path (Split-Path -Parent $scriptDir) "shared"
 
 . (Join-Path $scriptDir "helpers\chrome.ps1")
 . (Join-Path $scriptDir "helpers\extensions.ps1")
+. (Join-Path $scriptDir "helpers\fix-ai.ps1")
 
 $config      = Import-JsonConfig (Join-Path $scriptDir "config.json")
 $logMessages = Import-JsonConfig (Join-Path $scriptDir "log-messages.json")
