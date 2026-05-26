@@ -296,6 +296,16 @@ Default-app management (cross-OS: Linux uses xdg-settings/xdg-mime, macOS uses d
       Linux requires xdg-utils; macOS recommends `brew install duti` for
       non-interactive setting (otherwise opens System Settings as fallback).
 
+Chrome on-device AI disabler (Linux/macOS port of script 58 fix-ai helper):
+  chrome-fix-ai [--browser chrome|chromium|brave|all]
+                [--dry-run] [--verify] [--restore] [--yes]
+                Disable Gemini Nano / Optimization-Guide On-Device Model
+                across 3 layers: system managed-policy JSON (root only),
+                per-user Local State JSON patch (preserves other flags),
+                and on-disk model cache sweep with bytes-freed report.
+                Aliases: fix-ai | chrome-ai | disable-chrome-ai
+
+
 macOS VS Code menu cleanup (script 66 shortcuts; macOS only):
   vscode-mac-clean             Remove Finder Services workflows, LaunchAgents/
                                Daemons, Login Items, code/code-insiders shims,
