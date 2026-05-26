@@ -222,7 +222,7 @@ apply_policy_linux() {
     log_file_error "$policy_path" "rename failed (cannot publish managed policy)"
     POLICY_RESULT="fail"; return 1
   }
-  log_success "Managed policy written: $policy_path  (${#POLICY_NAMES[@]} keys)"
+  log_ok "Managed policy written: $policy_path  (${#POLICY_NAMES[@]} keys)"
   POLICY_RESULT="ok"; return 0
 }
 apply_policy_macos() {
@@ -234,7 +234,7 @@ apply_policy_macos() {
   fi
   for k in "${POLICY_NAMES[@]}"; do
     if defaults write "$plist_id" "$k" -int 1 2>/dev/null; then
-      log_success "Per-user policy set: $plist_id $k = 1"
+      log_ok "Per-user policy set: $plist_id $k = 1"
     else
       log_warn "Could not set per-user policy: $plist_id $k  (reason: defaults write failed)"
     fi
@@ -251,7 +251,7 @@ remove_policy_linux() {
     log_warn "Cannot remove $policy_path: not root."
     return 0
   fi
-  rm -f "$policy_path" && log_success "Policy removed: $policy_path" \
+  rm -f "$policy_path" && log_ok "Policy removed: $policy_path" \
     || log_file_error "$policy_path" "rm failed (cannot remove managed policy)"
 }
 remove_policy_macos() {
@@ -259,7 +259,7 @@ remove_policy_macos() {
   [ -n "$plist_id" ] || return 0
   for k in "${POLICY_NAMES[@]}"; do
     defaults delete "$plist_id" "$k" >/dev/null 2>&1 \
-      && log_success "Per-user policy removed: $plist_id $k" \
+      && log_ok "Per-user policy removed: $plist_id $k" \
       || log_info "Per-user policy not set (clean): $plist_id $k"
   done
 }
@@ -321,7 +321,7 @@ patch_local_state() {
     log_file_error "$local_state" "write failed (could not publish patched Local State)"
     return 1
   fi
-  log_success "Local State patched: $add_count AI flag(s) disabled, $kept_count other flag(s) preserved"
+  log_ok "Local State patched: $add_count AI flag(s) disabled, $kept_count other flag(s) preserved"
   PATCH_STATUS="ok"; PATCH_COUNT="$add_count"; return 0
 }
 
@@ -338,7 +338,7 @@ restore_local_state() {
     return 0
   fi
   if cp -f "$newest" "$local_state" 2>/dev/null; then
-    log_success "Restored Local State from: $newest"
+    log_ok "Restored Local State from: $newest"
   else
     log_file_error "$local_state" "restore copy failed from $newest"
   fi
@@ -362,7 +362,7 @@ sweep_cache() {
       continue
     fi
     if rm -rf "$root" 2>/dev/null; then
-      log_success "Cache swept: $root ($(fmt_bytes "$size") freed)"
+      log_ok "Cache swept: $root ($(fmt_bytes "$size") freed)"
       SWEEP_FREED=$((SWEEP_FREED + size)); SWEEP_ROOTS=$((SWEEP_ROOTS + 1))
     else
       log_file_error "$root" "rm -rf failed (cannot delete model cache)"
