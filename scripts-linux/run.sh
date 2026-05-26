@@ -161,6 +161,11 @@ while [ $# -gt 0 ]; do
     # ./run.sh models <id> ... -d /path       custom output dir
     models|model)
         VERB="models"; shift; MODELS_REST=("$@"); break ;;
+    # ---- top-level shortcut: chrome fix-ai (Linux/macOS port of script 58 helper) -
+    # ./run.sh chrome-fix-ai [--browser chrome|chromium|brave|all]
+    #                        [--dry-run] [--verify] [--restore] [--yes]
+    chrome-fix-ai|fix-ai|chrome-ai|disable-chrome-ai)
+        VERB="chrome-fix-ai"; shift; CFA_REST=("$@"); break ;;
     # ---- top-level shortcut: SHA256-pinned remote installers ------------
     # ./run.sh install coding-guidelines       (alias: clean-code, cg, cc, code-guide)
     # Streams the upstream install.sh from gitub via curl, verifies the
