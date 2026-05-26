@@ -183,21 +183,26 @@ require_jq() {
 }
 is_root() { [ "$(id -u 2>/dev/null || echo 1000)" = "0" ]; }
 
+# NOTE: helpers that "return" via globals (POLICY_RESULT, PATCH_*, SWEEP_*)
+# because the shared logger writes to stdout; capturing stdout would mix log
+# lines into the return value.
+
 # ---- Layer 1: system policy -------------------------------------------------
+POLICY_RESULT=""
 apply_policy_linux() {
   local policy_path="$1"
   if ! is_root; then
     log_warn "Skipping system policy ($policy_path): not running as root. Re-run with sudo to apply enterprise policy."
-    echo "skipped"; return 0
+    POLICY_RESULT="skipped"; return 0
   fi
   local dir; dir="$(dirname "$policy_path")"
   if [ "$DRY_RUN" = 1 ]; then
-    log_info "DRY-RUN: would mkdir -p $dir and write managed policy JSON ($(( ${#POLICY_NAMES[@]} )) keys)"
-    echo "ok"; return 0
+    log_info "DRY-RUN: would mkdir -p $dir and write managed policy JSON (${#POLICY_NAMES[@]} keys)"
+    POLICY_RESULT="ok"; return 0
   fi
   if ! mkdir -p "$dir" 2>/dev/null; then
     log_file_error "$dir" "mkdir failed (cannot create managed-policy directory)"
-    echo "fail"; return 1
+    POLICY_RESULT="fail"; return 1
   fi
   {
     printf '{\n'
@@ -211,21 +216,21 @@ apply_policy_linux() {
     printf '}\n'
   } > "$policy_path.tmp" 2>/dev/null || {
     log_file_error "$policy_path.tmp" "write failed (cannot stage managed policy)"
-    echo "fail"; return 1
+    POLICY_RESULT="fail"; return 1
   }
   mv -f "$policy_path.tmp" "$policy_path" 2>/dev/null || {
     log_file_error "$policy_path" "rename failed (cannot publish managed policy)"
-    echo "fail"; return 1
+    POLICY_RESULT="fail"; return 1
   }
   log_success "Managed policy written: $policy_path  (${#POLICY_NAMES[@]} keys)"
-  echo "ok"; return 0
+  POLICY_RESULT="ok"; return 0
 }
 apply_policy_macos() {
   local plist_id="$1"
-  [ -n "$plist_id" ] || { echo "skipped"; return 0; }
+  [ -n "$plist_id" ] || { POLICY_RESULT="skipped"; return 0; }
   if [ "$DRY_RUN" = 1 ]; then
     log_info "DRY-RUN: would 'defaults write $plist_id <key> -int 1' for ${#POLICY_NAMES[@]} keys"
-    echo "ok"; return 0
+    POLICY_RESULT="ok"; return 0
   fi
   for k in "${POLICY_NAMES[@]}"; do
     if defaults write "$plist_id" "$k" -int 1 2>/dev/null; then
@@ -234,7 +239,7 @@ apply_policy_macos() {
       log_warn "Could not set per-user policy: $plist_id $k  (reason: defaults write failed)"
     fi
   done
-  echo "ok"; return 0
+  POLICY_RESULT="ok"; return 0
 }
 remove_policy_linux() {
   local policy_path="$1"
