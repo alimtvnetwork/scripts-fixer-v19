@@ -543,6 +543,7 @@ function Show-RootHelpRaw {
     Write-Host "    $("install chrome ext-all".PadRight($kc))" -NoNewline; Write-Host "Install ALL configured extensions (vpn, tabcopy, tabextend, adblocker, ...) [58]" -ForegroundColor DarkGray
     Write-Host "    $("install chrome ext-url <urls|file>".PadRight($kc))" -NoNewline; Write-Host "Install ad-hoc extensions from raw Web Store URLs / IDs / .csv / .txt [58]" -ForegroundColor DarkGray
     Write-Host "    $("uninstall chrome".PadRight($kc))" -NoNewline; Write-Host "Uninstall Chrome + clean shortcuts/registry/AppData (warns on HKLM if not elevated) [58]" -ForegroundColor DarkGray
+    Write-Host "    $("chrome fix-ai".PadRight($kc))" -NoNewline; Write-Host "Disable built-in AI (Gemini Nano) + reclaim 2-4 GB; --dry-run / --verify / --restore [58]" -ForegroundColor DarkGray
     Write-Host "    $("install protonvpn".PadRight($kc))" -NoNewline; Write-Host "Install Proton VPN (aliases: proton, proton-vpn, vpn) [60]" -ForegroundColor DarkGray
     Write-Host "    $("uninstall protonvpn".PadRight($kc))" -NoNewline; Write-Host "Uninstall Proton VPN + clean .installed/protonvpn.json record [60]" -ForegroundColor DarkGray
     Write-Host "    $("install jumpjump-vpn".PadRight($kc))" -NoNewline; Write-Host "Install JumpJump VPN via direct download (aliases: jumpjump, jumpjumpvpn, jjvpn) [61]" -ForegroundColor DarkGray
@@ -558,6 +559,11 @@ function Show-RootHelpRaw {
     Write-Host "        .\run.ps1 install chrome".PadRight(60) -NoNewline; Write-Host "# Chrome only (choco -> official installer fallback)" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 install chrome with-ext".PadRight(60) -NoNewline; Write-Host "# Chrome + all configured Web Store extensions" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 uninstall chrome".PadRight(60) -NoNewline; Write-Host "# Remove Chrome + clean shortcuts / registry / AppData" -ForegroundColor DarkGray
+    Write-Host "      AI / Gemini Nano disable (reclaim 2-4 GB):" -ForegroundColor DarkYellow
+    Write-Host "        .\run.ps1 chrome fix-ai".PadRight(60) -NoNewline; Write-Host "# Disable Chrome's built-in AI + delete on-device model cache" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 chrome fix-ai --dry-run".PadRight(60) -NoNewline; Write-Host "# Preview policy + flag + cache changes without writing" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 chrome fix-ai --verify".PadRight(60) -NoNewline; Write-Host "# Report current policy/flag/cache state only" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 chrome fix-ai --restore".PadRight(60) -NoNewline; Write-Host "# Revert policies + restore Local State backup" -ForegroundColor DarkGray
     Write-Host "      Extensions from the bundled catalog:" -ForegroundColor DarkYellow
     Write-Host "        .\run.ps1 install chrome ext".PadRight(60) -NoNewline; Write-Host "# List the catalog (name -> Web Store ID)" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 install chrome ext vpn".PadRight(60) -NoNewline; Write-Host "# Install ONE extension by name" -ForegroundColor DarkGray
