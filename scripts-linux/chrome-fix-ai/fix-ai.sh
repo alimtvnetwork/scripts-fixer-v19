@@ -293,7 +293,7 @@ patch_local_state() {
 
   local stamp backup
   stamp="$(date +%Y%m%d-%H%M%S)"
-  backup="${local_state}.bak-fixai-${stamp}"
+  backup="${local_state}.${BACKUP_SUFFIX}-${stamp}"
   if ! cp -f "$local_state" "$backup" 2>/dev/null; then
     log_file_error "$backup" "backup copy failed (refusing to patch without backup)"
     return 1
@@ -317,7 +317,7 @@ restore_local_state() {
     return 0
   fi
   local newest
-  newest="$(ls -1t "$user_data"/Local\ State.bak-fixai-* 2>/dev/null | head -1)"
+  newest="$(ls -1t "$user_data"/Local\ State.${BACKUP_SUFFIX}-* 2>/dev/null | head -1)"
   if [ -z "$newest" ]; then
     log_warn "No fix-ai backup found in: $user_data  (reason: nothing to restore)"
     return 0
