@@ -477,21 +477,21 @@ for t in "${TARGETS[@]}"; do
   printf '\n  ===== %s =====\n' "$t" >&2
 
   # Layer 1
-  if [ "$PLATFORM" = "linux" ]; then pol_result="$(apply_policy_linux "$pp")"
-  else                                pol_result="$(apply_policy_macos "$pid")"
+  if [ "$PLATFORM" = "linux" ]; then apply_policy_linux "$pp"
+  else                                apply_policy_macos "$pid"
   fi
+  pol_result="$POLICY_RESULT"
 
   # Layer 2
-  ps_out="$(patch_local_state "$ls" "$pn")" || true
-  IFS='|' read -r ps_status ps_count ps_backup <<<"$ps_out"
+  patch_local_state "$ls" "$pn" || true
+  ps_status="$PATCH_STATUS"; ps_count="$PATCH_COUNT"
 
   # Layer 3
-  sw_out="$(sweep_cache "$ud")"
-  IFS='|' read -r sw_freed sw_roots <<<"$sw_out"
-  TOTAL_FREED=$((TOTAL_FREED + sw_freed))
+  sweep_cache "$ud"
+  TOTAL_FREED=$((TOTAL_FREED + SWEEP_FREED))
 
   SUMMARY_LINES+=("$(printf '  %-9s policy=%-8s flags=%-9s cache=%s freed across %s root(s)' \
-    "$t" "$pol_result" "${ps_status}(${ps_count:-0}/${#FLAG_NAMES[@]})" "$(fmt_bytes "$sw_freed")" "${sw_roots:-0}")")
+    "$t" "$pol_result" "${ps_status}(${ps_count:-0}/${#FLAG_NAMES[@]})" "$(fmt_bytes "$SWEEP_FREED")" "${SWEEP_ROOTS:-0}")")
 
   [ "$ps_status" = "ok" ] || [ "$DRY_RUN" = 1 ] || OVERALL_OK=0
 done
