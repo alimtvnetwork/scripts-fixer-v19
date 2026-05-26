@@ -4043,6 +4043,28 @@ if ($hasCommand) {
         exit $LASTEXITCODE
     }
 
+    if ($isBareChromeFixAiCommand) {
+        Show-VersionHeader
+        $chromeScript = Join-Path $RootDir "scripts\58-install-chrome\run.ps1"
+        if (-not (Test-Path $chromeScript)) {
+            Write-Host "  [ FAIL ] " -ForegroundColor Red -NoNewline
+            Write-Host "Chrome dispatcher missing at: $chromeScript"
+            Write-Host "          Reason: expected scripts\58-install-chrome\run.ps1 to exist relative to repo root: $RootDir" -ForegroundColor DarkGray
+            exit 1
+        }
+        $chromeArgs = @('fix-ai')
+        if ($null -ne $Install) { $chromeArgs += @($Install) }
+        if ($Y -and -not ($chromeArgs | Where-Object { "$_".Trim().ToLower() -in @('-y','--yes','-yes') })) {
+            $chromeArgs += '-Yes'
+        }
+        Write-Host "  [ INFO ] " -ForegroundColor Cyan -NoNewline
+        Write-Host "Routing 'chrome-fix-ai $($Install -join ' ')' to: " -NoNewline
+        Write-Host $chromeScript -ForegroundColor White
+        & $chromeScript @chromeArgs
+        exit $LASTEXITCODE
+    }
+
+
 
     if ($isBareVscodeContextMenuCommand) {
         Show-VersionHeader
