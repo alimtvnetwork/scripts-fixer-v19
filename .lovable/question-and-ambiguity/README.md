@@ -32,8 +32,8 @@ Tracks every point of unclear requirement or inference made during the
 | 11 | [11-script54-residue-report.md](./11-script54-residue-report.md) | Add detailed residue report listing missing/leftover keys per scope to script 54 scope matrix | **Option B** — extended `tests/run-scope-matrix.ps1` (single-source-of-truth for expected paths). Added `$residueRows` ledger with 4 classes (`RESIDUE` / `MISSING-AFTER-INSTALL` / `BLEED-INSTALL` / `BLEED-UNINSTALL`), `Write-ResidueReport` table renderer, and optional `-ReportPath` JSON dump (schema v1). Existing exit-code semantics preserved. Worked around two pwsh 7.5+ `Argument types do not match` quirks (nested `[ordered]`, `@($genericList)`). Parse + JSON dump verified under pwsh 7.5.4. | closed |
 
 _Append new rows here as ambiguities are logged._
-- [12 — Script 54 CI: elevation-gated AllUsers job](./12-script54-ci-elevation-gate.md)
-- [13 — SSH orchestrator: spec + scaffold + kubeadm playbook](./13-ssh-orchestrator-bootstrap.md)
+- [12 — Script 54 CI: elevation-gated AllUsers job](./12-script54-ci-elevation-gate.md) — **closed** (`.github/workflows/test-script-54.yml` shipped: 2 jobs, elevation probe, skip-notice path verified)
+- [13 — SSH orchestrator: spec + scaffold + kubeadm playbook](./13-ssh-orchestrator-bootstrap.md) — **closed** (scripts-orchestrator/ shipped: 15 .sh files, sqlite audit, parallel runner, kubeadm playbook; all checks PASS)
 - [14 — Script 65 (Windows): plan-confirm-apply-verify dispatcher](./14-script65-windows-dispatcher.md) — **closed** (scripts/65-os-clean shipped + registry wired + verification PASS)
 - [15 — Interactive mode for 16/18/70 (PHP / MySQL / WordPress)](./15-interactive-mode.md) — **closed** (shared interactive.sh/.ps1 + 4 run scripts updated; 34/34 unit tests PASS)
 - [16 — Kimodo specialty model: where to add](./16-kimodo-models-list.md) — **closed** (Option B shipped: `spec/kimodo/readme.md` + root readme "Specialty AI Models" subsection)
