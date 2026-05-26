@@ -3265,7 +3265,7 @@ if ($_isEarlyHelp) {
     }
 
     $_completionPool = @(
-        'chrome','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
+        'chrome','chrome-fix-ai','fix-ai','ext','ext-url','ext-all','vscode','vscode-folder','conemu',
         'menu','context-menu','profile','install','uninstall','update',
         'self-update','settings','export','os','doctor','logs','report','reset',
         'path','models','models-download','download','url','git','git-tools','gsa','mysql','postgresql',
@@ -3733,6 +3733,7 @@ if ($hasCommand) {
     $isBareVscodeFolderCommand = $normalizedCommand -in @("vscode-folder", "vscode-folder-repair", "vscodefolder", "vscodefolderrepair")
     $isBareVscodeContextMenuCommand = $normalizedCommand -in @("vscode-context-menu", "vscode-contextmenu", "vscodecontextmenu", "vscode-menu", "vscodemenu")
     $isBareChromeCommand = $normalizedCommand -in @("chrome","google-chrome","googlechrome")
+    $isBareChromeFixAiCommand = $normalizedCommand -in @("chrome-fix-ai","chromefixai","chrome-fixai","chrome-no-ai","chrome-disable-ai")
     $isBareProfileCommand = $normalizedCommand -eq "profile" -or $normalizedCommand -eq "profiles"
     $isBareGitToolsCommand = $normalizedCommand -eq "git-tools" -or $normalizedCommand -eq "gittools"
     $isBareGsaCommand     = $normalizedCommand -eq "gsa" -or $normalizedCommand -eq "git-safe-all" -or $normalizedCommand -eq "gitsafeall"
@@ -3761,7 +3762,7 @@ if ($hasCommand) {
     #   - any of $Install contains --no-pull / -no-pull / --offline
     #   - command is read-only (status/path/scan/export/doctor)
     $isReadOnlyBare = $isBarePathCommand -or $isBareScanCommand -or $isBareExportCommand -or $isBareStatusCommand -or $isBareDoctorCommand -or $isBareReportCommand
-    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareSshCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand -or $isBareInstallCommand -or $isBareMenuCommand -or $isBareChromeCommand
+    $isDispatchingBareSubcommand = $isBareOsCommand -or $isBareSshCommand -or $isBareVscodeFolderCommand -or $isBareVscodeContextMenuCommand -or $isBareProfileCommand -or $isBareGitToolsCommand -or $isBareGsaCommand -or $isBareModelsCommand -or $isBareModelsDownloadCommand -or $isBareInstallCommand -or $isBareMenuCommand -or $isBareChromeCommand -or $isBareChromeFixAiCommand
     $isNoPullEnv = $env:SCRIPTS_FIXER_NO_PULL -eq "1"
     $isNoPullFlag = $false
     if ($null -ne $Install) {
