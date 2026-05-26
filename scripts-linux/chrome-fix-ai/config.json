@@ -1,0 +1,37 @@
+{
+  "tool": "chrome-fix-ai",
+  "platform": ["linux", "macos"],
+  "policyNames": [
+    "GenAiDefaultSettings",
+    "GenAILocalFoundationalModelSettings",
+    "HelpMeWriteSettings",
+    "CreateThemesSettings",
+    "TabOrganizerSettings",
+    "TabCompareSettings",
+    "HistorySearchSettings",
+    "AutofillPredictionSettings"
+  ],
+  "flagNames": [
+    "optimization-guide-on-device-model",
+    "prompt-api-for-gemini-nano",
+    "summarization-api-for-gemini-nano",
+    "writer-api-for-gemini-nano",
+    "rewriter-api-for-gemini-nano"
+  ],
+  "disabledSlot": 2,
+  "cacheSubdirs": ["OptimizationGuideOnDeviceModel", "OptGuideOnDeviceModel"],
+  "browsers": {
+    "linux": {
+      "chrome":   { "userData": "$HOME/.config/google-chrome",                       "policyPath": "/etc/opt/chrome/policies/managed/lovable-fix-ai.json",   "procName": "chrome" },
+      "chromium": { "userData": "$HOME/.config/chromium",                            "policyPath": "/etc/chromium/policies/managed/lovable-fix-ai.json",     "procName": "chromium" },
+      "brave":    { "userData": "$HOME/.config/BraveSoftware/Brave-Browser",         "policyPath": "/etc/brave/policies/managed/lovable-fix-ai.json",        "procName": "brave" }
+    },
+    "macos": {
+      "chrome":   { "userData": "$HOME/Library/Application Support/Google/Chrome",                "plistId": "com.google.Chrome",       "procName": "Google Chrome" },
+      "chromium": { "userData": "$HOME/Library/Application Support/Chromium",                     "plistId": "org.chromium.Chromium",   "procName": "Chromium" },
+      "brave":    { "userData": "$HOME/Library/Application Support/BraveSoftware/Brave-Browser",  "plistId": "com.brave.Browser",       "procName": "Brave Browser" }
+    }
+  },
+  "backupSuffix": "bak-fixai",
+  "rationale": "Mirrors scripts/58-install-chrome/helpers/fix-ai.ps1 constants so Windows + Linux/macOS stay in lockstep when Chrome adds new GenAI policies or flag slots."
+}
