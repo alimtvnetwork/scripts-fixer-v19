@@ -543,6 +543,7 @@ function Show-RootHelpRaw {
     Write-Host "    $("install chrome ext-all".PadRight($kc))" -NoNewline; Write-Host "Install ALL configured extensions (vpn, tabcopy, tabextend, adblocker, ...) [58]" -ForegroundColor DarkGray
     Write-Host "    $("install chrome ext-url <urls|file>".PadRight($kc))" -NoNewline; Write-Host "Install ad-hoc extensions from raw Web Store URLs / IDs / .csv / .txt [58]" -ForegroundColor DarkGray
     Write-Host "    $("uninstall chrome".PadRight($kc))" -NoNewline; Write-Host "Uninstall Chrome + clean shortcuts/registry/AppData (warns on HKLM if not elevated) [58]" -ForegroundColor DarkGray
+    Write-Host "    $("chrome fix-ai".PadRight($kc))" -NoNewline; Write-Host "Disable built-in AI (Gemini Nano) + reclaim 2-4 GB; --dry-run / --verify / --restore [58]" -ForegroundColor DarkGray
     Write-Host "    $("install protonvpn".PadRight($kc))" -NoNewline; Write-Host "Install Proton VPN (aliases: proton, proton-vpn, vpn) [60]" -ForegroundColor DarkGray
     Write-Host "    $("uninstall protonvpn".PadRight($kc))" -NoNewline; Write-Host "Uninstall Proton VPN + clean .installed/protonvpn.json record [60]" -ForegroundColor DarkGray
     Write-Host "    $("install jumpjump-vpn".PadRight($kc))" -NoNewline; Write-Host "Install JumpJump VPN via direct download (aliases: jumpjump, jumpjumpvpn, jjvpn) [61]" -ForegroundColor DarkGray
