@@ -559,6 +559,11 @@ function Show-RootHelpRaw {
     Write-Host "        .\run.ps1 install chrome".PadRight(60) -NoNewline; Write-Host "# Chrome only (choco -> official installer fallback)" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 install chrome with-ext".PadRight(60) -NoNewline; Write-Host "# Chrome + all configured Web Store extensions" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 uninstall chrome".PadRight(60) -NoNewline; Write-Host "# Remove Chrome + clean shortcuts / registry / AppData" -ForegroundColor DarkGray
+    Write-Host "      AI / Gemini Nano disable (reclaim 2-4 GB):" -ForegroundColor DarkYellow
+    Write-Host "        .\run.ps1 chrome fix-ai".PadRight(60) -NoNewline; Write-Host "# Disable Chrome's built-in AI + delete on-device model cache" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 chrome fix-ai --dry-run".PadRight(60) -NoNewline; Write-Host "# Preview policy + flag + cache changes without writing" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 chrome fix-ai --verify".PadRight(60) -NoNewline; Write-Host "# Report current policy/flag/cache state only" -ForegroundColor DarkGray
+    Write-Host "        .\run.ps1 chrome fix-ai --restore".PadRight(60) -NoNewline; Write-Host "# Revert policies + restore Local State backup" -ForegroundColor DarkGray
     Write-Host "      Extensions from the bundled catalog:" -ForegroundColor DarkYellow
     Write-Host "        .\run.ps1 install chrome ext".PadRight(60) -NoNewline; Write-Host "# List the catalog (name -> Web Store ID)" -ForegroundColor DarkGray
     Write-Host "        .\run.ps1 install chrome ext vpn".PadRight(60) -NoNewline; Write-Host "# Install ONE extension by name" -ForegroundColor DarkGray
