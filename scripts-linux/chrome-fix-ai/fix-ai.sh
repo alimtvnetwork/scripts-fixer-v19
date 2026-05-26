@@ -82,68 +82,53 @@ case "$UNAME" in
   *) log_err "fix-ai: unsupported platform '$UNAME' (Linux/macOS only)"; exit 65 ;;
 esac
 
+# ---- load config.json -------------------------------------------------------
+# Single source of truth for policy names, flag IDs, cache subdirs and per-OS
+# browser paths. Keep in lockstep with scripts/58-install-chrome/helpers/fix-ai.ps1.
+__CFG="$__SELF_DIR/config.json"
+if [ ! -f "$__CFG" ]; then
+  log_file_error "$__CFG" "config.json missing (cannot resolve policies/flags/browser paths)"
+  exit 1
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  log_err "fix-ai: 'jq' is required to read $__CFG."
+  log_info "       Install: apt-get install jq | dnf install jq | brew install jq"
+  exit 1
+fi
+
+# Read scalars + arrays once.
+mapfile -t POLICY_NAMES  < <(jq -r '.policyNames[]'   "$__CFG" 2>/dev/null)
+mapfile -t FLAG_NAMES    < <(jq -r '.flagNames[]'     "$__CFG" 2>/dev/null)
+mapfile -t CACHE_SUBDIRS < <(jq -r '.cacheSubdirs[]'  "$__CFG" 2>/dev/null)
+DISABLED_SLOT="$(jq -r '.disabledSlot // 2'           "$__CFG" 2>/dev/null)"
+BACKUP_SUFFIX="$(jq -r '.backupSuffix // "bak-fixai"' "$__CFG" 2>/dev/null)"
+
+if [ "${#POLICY_NAMES[@]}" -eq 0 ] || [ "${#FLAG_NAMES[@]}" -eq 0 ] || [ "${#CACHE_SUBDIRS[@]}" -eq 0 ]; then
+  log_file_error "$__CFG" "schema invalid (policyNames/flagNames/cacheSubdirs must be non-empty arrays)"
+  exit 1
+fi
+
 # ---- per-browser path table -------------------------------------------------
 # Echoes:  user_data_dir | local_state | policy_path | proc_name | plist_id
+# Sourced from config.json; $HOME tokens are expanded here.
 browser_paths() {
   local id="$1"
-  if [ "$PLATFORM" = "linux" ]; then
-    case "$id" in
-      chrome)   printf '%s|%s|%s|%s|%s\n' \
-                  "$HOME/.config/google-chrome" \
-                  "$HOME/.config/google-chrome/Local State" \
-                  "/etc/opt/chrome/policies/managed/lovable-fix-ai.json" \
-                  "chrome" "" ;;
-      chromium) printf '%s|%s|%s|%s|%s\n' \
-                  "$HOME/.config/chromium" \
-                  "$HOME/.config/chromium/Local State" \
-                  "/etc/chromium/policies/managed/lovable-fix-ai.json" \
-                  "chromium" "" ;;
-      brave)    printf '%s|%s|%s|%s|%s\n' \
-                  "$HOME/.config/BraveSoftware/Brave-Browser" \
-                  "$HOME/.config/BraveSoftware/Brave-Browser/Local State" \
-                  "/etc/brave/policies/managed/lovable-fix-ai.json" \
-                  "brave" "" ;;
-    esac
-  else
-    case "$id" in
-      chrome)   printf '%s|%s|%s|%s|%s\n' \
-                  "$HOME/Library/Application Support/Google/Chrome" \
-                  "$HOME/Library/Application Support/Google/Chrome/Local State" \
-                  "$HOME/Library/Preferences/com.google.Chrome.plist" \
-                  "Google Chrome" "com.google.Chrome" ;;
-      chromium) printf '%s|%s|%s|%s|%s\n' \
-                  "$HOME/Library/Application Support/Chromium" \
-                  "$HOME/Library/Application Support/Chromium/Local State" \
-                  "$HOME/Library/Preferences/org.chromium.Chromium.plist" \
-                  "Chromium" "org.chromium.Chromium" ;;
-      brave)    printf '%s|%s|%s|%s|%s\n' \
-                  "$HOME/Library/Application Support/BraveSoftware/Brave-Browser" \
-                  "$HOME/Library/Application Support/BraveSoftware/Brave-Browser/Local State" \
-                  "$HOME/Library/Preferences/com.brave.Browser.plist" \
-                  "Brave Browser" "com.brave.Browser" ;;
-    esac
+  local node ud pp pn pid ls
+  node="$(jq -c --arg os "$PLATFORM" --arg id "$id" '.browsers[$os][$id] // empty' "$__CFG" 2>/dev/null)"
+  if [ -z "$node" ]; then
+    log_err "fix-ai: browser '$id' has no entry under .browsers.$PLATFORM in $__CFG"
+    return 1
   fi
+  ud="$(printf '%s'  "$node" | jq -r '.userData   // ""')"
+  pp="$(printf '%s'  "$node" | jq -r '.policyPath // ""')"
+  pn="$(printf '%s'  "$node" | jq -r '.procName   // ""')"
+  pid="$(printf '%s' "$node" | jq -r '.plistId    // ""')"
+  ud="${ud//\$HOME/$HOME}"
+  pp="${pp//\$HOME/$HOME}"
+  ls="$ud/Local State"
+  printf '%s|%s|%s|%s|%s\n' "$ud" "$ls" "$pp" "$pn" "$pid"
 }
 
-POLICY_NAMES=(
-  GenAiDefaultSettings
-  GenAILocalFoundationalModelSettings
-  HelpMeWriteSettings
-  CreateThemesSettings
-  TabOrganizerSettings
-  TabCompareSettings
-  HistorySearchSettings
-  AutofillPredictionSettings
-)
-FLAG_NAMES=(
-  optimization-guide-on-device-model
-  prompt-api-for-gemini-nano
-  summarization-api-for-gemini-nano
-  writer-api-for-gemini-nano
-  rewriter-api-for-gemini-nano
-)
-DISABLED_SLOT=2
-CACHE_SUBDIRS=( OptimizationGuideOnDeviceModel OptGuideOnDeviceModel )
 
 # ---- utilities --------------------------------------------------------------
 fmt_bytes() {
