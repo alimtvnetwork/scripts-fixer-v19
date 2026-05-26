@@ -345,9 +345,10 @@ restore_local_state() {
 }
 
 # ---- Layer 3: cache sweep ---------------------------------------------------
+SWEEP_FREED=0; SWEEP_ROOTS=0
 sweep_cache() {
+  SWEEP_FREED=0; SWEEP_ROOTS=0
   local user_data="$1"
-  local total_freed=0 swept=0
   for sub in "${CACHE_SUBDIRS[@]}"; do
     local root="$user_data/$sub"
     if [ ! -d "$root" ]; then
@@ -357,17 +358,16 @@ sweep_cache() {
     local size; size="$(folder_size "$root")"
     if [ "$DRY_RUN" = 1 ]; then
       log_info "DRY-RUN: would delete $root ($(fmt_bytes "$size"))"
-      total_freed=$((total_freed + size)); swept=$((swept + 1))
+      SWEEP_FREED=$((SWEEP_FREED + size)); SWEEP_ROOTS=$((SWEEP_ROOTS + 1))
       continue
     fi
     if rm -rf "$root" 2>/dev/null; then
       log_success "Cache swept: $root ($(fmt_bytes "$size") freed)"
-      total_freed=$((total_freed + size)); swept=$((swept + 1))
+      SWEEP_FREED=$((SWEEP_FREED + size)); SWEEP_ROOTS=$((SWEEP_ROOTS + 1))
     else
       log_file_error "$root" "rm -rf failed (cannot delete model cache)"
     fi
   done
-  echo "$total_freed|$swept"
 }
 
 # ---- verify ------------------------------------------------------------------
