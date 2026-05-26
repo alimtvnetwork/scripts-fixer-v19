@@ -560,6 +560,15 @@ verb_repair_all() {
 
 case "${VERB:-help}" in
   help) show_help ;;
+  chrome-fix-ai)
+    CFA_SCRIPT="$ROOT/chrome-fix-ai/fix-ai.sh"
+    if [ ! -f "$CFA_SCRIPT" ]; then
+      log_file_error "$CFA_SCRIPT" "chrome-fix-ai script missing"
+      exit 1
+    fi
+    bash "$CFA_SCRIPT" "${CFA_REST[@]:-}"
+    exit $?
+    ;;
   fast-download)
     # Parse: <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
     fd_url=""; fd_dir="$PWD"; fd_splits=16; fd_piece="1M"
