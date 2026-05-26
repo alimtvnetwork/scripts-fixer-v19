@@ -265,19 +265,21 @@ remove_policy_macos() {
 }
 
 # ---- Layer 2: Local State JSON patch ----------------------------------------
+PATCH_STATUS=""; PATCH_COUNT=0; PATCH_BACKUP=""
 patch_local_state() {
+  PATCH_STATUS="skipped"; PATCH_COUNT=0; PATCH_BACKUP=""
   local local_state="$1" proc_name="$2"
   if [ ! -f "$local_state" ]; then
     log_warn "Local State not found at: $local_state  (reason: browser never launched on this profile or user-data dir differs)"
-    echo "skipped|0|"; return 0
+    return 0
   fi
   if browser_running "$proc_name"; then
     if [ "$ASSUME_YES" != 1 ] && [ "$DRY_RUN" != 1 ]; then
       log_err "Refusing to patch Local State: '$proc_name' is running. Close it and retry, or pass --yes (the browser may overwrite the patch on exit)."
-      echo "skipped|0|"; return 1
+      return 1
     fi
   fi
-  require_jq || { echo "skipped|0|"; return 1; }
+  require_jq || return 1
 
   local additions kept_count add_count
   additions="$(printf '%s\n' "${FLAG_NAMES[@]}" | awk -v slot="$DISABLED_SLOT" '{printf "\"%s@%d\"\n", $0, slot}' | paste -sd, -)"
@@ -291,7 +293,7 @@ patch_local_state() {
             (((.browser.enabled_labs_experiments // []) | map(select(test($pat) | not))) + $add)' \
        "$local_state" 2>/dev/null)"; then
     log_file_error "$local_state" "jq parse failed (cannot read Local State JSON)"
-    echo "skipped|0|"; return 1
+    return 1
   fi
 
   kept_count=$(printf '%s' "$merged_json" | jq -r --arg pat "$flag_pattern" \
@@ -301,7 +303,7 @@ patch_local_state() {
   if [ "$DRY_RUN" = 1 ]; then
     log_info "DRY-RUN: would write $add_count flag entries into $local_state (preserving $kept_count existing)"
     for f in "${FLAG_NAMES[@]}"; do log_info "  + ${f}@${DISABLED_SLOT}"; done
-    echo "ok|$add_count|"; return 0
+    PATCH_STATUS="ok"; PATCH_COUNT="$add_count"; return 0
   fi
 
   local stamp backup
@@ -309,17 +311,18 @@ patch_local_state() {
   backup="${local_state}.bak-fixai-${stamp}"
   if ! cp -f "$local_state" "$backup" 2>/dev/null; then
     log_file_error "$backup" "backup copy failed (refusing to patch without backup)"
-    echo "skipped|0|"; return 1
+    return 1
   fi
   log_info "Backup written: $backup"
+  PATCH_BACKUP="$backup"
 
   if ! printf '%s' "$merged_json" > "$local_state.tmp" 2>/dev/null \
      || ! mv -f "$local_state.tmp" "$local_state" 2>/dev/null; then
     log_file_error "$local_state" "write failed (could not publish patched Local State)"
-    echo "skipped|0|$backup"; return 1
+    return 1
   fi
   log_success "Local State patched: $add_count AI flag(s) disabled, $kept_count other flag(s) preserved"
-  echo "ok|$add_count|$backup"; return 0
+  PATCH_STATUS="ok"; PATCH_COUNT="$add_count"; return 0
 }
 
 restore_local_state() {
