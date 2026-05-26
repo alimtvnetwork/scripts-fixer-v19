@@ -36,4 +36,4 @@ _Append new rows here as ambiguities are logged._
 - [13 — SSH orchestrator: spec + scaffold + kubeadm playbook](./13-ssh-orchestrator-bootstrap.md)
 - [14 — Script 65 (Windows): plan-confirm-apply-verify dispatcher](./14-script65-windows-dispatcher.md) — **closed** (scripts/65-os-clean shipped + registry wired + verification PASS)
 - [15 — Interactive mode for 16/18/70 (PHP / MySQL / WordPress)](./15-interactive-mode.md)
-- [16 — Kimodo specialty model: where to add](./16-kimodo-models-list.md)
+- [16 — Kimodo specialty model: where to add](./16-kimodo-models-list.md) — **closed** (Option B shipped: `spec/kimodo/readme.md` + root readme "Specialty AI Models" subsection)
