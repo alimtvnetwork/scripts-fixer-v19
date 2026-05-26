@@ -161,6 +161,11 @@ while [ $# -gt 0 ]; do
     # ./run.sh models <id> ... -d /path       custom output dir
     models|model)
         VERB="models"; shift; MODELS_REST=("$@"); break ;;
+    # ---- top-level shortcut: chrome fix-ai (Linux/macOS port of script 58 helper) -
+    # ./run.sh chrome-fix-ai [--browser chrome|chromium|brave|all]
+    #                        [--dry-run] [--verify] [--restore] [--yes]
+    chrome-fix-ai|fix-ai|chrome-ai|disable-chrome-ai)
+        VERB="chrome-fix-ai"; shift; CFA_REST=("$@"); break ;;
     # ---- top-level shortcut: SHA256-pinned remote installers ------------
     # ./run.sh install coding-guidelines       (alias: clean-code, cg, cc, code-guide)
     # Streams the upstream install.sh from gitub via curl, verifies the
@@ -290,6 +295,16 @@ Default-app management (cross-OS: Linux uses xdg-settings/xdg-mime, macOS uses d
       --dry-run                           Detect + plan only; no changes applied
       Linux requires xdg-utils; macOS recommends `brew install duti` for
       non-interactive setting (otherwise opens System Settings as fallback).
+
+Chrome on-device AI disabler (Linux/macOS port of script 58 fix-ai helper):
+  chrome-fix-ai [--browser chrome|chromium|brave|all]
+                [--dry-run] [--verify] [--restore] [--yes]
+                Disable Gemini Nano / Optimization-Guide On-Device Model
+                across 3 layers: system managed-policy JSON (root only),
+                per-user Local State JSON patch (preserves other flags),
+                and on-disk model cache sweep with bytes-freed report.
+                Aliases: fix-ai | chrome-ai | disable-chrome-ai
+
 
 macOS VS Code menu cleanup (script 66 shortcuts; macOS only):
   vscode-mac-clean             Remove Finder Services workflows, LaunchAgents/
@@ -555,6 +570,15 @@ verb_repair_all() {
 
 case "${VERB:-help}" in
   help) show_help ;;
+  chrome-fix-ai)
+    CFA_SCRIPT="$ROOT/chrome-fix-ai/fix-ai.sh"
+    if [ ! -f "$CFA_SCRIPT" ]; then
+      log_file_error "$CFA_SCRIPT" "chrome-fix-ai script missing"
+      exit 1
+    fi
+    bash "$CFA_SCRIPT" "${CFA_REST[@]:-}"
+    exit $?
+    ;;
   fast-download)
     # Parse: <url> [<dir>] [-s|--splits N] [-p|--piece-size SIZE]
     fd_url=""; fd_dir="$PWD"; fd_splits=16; fd_piece="1M"
